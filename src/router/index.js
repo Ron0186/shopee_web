@@ -20,8 +20,23 @@ const router = createRouter({
           name: "FrontAbout",
           component: () => import("@/views/front/About.vue"),
         },
+
         // ...其他前台路由
       ],
+    },
+
+    //使用者登入頁
+    {
+      path: "/user/login",
+      name: "UserLogin",
+      component: () => import("@/views/front/UserLogin.vue"),
+    },
+
+    //使用者註冊頁
+    {
+      path: "/user/register",
+      name: "UserRegister",
+      component: () => import("@/views/front/UserRegister.vue"),
     },
 
     /**
