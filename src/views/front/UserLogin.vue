@@ -2,8 +2,8 @@
   <div>
     <h2>使用者登入</h2>
     <form @submit.prevent="login">
-      <input type="email" v-model="email" placeholder="輸入 Email" required />
-      <input type="password" v-model="password" placeholder="輸入密碼" required />
+      <input type="email" v-model="user.email" placeholder="輸入 Email" required />
+      <input type="password" v-model="user.password" placeholder="輸入密碼" required />
       <button type="submit">登入</button>
     </form>
     
@@ -18,8 +18,10 @@ import axios from "axios"; // 引入 axios
 export default {
   data() {
     return {
-      email: "",
-      password: "",
+      user: {
+        email: "",
+        password: ""
+      },
       errorMessage: "",
       successMessage: ""
     };
@@ -30,12 +32,7 @@ export default {
       this.successMessage = "";
 
       try {
-        const response = await axios.post("http://localhost:8081/user/login", null, {
-          params: {
-            email: this.email,
-            password: this.password
-          }
-        });
+        const response = await axios.post("http://localhost:8081/api/users/login", this.user);
 
         // 成功處理
         this.successMessage = response.data.successMessage;
@@ -45,8 +42,8 @@ export default {
         localStorage.setItem("userEmail", response.data.email);
         localStorage.setItem("userName", response.data.userName);
 
-        // 可導向到其他頁面
-        // this.$router.push('/home');
+        //可導向到其他頁面
+        this.$router.push('/');
       } catch (error) {
         if (error.response) {
           // 取得後端回傳的錯誤訊息

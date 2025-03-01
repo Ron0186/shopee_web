@@ -1,98 +1,73 @@
 <template>
-    <div class="register-container">
-      <h2>使用者註冊</h2>
-      <form @submit.prevent="register">
-        <input type="text" v-model="userName" placeholder="輸入用戶名稱" required />
-        <input type="email" v-model="email" placeholder="輸入 Email" required />
-        <input type="password" v-model="password" placeholder="輸入密碼" required />
-        <input type="text" v-model="phone" placeholder="輸入電話號碼" required />
-        <button type="submit">註冊</button>
-      </form>
-  
-      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-      <p v-if="successMessage" class="success">{{ successMessage }}</p>
+  <div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card p-4 shadow">
+          <h3 class="text-center mb-4">註冊</h3>
+          <form @submit.prevent="register">
+            <div class="mb-3">
+              <label class="form-label">用戶名稱</label>
+              <input v-model="user.userName" type="text" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">電子郵件</label>
+              <input v-model="user.email" type="email" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">密碼</label>
+              <input v-model="user.password" type="password" class="form-control" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">手機號碼</label>
+              <input v-model="user.phone" type="tel" class="form-control" required />
+            </div>
+            <button type="submit" class="btn btn-primary w-100">註冊</button>
+          </form>
+          <div v-if="successMessage" class="alert alert-success mt-3">
+            {{ successMessage }}
+          </div>
+          <div v-if="errorMessage" class="alert alert-danger mt-3">
+            {{ errorMessage }}
+          </div>
+        </div>
+      </div>
     </div>
-  </template>
-  
-  <script>
-  import axios from "axios";
-  
-  export default {
-    data() {
-      return {
-        userName: "",
-        email: "",
-        password: "",
-        phone: "",
-        errorMessage: "",
-        successMessage: ""
-      };
-    },
-    methods: {
-      async register() {
-        this.errorMessage = "";
-        this.successMessage = "";
-  
-        try {
-          const response = await axios.post("http://localhost:8081/user/register", null, {
-            params: {
-              userName: this.userName,
-              email: this.email,
-              password: this.password,
-              phone: this.phone
-            }
-          });
-  
-          this.successMessage = response.data.successMessage;
-          alert("註冊成功，歡迎 " + this.userName);
-          
-          // 可自動導向登入頁面
-          this.$router.push("/user/login");
-        } catch (error) {
-          if (error.response && error.response.data) {
-            this.errorMessage = error.response.data.errorMessage || "註冊失敗";
-          } else {
-            this.errorMessage = "無法連線至伺服器";
-          }
-        }
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+
+export default {
+  data() {
+    return {
+      user: {
+        userName: '',
+        email: '',
+        password: '',
+        phone: ''
+      },
+      successMessage: '',
+      errorMessage: ''
+    };
+  },
+  methods: {
+    async register() {
+      try {
+        const response = await axios.post('http://localhost:8081/api/users/register', this.user);
+        this.successMessage = response.data.successMessage;
+        this.errorMessage = '';
+      } catch (error) {
+        this.errorMessage = error.response?.data?.errorMessage || '註冊失敗，請稍後再試。';
+        this.successMessage = '';
       }
     }
-  };
-  </script>
-  
-  <style scoped>
-  .register-container {
-    width: 300px;
-    margin: auto;
-    text-align: center;
   }
-  
-  input {
-    display: block;
-    width: 100%;
-    margin-bottom: 10px;
-    padding: 8px;
-  }
-  
-  button {
-    width: 100%;
-    padding: 8px;
-    background-color: #28a745;
-    color: white;
-    border: none;
-    cursor: pointer;
-  }
-  
-  button:hover {
-    background-color: #218838;
-  }
-  
-  .error {
-    color: red;
-  }
-  
-  .success {
-    color: green;
-  }
-  </style>
-  
+};
+</script>
+
+<style>
+.container {
+  max-width: 600px;
+}
+</style>
