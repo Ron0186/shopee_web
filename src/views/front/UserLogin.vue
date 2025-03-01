@@ -39,8 +39,14 @@ export default {
         alert("登入成功！歡迎, " + response.data.userName);
 
         // 存 Token 或用戶資訊
-        localStorage.setItem("userEmail", response.data.email);
-        localStorage.setItem("userName", response.data.userName);
+        localStorage.setItem("jwtToken", response.data.token);
+
+        // 解析 JWT
+        const payload = JSON.parse(atob(response.data.token.split(".")[1]));
+
+        // 從 JWT 解析出 email 和 userName
+        localStorage.setItem("userEmail", payload.sub); // sub 就是 email
+        localStorage.setItem("userName", payload.userName);
 
         //可導向到其他頁面
         this.$router.push('/');
