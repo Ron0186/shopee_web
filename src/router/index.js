@@ -29,23 +29,23 @@ const router = createRouter({
     {
       path: "/user/login",
       name: "UserLogin",
-      component: () => import("@/views/front/UserLogin.vue"),
+      component: () => import("@/views/auth/UserLogin.vue"),
     },
 
     //使用者註冊頁
     {
       path: "/user/register",
       name: "UserRegister",
-      component: () => import("@/views/front/UserRegister.vue"),
+      component: () => import("@/views/auth/UserRegister.vue"),
     },
 
     /**
      * 後台登入頁
      */
     {
-      path: "/login",
+      path: "/admin/login",
       name: "AdminLogin",
-      component: () => import("@/views/admin/Login.vue"),
+      component: () => import("@/views/auth/AdminLogin.vue"),
     },
 
     /**
@@ -57,7 +57,7 @@ const router = createRouter({
       children: [
         {
           // 首頁儀表板
-          path: "/",
+          path: "",
           name: "Dashboard",
           component: () => import("@/views/admin/Dashboard.vue"),
         },

@@ -4,4 +4,5 @@ import { ref } from "vue";
 
 <template>
   <div class="">Admin layout</div>
+  <router-view></router-view>
 </template>
