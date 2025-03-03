@@ -1,87 +1,106 @@
 <template>
-  <div class="container mt-5">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <div class="card p-4 shadow">
-          <h3 class="text-center mb-4">註冊</h3>
-          <form @submit.prevent="register">
-            <div class="mb-3">
-              <label class="form-label">用戶名稱</label>
-              <input v-model="user.userName" type="text" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label class="form-label">電子郵件</label>
-              <input v-model="user.email" type="email" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label class="form-label">密碼</label>
-              <input v-model="user.password" type="password" class="form-control" required />
-            </div>
-            <div class="mb-3">
-              <label class="form-label">手機號碼</label>
-              <input v-model="user.phone" type="tel" class="form-control" required />
-            </div>
-            <button type="submit" class="btn btn-primary w-100">註冊</button>
-          </form>
-          <div v-if="successMessage" class="alert alert-success mt-3">
-            {{ successMessage }}
-          </div>
-          <div v-if="errorMessage" class="alert alert-danger mt-3">
-            {{ errorMessage }}
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
+  <table>
+  <tbody>
+      <tr>
+          <td>使用者名稱 : </td>
+          <td><input v-model="userName" type="text" required /></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td>密碼 : </td>
+          <td><input v-model="password" type="password" required /></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td>Email : </td>
+          <td><input v-model="email" type="email" required /></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td>手機號碼 : </td>
+          <td><input v-model="phone" type="tel" required /></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td> </td>
+          <td align="right"><button type="button" @click="register">註冊</button></td>
+      </tr>
+  </tbody>
+</table>
+
 </template>
 
-<script>
-import axios from 'axios';
+<script setup>
+import axios from '@/plugins/axios';
+import { ref } from 'vue';
+import Swal from 'sweetalert2';
+import { useRouter } from 'vue-router';
 
-export default {
-  data() {
-    return {
-      user: {
-        userName: '',
-        email: '',
-        password: '',
-        phone: '',
-      },
-      successMessage: '',
-      errorMessage: '',
-    };
-  },
-  methods: {
-    async register() {
-      try {
-        const response = await axios.post('http://localhost:8081/api/users/register', this.user);
-        this.successMessage = response.data.successMessage;
-        this.errorMessage = '';
-        // 清空表單
-        this.user = {
-          userName: '',
-          email: '',
-          password: '',
-          phone: '',
-        };
-        // 可以加上導向登入頁面
-        // this.$router.push('/login');
-      } catch (error) {
-        if (error.response) {
-          // 後端返回錯誤響應
-          this.errorMessage = error.response.data.errorMessage || '註冊失敗，請稍後再試。';
-        } else if (error.request) {
-          // 請求發送成功，但沒有收到響應
-          this.errorMessage = '無法連接到伺服器，請檢查您的網路連接。';
-        } else {
-          // 發送請求時發生錯誤
-          this.errorMessage = '發生未知錯誤，請稍後再試。';
-        }
-        this.successMessage = '';
+const router = useRouter();
+const userName = ref(null)
+const password = ref(null);
+const email = ref(null);
+const phone = ref(null);
+
+
+async function register(){
+  if(userName.value===""){
+    userName.value = null;
+  }
+
+  if(password.value===""){
+      password.value = null;
+  }
+  
+  if(email.value===""){
+    email.value = null;
+  }
+  
+  if(phone.value===""){
+    phone.value = null;
+  }
+  
+
+  const data={
+      "userName": userName.value,
+      "password": password.value,
+      "email": email.value,
+      "phone": phone.value
+  };
+  console.log("data", data)
+  
+  axios.defaults.headers.common['Authorization'] = ``
+  try {
+      const response = await axios.post("/api/users/register",data);
+      // console.log("response",response)
+      
+      if(response.data.success){
+          await Swal.fire({
+          title: response.data.message,
+          icon: "success",
+      });
+
+      //導向登入
+      router.push({
+          name: "UserLogin"
+      })
+
+      }else{
+          Swal.fire({
+          title: response.data.message,
+          icon: "warning",
+      });
       }
-    },
-  },
-};
+
+
+  } catch (error) {
+      console.log("error",error)
+      Swal.fire({
+          title: "錯誤:"+ error.message,
+          icon: "error",
+      });
+  }
+}
 </script>
 
 <style>

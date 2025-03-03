@@ -1,74 +1,93 @@
-<template>
-  <div>
-    <h2>使用者登入</h2>
-    <form @submit.prevent="login">
-      <div>
-        <input type="email" v-model="user.email" placeholder="輸入 Email" required />
-      </div>
-      <div>
-      <input type="password" v-model="user.password" placeholder="輸入密碼" required />
-    </div>
-      <button type="submit">登入</button>
-    </form>
-    
-    <p v-if="errorMessage" style="color: red;">{{ errorMessage }}</p>
-    <p v-if="successMessage" style="color: green;">{{ successMessage }}</p>
-  </div>
+!<template>
+  <h3>會員登入</h3>
+  <table>
+  <tbody>
+      <tr>
+          <td>Eail : </td>
+          <td><input type="text" name="email" v-model="email"></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td>密碼 : </td>
+          <td><input type="text" name="password" v-model="password"></td>
+          <td></td>
+      </tr>
+      <tr>
+          <td> </td>
+          <td align="right"><button type="button" @click="login">Login</button></td>
+      </tr>
+  </tbody>
+</table>
 </template>
 
-<script>
-import axios from "axios"; // 引入 axios
+<script setup>
+import { ref } from 'vue';
+import axios from '@/plugins/axios'
+import Swal from 'sweetalert2';
+import { useRouter } from 'vue-router';
+const router = useRouter()
 
-export default {
-  data() {
-    return {
-      user: {
-        email: "",
-        password: ""
-      },
-      errorMessage: "",
-      successMessage: ""
-    };
-  },
-  methods: {
-    async login() {
-  this.errorMessage = "";
-  this.successMessage = "";
+const email = ref(null);
+const password = ref(null)
 
+
+async function login(){
+  if(email.value===""){
+      email.value = null;
+  }
+
+  if(password.value===""){
+      password.value = null;
+  }
+
+  const data={
+      "email": email.value,
+      "password": password.value
+  };
+  console.log("data", data)
+  
+  axios.defaults.headers.common['Authorization'] = ``
   try {
-    const response = await axios.post("http://localhost:8081/api/users/login", this.user);
+      const response = await axios.post("/api/users/login",data);
+      // console.log("response",response)
+      
+      if(response.data.success){
+          await Swal.fire({
+          title: response.data.message,
+          icon: "success",
+      });
 
-    // 存 Token
-    localStorage.setItem("jwtToken", response.data.token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
+      sessionStorage.setItem("userName",response.data.userName);
+      sessionStorage.setItem("email",response.data.email)
+      sessionStorage.setItem("token",response.data.token)
+      //導向首頁
+      router.push("/")
+      router.push({
+          name: "FrontHome"
+      })
 
-    // 解析 JWT
-    const payload = JSON.parse(atob(response.data.token.split(".")[1]));
+      }else{
+          Swal.fire({
+          title: response.data.message,
+          icon: "warning",
+      });
+      }
 
-    // 存入 LocalStorage
-    localStorage.setItem("userEmail", payload.sub);
-    localStorage.setItem("userName", payload.userName);
 
-    // 顯示成功訊息
-    this.successMessage = response.data.successMessage;
-    alert("登入成功！歡迎, " + payload.userName);
-
-    // 導向首頁
-    this.$router.push("/");
   } catch (error) {
-    console.error("登入錯誤:", error); // ✅ 新增錯誤輸出，檢查實際錯誤
-    if (error.response) {
-      console.error("錯誤回應:", error.response); // ✅ 顯示錯誤回應內容
-      this.errorMessage = error.response.data.errorMessage || "登入失敗";
-    } else if (error.request) {
-      console.error("沒有收到後端回應:", error.request);
-      this.errorMessage = "後端沒有回應，請稍後再試";
-    } else {
-      console.error("設定請求錯誤:", error.message);
-      this.errorMessage = "發送請求時發生錯誤";
-    }
+      console.log("error",error)
+      Swal.fire({
+          title: "錯誤:"+ error.message,
+          icon: "error",
+      });
   }
 }
 
-  }
-};
+
+
 </script>
+
+<style>
+
+</style>
