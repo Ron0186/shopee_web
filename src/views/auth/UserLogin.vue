@@ -44,7 +44,6 @@ async function login(){
       "email": email.value,
       "password": password.value
   };
-  console.log("data", data)
   
   axios.defaults.headers.common['Authorization'] = ``
   try {
@@ -58,8 +57,7 @@ async function login(){
       });
 
       axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-      sessionStorage.setItem("userName",response.data.userName);
-      sessionStorage.setItem("email",response.data.email)
+      sessionStorage.setItem("userName",response.data.userInfo.userName);
       sessionStorage.setItem("token",response.data.token)
       //導向首頁
       router.push("/")
@@ -67,21 +65,42 @@ async function login(){
           name: "FrontHome"
       })
 
-      }else{
-          Swal.fire({
-          title: response.data.message,
-          icon: "warning",
-      });
       }
 
-
   } catch (error) {
-      console.log("error",error)
-      Swal.fire({
-          title: "錯誤:"+ error.message,
-          icon: "error",
-      });
-  }
+    let errorMessage = "登入失敗，請稍後再試"; // 預設錯誤訊息
+
+    if (error.response) {
+        // 伺服器有回應 (HTTP 錯誤)
+        const status = error.response.status;
+        const data = error.response.data;
+
+        if (status === 401) {
+            errorMessage = data.message || "帳號或密碼錯誤"; // 優先使用後端訊息
+        } else if (status === 400) {
+            errorMessage = data.message || "請求格式錯誤"; // 例如，缺少必要欄位
+        } else if (status === 403) {
+            errorMessage = data.message || "您沒有權限執行此操作";
+        } else if (status === 404) {
+            errorMessage = data.message || "找不到資源";
+        } else if (status >= 500) {
+            errorMessage = data.message || "伺服器發生錯誤";
+        } else {
+            errorMessage = `登入失敗，錯誤碼：${status}`;
+        }
+    } else if (error.request) {
+        // 請求已發出，但沒有收到回應 (例如網路問題)
+        errorMessage = "網路連線異常，請檢查您的網路";
+    } else {
+        // 其他錯誤 (例如設定 Axios 時發生錯誤)
+        errorMessage = "發生未知的錯誤";
+    }
+
+    Swal.fire({
+        title: "錯誤:"+errorMessage,
+        icon: "error",
+    });
+}
 }
 
 
