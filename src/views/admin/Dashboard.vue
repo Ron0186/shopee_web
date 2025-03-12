@@ -3,17 +3,15 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-const userName = ref("訪客");
-const email = ref("未登入");
+const adminName = ref("訪客");
 const isLoggedIn = ref(false); // 新增判斷是否登入的變數
 
 
 onMounted(() => {
-  const token = sessionStorage.getItem("token"); // 檢查 token
+  const token = sessionStorage.getItem("adminToken"); // 檢查 token
   if (token) {
     isLoggedIn.value = true;
-    userName.value = sessionStorage.getItem("userName") || "訪客";
-    email.value = sessionStorage.getItem("email") || "未登入";
+    adminName.value = sessionStorage.getItem("adminName") || "訪客";
   } else {
     isLoggedIn.value = false;
   }
@@ -22,9 +20,8 @@ onMounted(() => {
 // 登出方法
 const logout = () => {
   isLoggedIn.value = false;
-  sessionStorage.removeItem("userName");
-  sessionStorage.removeItem("email")
-  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("adminName");
+  sessionStorage.removeItem("adminToken");
   router.push("/admin/login");
 };
 
@@ -39,8 +36,7 @@ const goToLogin = () => {
     首頁
     <div>
       <template v-if="isLoggedIn">
-        <h1>管理員:{{ userName }}</h1>
-        <h1>Email: {{ email }}</h1>
+        <h1>管理員:{{ adminName }}</h1>
         <button @click="logout">登出</button>
       </template>
       <template v-else>
