@@ -52,7 +52,7 @@ const router = createRouter({
      * 後台
      */
     {
-      path: "",
+      path: "/admin",
       component: () => import("@/layouts/AdminLayout.vue"),
       children: [
         {

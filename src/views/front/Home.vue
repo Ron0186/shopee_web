@@ -3,7 +3,7 @@ import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 const router = useRouter();
-const userName = ref("訪客");
+const username = ref("訪客");
 const isLoggedIn = ref(false); // 新增判斷是否登入的變數
 
 
@@ -11,7 +11,7 @@ onMounted(() => {
   const token = sessionStorage.getItem("token"); // 檢查 token
   if (token) {
     isLoggedIn.value = true;
-    userName.value = sessionStorage.getItem("userName") || "訪客";
+    username.value = sessionStorage.getItem("username") || "訪客";
   } else {
     isLoggedIn.value = false;
   }
@@ -20,7 +20,7 @@ onMounted(() => {
 // 登出方法
 const logout = () => {
   isLoggedIn.value = false;
-  sessionStorage.removeItem("userName");
+  sessionStorage.removeItem("username");
   sessionStorage.removeItem("token");
   router.push("/");
 };
@@ -40,7 +40,7 @@ const goToRegister = () => {
     首頁
     <div>
       <template v-if="isLoggedIn">
-        <h1>歡迎, 會員:{{ userName }}</h1>
+        <h1>歡迎, 會員:{{ username }}</h1>
         <button @click="logout">登出</button>
       </template>
       <template v-else>

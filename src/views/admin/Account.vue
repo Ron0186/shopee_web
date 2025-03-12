@@ -44,8 +44,13 @@ const error = ref(null);
 const fetchUsers = async () => {
   loading.value = true;
   error.value = null;
+  const token = sessionStorage.getItem("token");
   try {
-    const response = await axios.get('http://localhost:8081/api/users');
+    const response = await axios.get('http://localhost:8081/api/users', {
+      headers: {
+        Authorization: `Bearer ${token}`, // 將 token 放入 Authorization 標頭
+      },
+    });
     users.value = response.data;
   } catch (err) {
     error.value = 'Failed to fetch users. Please check your network connection and try again.';
