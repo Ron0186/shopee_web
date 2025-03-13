@@ -3,7 +3,7 @@
   <tbody>
       <tr>
           <td>使用者名稱 : </td>
-          <td><input v-model="userName" type="text" required /></td>
+          <td><input v-model="username" type="text" required /></td>
           <td></td>
       </tr>
       <tr>
@@ -37,15 +37,15 @@ import Swal from 'sweetalert2';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const userName = ref(null)
+const username = ref(null)
 const password = ref(null);
 const email = ref(null);
 const phone = ref(null);
 
 
 async function register(){
-  if(userName.value===""){
-    userName.value = null;
+  if(username.value===""){
+    username.value = null;
   }
 
   if(password.value===""){
@@ -62,7 +62,7 @@ async function register(){
   
 
   const data={
-      "userName": userName.value,
+      "username": username.value,
       "password": password.value,
       "email": email.value,
       "phone": phone.value
@@ -71,7 +71,7 @@ async function register(){
   
   axios.defaults.headers.common['Authorization'] = ``
   try {
-      const response = await axios.post("/api/users/register",data);
+      const response = await axios.post("/api/auth/register",data);
       // console.log("response",response)
       
       if(response.data.success){

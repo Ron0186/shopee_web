@@ -57,7 +57,7 @@ const router = createRouter({
       children: [
         {
           // 首頁儀表板
-          path: "",
+          path: "/dashboard",
           name: "Dashboard",
           component: () => import("@/views/admin/Dashboard.vue"),
         },

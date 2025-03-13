@@ -3,8 +3,8 @@
   <table>
   <tbody>
       <tr>
-          <td>Eail : </td>
-          <td><input type="text" name="email" v-model="email"></td>
+          <td>管理員名稱 : </td>
+          <td><input type="text" name="username" v-model="username"></td>
           <td></td>
       </tr>
       <tr>
@@ -25,15 +25,16 @@ import { ref } from 'vue';
 import axios from '@/plugins/axios'
 import Swal from 'sweetalert2';
 import { useRouter } from 'vue-router';
+import {jwtDecode } from 'jwt-decode';
 const router = useRouter()
 
-const email = ref(null);
+const username = ref(null);
 const password = ref(null)
 
 
 async function login(){
-  if(email.value===""){
-    email.value = null;
+  if(username.value===""){
+    username.value = null;
   }
 
   if(password.value===""){
@@ -41,14 +42,14 @@ async function login(){
   }
 
   const data={
-      "email": email.value,
+      "username": username.value,
       "password": password.value
   };
   console.log("data", data)
   
   axios.defaults.headers.common['Authorization'] = ``
   try {
-      const response = await axios.post("/api/admin/login",data);
+      const response = await axios.post("/api/auth/admin/login",data);
       // console.log("response",response)
       
       if(response.data.success){
@@ -57,8 +58,10 @@ async function login(){
           icon: "success",
       });
 
+      const decodedToken = jwtDecode (response.data.token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-      sessionStorage.setItem("adminName",response.data.username);
+      sessionStorage.setItem("adminName",decodedToken.sub);
+      console.log(decodedToken.sub)
       sessionStorage.setItem("adminToken",response.data.token)
       //導向Dashboard
       router.push({
