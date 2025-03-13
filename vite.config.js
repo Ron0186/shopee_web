@@ -15,4 +15,7 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  optimizeDeps: {
+    include: ["bootstrap", "bootstrap-vue-next"] // ✅ 確保這些依賴被 Vite 優化
+  }
 })

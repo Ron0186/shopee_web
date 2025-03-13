@@ -11,6 +11,7 @@
   "dependencies": {
 <<<<<<< HEAD
     "axios": "^1.8.1",
+    "bootstrap": "^5.3.3",
     "pinia": "^3.0.1",
     "sweetalert2": "^11.17.2",
 =======
