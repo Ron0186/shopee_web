@@ -10,6 +10,7 @@ const router = createRouter({
       path: "/",
       component: () => import("@/layouts/FrontLayout.vue"),
       children: [
+
         {
           path: "/",
           name: "FrontHome",
@@ -20,6 +21,21 @@ const router = createRouter({
           name: "FrontAbout",
           component: () => import("@/views/front/About.vue"),
         },
+        {
+          path: "/Cart",
+          name: "Cart",
+          component: () => import("@/views/Cart.vue"),
+        },
+        {
+          path: "shop",
+          name: "Shop",
+          component: () => import("@/views/Shop.vue")
+        },
+        {
+          path: "checkout",
+          name: "Checkout",
+          component: () => import("@/views/Checkout.vue")
+        }
 
         // ...其他前台路由
       ],
