@@ -136,36 +136,59 @@ const subscribe = () => {
 }
 
 /* ✅ 讓 `footer-content` 水平排列 */
-.footer-content {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    flex-wrap: wrap;
-    max-width: 1200px;
+.footer {
+    background: #007bff;
+    /* ✅ 改成藍色，與 Navbar 一致 */
+    color: white;
+    /* ✅ 文字變白色，提高可讀性 */
+    padding: 40px 20px;
     width: 100%;
-    margin: 0 auto;
-    padding: 30px 20px;
-}
-
-/* ✅ 讓 `footer-column` 內容置中 */
-.footer-column {
-    flex: 1;
-    min-width: 220px;
-    max-width: 300px;
-    padding: 0 15px;
+    max-width: 100%;
+    margin-top: auto;
+    box-sizing: border-box;
     text-align: center;
 }
 
-/* ✅ 讓付款方式居中 */
-/* 📌 付款方式 */
+
+/* ✅ 讓 `footer-content` 內容水平排列 */
+.footer-content {
+    display: flex;
+    /* 設置為 flex 佈局 */
+    flex-wrap: wrap;
+    /* 若內容超出可換行 */
+    justify-content: space-around;
+    /* 讓區塊平均分佈 */
+    align-items: flex-start;
+    /* 讓內容頂端對齊 */
+    width: 100%;
+    max-width: 1400px;
+    /* 限制最大寬度 */
+    margin: 0 auto;
+    padding: 20px 0;
+    box-sizing: border-box;
+    text-align: left;
+    /* 讓文字靠左對齊 */
+}
+
+
+.footer-column {
+    flex: 1;
+    /* 讓每個區塊平分空間 */
+    min-width: 200px;
+    /* 最小寬度，避免太窄 */
+    padding: 0 15px;
+}
+
+
 .payment-methods {
     display: flex;
     justify-content: center;
+    /* 讓付款方式置中 */
+    align-items: center;
     gap: 15px;
     padding-top: 20px;
-    width: 100%;
-    margin: 0 auto;
 }
+
 
 /* ✅ 限制付款方式圖片大小 */
 .payment-methods img {

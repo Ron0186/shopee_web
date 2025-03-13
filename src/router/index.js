@@ -21,23 +21,29 @@ const router = createRouter({
           name: "FrontAbout",
           component: () => import("@/views/front/About.vue"),
         },
-        {
-          path: "/Cart",
-          name: "Cart",
-          component: () => import("@/views/Cart.vue"),
-        },
+        // {
+        //   path: "/Cart",
+        //   name: "Cart",
+        //   component: () => import("@/views/Cart.vue"),
+        // },
         {
           path: "shop",
           name: "Shop",
           component: () => import("@/views/Shop.vue")
         },
-        {
-          path: "checkout",
-          name: "Checkout",
-          component: () => import("@/views/Checkout.vue")
-        }
+        // {
+        //   path: "checkout",
+        //   name: "Checkout",
+        //   component: () => import("@/views/Checkout.vue")
+        // }
 
         // ...其他前台路由
+        {
+          path: "SellerOrder",
+          name: "SellerOrder",
+          component: () => import("@/views/front/SellerOrders.vue")
+        }
+
       ],
     },
 
@@ -151,9 +157,9 @@ const router = createRouter({
         },
         {
           // 訂單頁面
-          path: "/orders",
-          name: "Orders",
-          component: () => import("@/views/admin/Orders.vue"),
+          path: "/AdminOrders",
+          name: "AdminOrders",
+          component: () => import("@/views/admin/AdminOrders.vue"),
         },
         {
           // 評價頁面

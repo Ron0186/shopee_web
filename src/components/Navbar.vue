@@ -60,10 +60,9 @@ const toggleCategory = () => {
 <style scoped>
 /* 📌 Navbar 樣式 */
 .navbar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
+    width: 100vw;
+    /* ✅ 讓 Navbar 填滿畫面 */
+    max-width: 100%;
     height: 60px;
     display: flex;
     align-items: center;
