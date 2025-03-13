@@ -1,10 +1,10 @@
 <template>
-  <div class="d-flex flex-column min-vh-100">
+  <div class="d-flex flex-column ">
     <Navbar></Navbar>
     <main class="flex-grow-1">
       <RouterView></RouterView>
     </main>
-    <Footer class="mt-auto"></Footer>
+    <Footer class="footer"></Footer>
   </div>
 </template>
 

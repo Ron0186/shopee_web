@@ -104,7 +104,7 @@ export default {
 
 .accordion-button.collapsed {
     background-color: white;
-    font-size: large;
+    font-size: 19px;
 }
 
 .accordion-button:focus {

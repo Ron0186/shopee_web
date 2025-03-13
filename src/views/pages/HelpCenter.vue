@@ -7,7 +7,7 @@
             <div class="col-4 ">
                 <Sidebars />
             </div>
-            <div class="col-5 ">
+            <div class="col-6 ">
                 <Content />
             </div>
         </div>
@@ -36,7 +36,7 @@ import Content from '@/components/Content.vue';
     position: relative;
 }
 
-.col-5 {
+.col-6 {
     margin-top: 30px;
 
 }
