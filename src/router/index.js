@@ -1,12 +1,21 @@
+<<<<<<< HEAD
 import { createRouter, createWebHistory } from "vue-router";
+=======
+
+import SearchResult from '@/components/SearchResult.vue'
+import HelpCenter from '@/views/pages/HelpCenter.vue'
+import { createRouter, createWebHistory } from 'vue-router'
+
+>>>>>>> origin/main
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
     /**
      * 前台
      */
     {
+<<<<<<< HEAD
       path: "/",
       component: () => import("@/layouts/FrontLayout.vue"),
       children: [
@@ -23,10 +32,16 @@ const router = createRouter({
 
         // ...其他前台路由
       ],
+=======
+      path: '/',
+      name: 'hc-link',
+      component: HelpCenter,
+>>>>>>> origin/main
     },
 
     //使用者登入頁
     {
+<<<<<<< HEAD
       path: "/user/login",
       name: "UserLogin",
       component: () => import("@/views/auth/UserLogin.vue"),
@@ -152,6 +167,18 @@ const router = createRouter({
           component: () => import("@/views/admin/Coupons.vue"),
         },
       ],
+=======
+      path: '/search',
+      name: 'search-link',
+      component: SearchResult,
+      props: route => ({ query: route.query.q })
+    },
+    {
+      path: '/article/:id',
+      name: 'article-link',
+      component: HelpCenter,
+      props: true
+>>>>>>> origin/main
     },
   ],
 });
