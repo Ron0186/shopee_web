@@ -2,12 +2,12 @@
   <table>
   <tbody>
       <tr>
-          <td>使用者名稱 : </td>
+          <td>使用者名稱(長度:6-20) : </td>
           <td><input v-model="username" type="text" required /></td>
           <td></td>
       </tr>
       <tr>
-          <td>密碼 : </td>
+          <td>密碼(長度:6-12，包含至少1個大寫字母) : </td>
           <td><input v-model="password" type="password" required /></td>
           <td></td>
       </tr>
