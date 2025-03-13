@@ -58,8 +58,8 @@ async function login(){
       });
 
       axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
-      sessionStorage.setItem("userName",response.data.userInfo.userName);
-      sessionStorage.setItem("token",response.data.token)
+      sessionStorage.setItem("adminName",response.data.userInfo.userName);
+      sessionStorage.setItem("adminToken",response.data.token)
       //導向Dashboard
       router.push({
           name: "Dashboard"
