@@ -1,6 +1,6 @@
 <template>
   <div>
-    <AdminNavbar />
+    <!-- <AdminNavbar /> -->
     <div class="admin-container">
       <Sidebar />
       <main class="content">
@@ -21,11 +21,11 @@ import Sidebar from "@/components/admin/Sidebar.vue";
 }
 
 .content {
-  margin-left: 240px;
+  /* margin-left: 240px; */
   /* 讓內容不會被 Sidebar 擋住 */
   padding: 20px;
-  width: calc(100% - 240px);
-  margin-top: 60px;
+  /* width: calc(100% - 240px); */
+  /* margin-top: 60px; */
   /* 避開固定 Navbar */
 }
 </style>
