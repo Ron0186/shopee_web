@@ -1,5 +1,5 @@
 {
-  "name": "shoppe_web",
+  "name": "vue-helpc",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -11,7 +11,10 @@
   "dependencies": {
     "axios": "^1.8.1",
     "jwt-decode": "^4.0.0",
+    "bootstrap": "^5.3.3",
+    "bootstrap-vue-next": "^0.28.0",
     "pinia": "^3.0.1",
+    "pinia-plugin-persistedstate": "^4.2.0",
     "sweetalert2": "^11.17.2",
     "vue": "^3.5.13",
     "vue-router": "^4.5.0"

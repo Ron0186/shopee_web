@@ -1,7 +1,9 @@
+import SearchResult from "@/components/SearchResult.vue";
+import HelpCenter from "@/views/pages/HelpCenter.vue";
 import { createRouter, createWebHistory } from "vue-router";
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
     /**
      * 前台
@@ -10,7 +12,6 @@ const router = createRouter({
       path: "/",
       component: () => import("@/layouts/FrontLayout.vue"),
       children: [
-
         {
           path: "/",
           name: "FrontHome",
@@ -29,7 +30,7 @@ const router = createRouter({
         {
           path: "shop",
           name: "Shop",
-          component: () => import("@/views/Shop.vue")
+          component: () => import("@/views/Shop.vue"),
         },
         // {
         //   path: "checkout",
@@ -38,6 +39,18 @@ const router = createRouter({
         // }
 
         // ...其他前台路由
+        {
+          path: "SellerOrder",
+          name: "SellerOrder",
+          component: () => import("@/views/front/SellerOrders.vue"),
+        },
+
+        // 幫助中心
+        {
+          path: "HelpCenter",
+          name: "HelpCenter",
+          component: HelpCenter,
+        },
       ],
     },
 
@@ -79,96 +92,106 @@ const router = createRouter({
         },
         {
           // 活動頁面
-          path: "/activities",
+          path: "activities",
           name: "Activities",
           component: () => import("@/views/admin/Activities.vue"),
         },
         {
           // 幫助中心頁面
-          path: "/help-center",
+          path: "help-center",
           name: "HelpCenter",
           component: () => import("@/views/admin/HelpCenter.vue"),
         },
         {
           // 物流管理頁面
-          path: "/logistics",
+          path: "logistics",
           name: "Logistics",
           component: () => import("@/views/admin/Logistics.vue"),
         },
         {
           // 付款方式頁面
-          path: "/payment-methods",
+          path: "payment-methods",
           name: "PaymentMethods",
           component: () => import("@/views/admin/PaymentMethods.vue"),
         },
         {
           // 後台管理頁面
-          path: "/admin-management",
+          path: "admin-management",
           name: "AdminManagement",
           component: () => import("@/views/admin/AdminManagement.vue"),
         },
         {
           // 數據分析頁面
-          path: "/data-analysis",
+          path: "data-analysis",
           name: "DataAnalysis",
           component: () => import("@/views/admin/DataAnalysis.vue"),
         },
         {
           // 內容檢核頁面
-          path: "/content-review",
+          path: "content-review",
           name: "ContentReview",
           component: () => import("@/views/admin/ContentReview.vue"),
         },
         {
           // 帳號頁面
-          path: "/account",
+          path: "account",
           name: "Account",
           component: () => import("@/views/admin/Account.vue"),
         },
         {
           // 商品頁面
-          path: "/products",
+          path: "products",
           name: "Products",
           component: () => import("@/views/admin/Products.vue"),
         },
         {
           // 商品分類頁面
-          path: "/product-category",
+          path: "product-category",
           name: "ProductCategory",
           component: () => import("@/views/admin/ProductCategory.vue"),
         },
         {
           // 商品標籤頁面
-          path: "/product-tag",
+          path: "product-tag",
           name: "ProductTag",
           component: () => import("@/views/admin/ProductTag.vue"),
         },
         {
           // 商品屬性頁面
-          path: "/product-attribute",
+          path: "product-attribute",
           name: "ProductAttribute",
           component: () => import("@/views/admin/ProductAttribute.vue"),
         },
         {
           // 訂單頁面
-          path: "/orders",
-          name: "Orders",
-          component: () => import("@/views/admin/Orders.vue"),
+          path: "AdminOrders",
+          name: "AdminOrders",
+          component: () => import("@/views/admin/AdminOrders.vue"),
         },
         {
           // 評價頁面
-          path: "/reviews",
+          path: "reviews",
           name: "Reviews",
           component: () => import("@/views/admin/Reviews.vue"),
         },
         {
           // 優惠券頁面
-          path: "/coupons",
+          path: "coupons",
           name: "Coupons",
           component: () => import("@/views/admin/Coupons.vue"),
         },
       ],
+      // path: "/search",
+      // name: "search-link",
+      // component: SearchResult,
+      // props: (route) => ({ query: route.query.q }),
     },
+    // {
+    //   path: "/article/:id",
+    //   name: "article-link",
+    //   component: HelpCenter,
+    //   props: true,
+    // },
   ],
 });
 

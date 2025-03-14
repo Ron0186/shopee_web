@@ -69,21 +69,59 @@ const getImageUrl = (imageName) => {
 
 <style>
 /* ✅ 讓主要內容區域填滿剩餘空間 */
-
-.shop-container {
+html,
+body {
+    margin: 0;
+    padding: 0;
     width: 100%;
-    height: 100%;
+    height: 100vh;
+    overflow-x: hidden;
     display: flex;
     flex-direction: column;
 }
 
-/* 🎯 主要內容區域 */
-.main-content {
+#app {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    /* ✅ 移除 margin */
+    padding: 0;
+    /* ✅ 確保不影響 */
+    box-sizing: border-box;
+}
+
+.shop-container {
     flex: 1;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
     max-width: 1400px;
-    /* 可以根據設計調整 */
-    margin: 0 auto;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+
+.navbar,
+.footer {
+    width: 100%;
+    /* ✅ 讓它們完全填滿 */
+    margin: 0;
+    /* ✅ 確保不會有左右空白 */
+    padding: 0;
+    /* ✅ 確保內邊距不影響 */
+    box-sizing: border-box;
 }
 
 /* 🎯 搜尋欄 */
@@ -112,16 +150,13 @@ const getImageUrl = (imageName) => {
 .products-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(200px, 1fr));
-    /* 確保 5 列 */
     gap: 30px;
     width: 100%;
     max-width: 1400px;
     margin: 0 auto;
     padding: 20px;
     box-sizing: border-box;
-    /* 避免 padding 影響寬度 */
     overflow-x: hidden;
-    /* 防止 X 軸滾動 */
 }
 
 /* 🎯 商品卡片 */
