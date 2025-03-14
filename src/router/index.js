@@ -1,12 +1,6 @@
-<<<<<<< HEAD
+import SearchResult from "@/components/SearchResult.vue";
+import HelpCenter from "@/views/pages/HelpCenter.vue";
 import { createRouter, createWebHistory } from "vue-router";
-=======
-
-import SearchResult from '@/components/SearchResult.vue'
-import HelpCenter from '@/views/pages/HelpCenter.vue'
-import { createRouter, createWebHistory } from 'vue-router'
-
->>>>>>> origin/main
 
 const router = createRouter({
   history: createWebHistory(),
@@ -15,11 +9,9 @@ const router = createRouter({
      * 前台
      */
     {
-<<<<<<< HEAD
       path: "/",
       component: () => import("@/layouts/FrontLayout.vue"),
       children: [
-
         {
           path: "/",
           name: "FrontHome",
@@ -38,7 +30,7 @@ const router = createRouter({
         {
           path: "shop",
           name: "Shop",
-          component: () => import("@/views/Shop.vue")
+          component: () => import("@/views/Shop.vue"),
         },
         // {
         //   path: "checkout",
@@ -50,20 +42,16 @@ const router = createRouter({
         {
           path: "SellerOrder",
           name: "SellerOrder",
-          component: () => import("@/views/front/SellerOrders.vue")
-        }
-
+          component: () => import("@/views/front/SellerOrders.vue"),
+        },
       ],
-=======
-      path: '/',
-      name: 'hc-link',
+      path: "/",
+      name: "hc-link",
       component: HelpCenter,
->>>>>>> origin/main
     },
 
     //使用者登入頁
     {
-<<<<<<< HEAD
       path: "/user/login",
       name: "UserLogin",
       component: () => import("@/views/auth/UserLogin.vue"),
@@ -189,18 +177,16 @@ const router = createRouter({
           component: () => import("@/views/admin/Coupons.vue"),
         },
       ],
-=======
-      path: '/search',
-      name: 'search-link',
+      path: "/search",
+      name: "search-link",
       component: SearchResult,
-      props: route => ({ query: route.query.q })
+      props: (route) => ({ query: route.query.q }),
     },
     {
-      path: '/article/:id',
-      name: 'article-link',
+      path: "/article/:id",
+      name: "article-link",
       component: HelpCenter,
-      props: true
->>>>>>> origin/main
+      props: true,
     },
   ],
 });
