@@ -10,8 +10,8 @@
 
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
-      <router-link to="/login">🔑 登入</router-link>
-      <router-link to="/register">📝 註冊</router-link>
+      <router-link to="/user/login">🔑 登入</router-link>
+      <router-link to="/user/register">📝 註冊</router-link>
       <router-link to="/profile">👤 會員中心</router-link>
       <router-link to="/orders">📦 訂單</router-link>
       <router-link to="/cart">🛒 購物車</router-link>

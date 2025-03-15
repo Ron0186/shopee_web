@@ -5,7 +5,7 @@ import axios from "@/plugins/axios";
 const users = ref([]);
 const totalPages = ref(0);
 const currentPage = ref(0);
-const pageSize = 1;
+const pageSize = 10;
 
 const fetchUsers = async (page = 0) => {
   console.log(`/api/auth/test?page=${page}&size=${pageSize}`);
