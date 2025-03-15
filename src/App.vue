@@ -7,6 +7,13 @@ import "bootstrap/dist/js/bootstrap.bundle.js";
 
 <template>
   <RouterView />
+  <div class="d-flex flex-column">
+    <Navbar></Navbar>
+    <main class="flex-grow-1">
+      <RouterView></RouterView>
+    </main>
+    <Footer class="footer"></Footer>
+  </div>
 </template>
 
 <style scoped>

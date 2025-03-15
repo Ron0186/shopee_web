@@ -20,7 +20,7 @@ import "bootstrap-vue-next/dist/bootstrap-vue-next.css";
 const app = createApp(App);
 
 
-app.use(createPinia());
+app.use(pinia);
 app.use(router);
 
 app.mount('#app');
