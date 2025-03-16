@@ -30,7 +30,7 @@
                 <h2 class="text-danger fw-bold mt-3" style="text-align: center;">找不到相關結果 (404)</h2>
                 <p class="text-muted fw-bold" style="text-align: center;">
                     請嘗試其他關鍵字，或返回
-                    <router-link to="/" class="text-primary">幫助中心</router-link>
+                    <router-link to="/HelpCenter" class="text-primary">幫助中心</router-link>
                 </p>
             </div>
         </div>

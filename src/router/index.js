@@ -51,6 +51,19 @@ const router = createRouter({
           name: "HelpCenter",
           component: HelpCenter,
         },
+        // 幫助中心搜尋內容頁面
+        {
+          path: '/search',
+          name: 'search-link',
+          component: SearchResult,
+          props: route => ({ query: route.query.q })
+        },
+        {
+          path: '/article/:id',
+          name: 'article-link',
+          component: HelpCenter,
+          props: true
+        },
       ],
     },
 
@@ -96,12 +109,12 @@ const router = createRouter({
           name: "Activities",
           component: () => import("@/views/admin/Activities.vue"),
         },
-        {
-          // 幫助中心頁面
-          path: "help-center",
-          name: "HelpCenter",
-          component: () => import("@/views/admin/HelpCenter.vue"),
-        },
+        // {
+        //   // 幫助中心頁面
+        //   path: "help-center",
+        //   name: "HelpCenter",
+        //   component: () => import("@/views/admin/HelpCenter.vue"),
+        // },
         {
           // 物流管理頁面
           path: "logistics",

@@ -28,29 +28,19 @@
         <h4>商品分類</h4>
         <ul>
           <li>
-            <router-link to="/shop?category=hot" class="footer-link"
-              >🔥 熱銷商品</router-link
-            >
+            <router-link to="/shop?category=hot" class="footer-link">🔥 熱銷商品</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=laptops" class="footer-link"
-              >💻 筆記型電腦</router-link
-            >
+            <router-link to="/shop?category=laptops" class="footer-link">💻 筆記型電腦</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=phones" class="footer-link"
-              >📱 智慧型手機</router-link
-            >
+            <router-link to="/shop?category=phones" class="footer-link">📱 智慧型手機</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=cameras" class="footer-link"
-              >📷 攝影器材</router-link
-            >
+            <router-link to="/shop?category=cameras" class="footer-link">📷 攝影器材</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=accessories" class="footer-link"
-              >🎧 配件</router-link
-            >
+            <router-link to="/shop?category=accessories" class="footer-link">🎧 配件</router-link>
           </li>
         </ul>
       </div>
@@ -61,19 +51,13 @@
             <router-link to="/about" class="footer-link">關於我們</router-link>
           </li>
           <li>
-            <router-link to="/contact" class="footer-link"
-              >聯絡我們</router-link
-            >
+            <router-link to="/contact" class="footer-link">聯絡我們</router-link>
           </li>
           <li>
-            <router-link to="/privacy" class="footer-link"
-              >隱私權政策</router-link
-            >
+            <router-link to="/privacy" class="footer-link">隱私權政策</router-link>
           </li>
           <li>
-            <router-link to="/returns" class="footer-link"
-              >退貨與退款</router-link
-            >
+            <router-link to="/returns" class="footer-link">退貨與退款</router-link>
           </li>
           <li>
             <router-link to="/terms" class="footer-link">使用條款</router-link>
@@ -84,27 +68,19 @@
         <h4>客戶服務</h4>
         <ul>
           <li>
-            <router-link to="/account" class="footer-link"
-              >我的帳戶</router-link
-            >
+            <router-link to="/account" class="footer-link">我的帳戶</router-link>
           </li>
           <li>
             <router-link to="/cart" class="footer-link">🛒 購物車</router-link>
           </li>
           <li>
-            <router-link to="/wishlist" class="footer-link"
-              >💖 收藏清單</router-link
-            >
+            <router-link to="/wishlist" class="footer-link">💖 收藏清單</router-link>
           </li>
           <li>
-            <router-link to="/order-tracking" class="footer-link"
-              >📦 訂單追蹤</router-link
-            >
+            <router-link to="/order-tracking" class="footer-link">📦 訂單追蹤</router-link>
           </li>
           <li>
-            <router-link to="/help" class="footer-link"
-              >❓ 幫助中心</router-link
-            >
+            <router-link to="/HelpCenter" class="footer-link">❓ 幫助中心</router-link>
           </li>
         </ul>
       </div>
