@@ -3,21 +3,25 @@ import { ref, onMounted } from "vue";
 import axios from "@/plugins/axios";
 import PageSizeSelector from "@/components/admin/Account.components/PageSizeSelector.vue";
 import UserEditModal from "@/components/admin/Account.components/UserEditModal.vue";
+import UserAddModal from "@/components/admin/Account.components/UserAddModal.vue";
 import Swal from "sweetalert2";
 
 const users = ref([]);
 const totalPages = ref(0);
 const currentPage = ref(0);
 const pageSize = ref(10);
-//Modal相關
+// Modal相關
 const editModalOpen = ref(false);
 const selectedUser = ref(null);
-//搜尋欄位相關
+const addModalOpen = ref(false);
+// 搜尋欄位相關
 const searchName = ref("");
-//搜尋方法
-const fetchUsers = async (page = 0,name = "") => {
+// 搜尋方法
+const fetchUsers = async (page = 0, name = "") => {
   try {
-    const response = await axios.get(`/api/admin/user/any?page=${page}&size=${pageSize.value}&username=${name}`);
+    const response = await axios.get(
+      `/api/admin/user/any?page=${page}&size=${pageSize.value}&username=${name}`
+    );
     users.value = response.data.content;
     totalPages.value = response.data.totalPages;
     currentPage.value = page;
@@ -40,9 +44,10 @@ const prevPage = () => {
 
 onMounted(() => fetchUsers(0));
 
-const searchUsers = () => { // 新增搜尋方法
+const searchUsers = () => {
+  // 新增搜尋方法
   fetchUsers(0, searchName.value);
-}
+};
 
 const handlePageSizeChange = (newValue) => {
   pageSize.value = newValue;
@@ -63,21 +68,26 @@ const closeEditModal = () => {
 const saveUserChanges = async (editedUser) => {
   try {
     // 1. 呼叫 API 更新使用者資訊
-    const response = await axios.put(`/api/admin/user/any/${editedUser.userId}`, editedUser);
+    const response = await axios.put(
+      `/api/admin/user/any/${editedUser.userId}`,
+      editedUser
+    );
 
     // 2. 獲取 API 回應的更新後的使用者資訊
     const updatedUser = response.data.userDTO;
 
     // 3. 更新本地 users 陣列
-    const index = users.value.findIndex((user) => user.userId === updatedUser.userId);
+    const index = users.value.findIndex(
+      (user) => user.userId === updatedUser.userId
+    );
     if (index !== -1) {
       users.value[index] = updatedUser;
     }
 
-    if(response.data.success){
-          await Swal.fire({
-          title: response.data.message,
-          icon: "success",
+    if (response.data.success) {
+      await Swal.fire({
+        title: response.data.message,
+        icon: "success",
       });
     }
 
@@ -85,8 +95,8 @@ const saveUserChanges = async (editedUser) => {
     closeEditModal();
   } catch (error) {
     Swal.fire({
-        title: "錯誤:"+error.response.data.message,
-        icon: "error",
+      title: "錯誤:" + error.response.data.message,
+      icon: "error",
     });
   }
 };
@@ -105,44 +115,59 @@ const deleteUser = async (userId) => {
 
     if (result.isConfirmed) {
       const response = await axios.delete(`/api/admin/user/any/${userId}`);
-      if(response.data.success){
-          await Swal.fire({
+      if (response.data.success) {
+        await Swal.fire({
           title: response.data.message,
           icon: "success",
-      });
-      if (users.value.length === 1 && currentPage.value > 0) {
-  fetchUsers(currentPage.value - 1); // 導向上一頁
-} else {
-  fetchUsers(currentPage.value); // 重新獲取當前頁面資料
-}
-      }else{
+        });
+        if (users.value.length === 1 && currentPage.value > 0) {
+          fetchUsers(currentPage.value - 1); // 導向上一頁
+        } else {
+          fetchUsers(currentPage.value); // 重新獲取當前頁面資料
+        }
+      } else {
         Swal.fire({
-        title: "錯誤:"+response.data.message,
-        icon: "error",
+          title: "錯誤:" + response.data.message,
+          icon: "error",
         });
       }
     }
   } catch (error) {
     Swal.fire({
-        title: "錯誤:"+error.response.data.message,
-        icon: "error",
+      title: "錯誤:" + error.response.data.message,
+      icon: "error",
     });
   }
 };
+
+const openAddModal = () => {
+  addModalOpen.value = true;
+};
+
+const closeAddModal = () => {
+  addModalOpen.value = false;
+};
+
+const handleInsertUser = () => {
+    fetchUsers(0);
+    closeAddModal();
+}
 </script>
 
 <template>
   <div class="container">
     <h2 class="mt-4">使用者列表</h2>
-    <div class="mb-3">
-  <input
-    type="text"
-    class="form-control"
-    placeholder="搜尋使用者名稱"
-    v-model="searchName"
-    @input="searchUsers"
-  />
-</div>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <input
+        type="text"
+        class="form-control"
+        placeholder="搜尋使用者名稱"
+        v-model="searchName"
+        @input="searchUsers"
+        style="max-width: 300px;"
+      />
+      <button class="btn btn-success" @click="openAddModal">新增使用者</button>
+    </div>
     <table class="table table-striped mt-3">
       <thead>
         <tr>
@@ -178,7 +203,19 @@ const deleteUser = async (userId) => {
       <button class="btn btn-primary ms-2" @click="nextPage" :disabled="currentPage === totalPages - 1">下一頁</button>
     </div>
 
-    <UserEditModal :user="selectedUser" :isOpen="editModalOpen" @close="closeEditModal" @save="saveUserChanges" v-if="editModalOpen" />
+    <UserEditModal
+      :user="selectedUser"
+      :isOpen="editModalOpen"
+      @close="closeEditModal"
+      @save="saveUserChanges"
+      v-if="editModalOpen"
+    />
+    <UserAddModal
+      :isOpen="addModalOpen"
+      @close="closeAddModal"
+      @insert="handleInsertUser"
+      v-if="addModalOpen"
+    />
   </div>
 </template>
 
