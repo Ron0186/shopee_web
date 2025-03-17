@@ -1,25 +1,38 @@
-import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import SearchResult from "@/components/SearchResult.vue";
+import HelpCenter from "@/views/pages/HelpCenter.vue";
+import { createRouter, createWebHistory } from "vue-router";
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
+  history: createWebHistory(),
   routes: [
+    /**
+     * 前台
+     */
     {
-      path: '/',
-      name: 'home',
-      component: HomeView,
-    },
-    {
-      path: '/about',
-      name: 'about',
-      component: () => import('../views/AboutView.vue'),
-    },
-    {
-      path: '/cart', // 🛒 新增購物車路由
-      name: 'cart',
-      component: () => import('../views/CartView.vue'),
-    }
-  ],
-})
-
-export default router
+      path: "/",
+      component: () => import("@/layouts/FrontLayout.vue"),
+      children: [
+        {
+          path: "/",
+          name: "FrontHome",
+          component: () => import("@/views/front/Home.vue"),
+        },
+        {
+          path: "/about",
+          name: "FrontAbout",
+          component: () => import("@/views/front/About.vue"),
+        },
+        // {
+        //   path: "/Cart",
+        //   name: "Cart",
+        //   component: () => import("@/views/Cart.vue"),
+        // },
+        {
+          path: "shop",
+          name: "Shop",
+          component: () => import("@/views/Shop.vue"),
+        },
+        // {
+        //   path: "checkout",
+        //   name: "Checkout",
+…
