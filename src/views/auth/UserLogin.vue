@@ -60,6 +60,7 @@ async function login(){
       const decodedToken = jwtDecode (response.data.token);
       axios.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
       sessionStorage.setItem("username",decodedToken.sub);
+      sessionStorage.setItem("userId",decodedToken.userId)
       console.log(decodedToken.sub)
       sessionStorage.setItem("token",response.data.token)
       //導向首頁
