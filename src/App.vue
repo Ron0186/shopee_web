@@ -6,7 +6,6 @@ import "bootstrap/dist/js/bootstrap.bundle.js";
 </script>
 
 <template>
-  <RouterView />
   <div class="d-flex flex-column">
     <Navbar></Navbar>
     <main class="flex-grow-1">
