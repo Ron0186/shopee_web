@@ -205,6 +205,22 @@ const router = createRouter({
     //   component: HelpCenter,
     //   props: true,
     // },
+    //會員中心
+    {
+      path: '/memberCenter',
+      name: 'memberCenter',
+      component: () => import('@/views/pages/MemberCenter.vue')
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/views/pages/Profile.vue')
+    },
+    {
+      path: '/address',
+      name: 'address',
+      component: () => import('@/views/pages/Address.vue')
+    }
   ],
 });
 
