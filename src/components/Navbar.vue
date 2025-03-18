@@ -11,13 +11,13 @@
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
       <router-link to="/user/login" v-if="!userStore.username">🔑 登入</router-link>
-      <span v-if="userStore.username" @click="logout" class="logout-link">
-          <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
-      </span>
-      <router-link to="/user/register">📝 註冊</router-link>
+      <router-link to="/user/register" v-if="!userStore.username">📝 註冊</router-link>
       <router-link to="/profile">👤 會員中心</router-link>
       <router-link to="/orders">📦 訂單</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
+      <span v-if="userStore.username" @click="logout" class="logout-link">
+          <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
+      </span>
     </div>
   </nav>
 
