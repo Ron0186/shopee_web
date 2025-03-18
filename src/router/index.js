@@ -13,7 +13,7 @@ const router = createRouter({
       component: () => import("@/layouts/FrontLayout.vue"),
       children: [
         {
-          path: "/",
+          path: "/home",
           name: "FrontHome",
           component: () => import("@/views/front/Home.vue"),
         },
@@ -51,22 +51,27 @@ const router = createRouter({
           name: "HelpCenter",
           component: HelpCenter,
         },
+
+        //使用者登入頁
+        {
+          path: "/user/login",
+          name: "UserLogin",
+          component: () => import("@/views/auth/UserLogin.vue"),
+        },
+
+        //使用者註冊頁
+        {
+          path: "/user/register",
+          name: "UserRegister",
+          component: () => import("@/views/auth/UserRegister.vue"),
+        },
       ],
     },
 
-    //使用者登入頁
-    {
-      path: "/user/login",
-      name: "UserLogin",
-      component: () => import("@/views/auth/UserLogin.vue"),
-    },
 
-    //使用者註冊頁
-    {
-      path: "/user/register",
-      name: "UserRegister",
-      component: () => import("@/views/auth/UserRegister.vue"),
-    },
+
+
+
 
     /**
      * 後台登入頁
