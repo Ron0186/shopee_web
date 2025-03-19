@@ -110,7 +110,7 @@ export default {
                 const updatedUser = { ...this.user };
                 // delete updatedUser.password; // **不變更密碼**
 
-                await axios.put(`http://localhost:8081/api/admin/user/${this.userId}`, updatedUser, {
+                await axios.put(`http://localhost:8081/api/admin/user/update/${this.userId}`, updatedUser, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
