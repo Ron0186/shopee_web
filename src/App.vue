@@ -20,4 +20,12 @@ import "bootstrap/dist/js/bootstrap.bundle.js";
 .footer {
   width: 100%;
 }
+/* 修改main背景色 3/18修改 */
+main {
+  width: 100vw;
+  box-sizing: border-box;
+  max-width: 100%;
+  background-color: #fcf6ed; /* 這裡設置 main 的背景顏色 */
+  /* 其他樣式... */
+}
 </style>

@@ -13,7 +13,7 @@ const router = createRouter({
       component: () => import("@/layouts/FrontLayout.vue"),
       children: [
         {
-          path: "/",
+          path: "/home",
           name: "FrontHome",
           component: () => import("@/views/front/Home.vue"),
         },
@@ -51,6 +51,7 @@ const router = createRouter({
           name: "HelpCenter",
           component: HelpCenter,
         },
+<<<<<<< HEAD
         // 幫助中心搜尋內容頁面
         {
           path: '/search',
@@ -63,23 +64,43 @@ const router = createRouter({
           name: 'article-link',
           component: HelpCenter,
           props: true
+=======
+
+        //使用者登入頁
+        {
+          path: "/user/login",
+          name: "UserLogin",
+          component: () => import("@/views/auth/UserLogin.vue"),
+        },
+
+        //使用者註冊頁
+        {
+          path: "/user/register",
+          name: "UserRegister",
+          component: () => import("@/views/auth/UserRegister.vue"),
+        },
+
+        //使用者註冊頁
+        {
+          path: "/forgot-password",
+          name: "ForgotPassword",
+          component: () => import("@/views/auth/ForgotPassword.vue"),
+        },
+
+        //使用者註冊頁
+        {
+          path: "/password-reset",
+          name: "PasswordReset",
+          component: () => import("@/views/auth/ResetPassword.vue"),
+>>>>>>> 99fd65d6409b7e8ea56cfa9f34001aa2214d33b4
         },
       ],
     },
 
-    //使用者登入頁
-    {
-      path: "/user/login",
-      name: "UserLogin",
-      component: () => import("@/views/auth/UserLogin.vue"),
-    },
 
-    //使用者註冊頁
-    {
-      path: "/user/register",
-      name: "UserRegister",
-      component: () => import("@/views/auth/UserRegister.vue"),
-    },
+
+
+
 
     /**
      * 後台登入頁

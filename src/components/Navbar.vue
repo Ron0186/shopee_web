@@ -10,11 +10,14 @@
 
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
-      <router-link to="/user/login">🔑 登入</router-link>
-      <router-link to="/user/register">📝 註冊</router-link>
+      <router-link to="/user/login" v-if="!userStore.username">🔑 登入</router-link>
+      <router-link to="/user/register" v-if="!userStore.username">📝 註冊</router-link>
       <router-link to="/profile">👤 會員中心</router-link>
       <router-link to="/orders">📦 訂單</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
+      <span v-if="userStore.username" @click="logout" class="logout-link">
+          <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
+      </span>
     </div>
   </nav>
 
@@ -95,6 +98,27 @@ const toggleDrawer = () => {
 const toggleCategory = () => {
   categoryOpen.value = !categoryOpen.value;
 };
+
+
+//-------------------------以下是登出相關
+import { useUserStore } from '@/stores/user';
+import Swal from "sweetalert2";
+import router from "@/router/index";
+const userStore = useUserStore();
+async function logout() {
+  // 2. 清除 Pinia store 中的用户数据
+  userStore.clearUserData();
+
+   // 登出後顯示訊息
+   const response = await Swal.fire({
+     title: "您已成功登出",
+     icon: "success",
+     confirmButtonText: "OK",
+   });
+   if(response.isConfirmed){
+   router.push('/shop'); 
+  }
+}
 </script>
 
 <style scoped>
@@ -200,5 +224,18 @@ const toggleCategory = () => {
 
 .dropdown.open ul {
   display: block;
+}
+
+/*登出相關 */
+.logout-link {
+  color: #000;
+  text-decoration: none;
+  font-size: 16px
+}
+
+.logout-link:hover {
+  cursor: pointer;
+   /* 滑鼠懸停時的樣式 */
+    text-decoration: underline; /* 或其他樣式 */
 }
 </style>
