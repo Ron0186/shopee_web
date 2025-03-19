@@ -40,9 +40,16 @@ const router = createRouter({
 
         // ...其他前台路由
         {
-          path: "SellerOrder",
-          name: "SellerOrder",
+          path: "/seller/orders",
+          name: "SellerOrders",
           component: () => import("@/views/front/SellerOrders.vue"),
+          meta: { role: "SELLER" }, // 只有 SELLER 會用到
+        },
+        {
+          path: "/user/orders",
+          name: "UserOrders",
+          component: () => import("@/views/front/UserOrders.vue"),
+          meta: { role: "USER" }, // 一般使用者用
         },
 
         // 幫助中心
@@ -51,7 +58,6 @@ const router = createRouter({
           name: "HelpCenter",
           component: HelpCenter,
         },
-<<<<<<< HEAD
         // 幫助中心搜尋內容頁面
         {
           path: '/search',
@@ -64,8 +70,7 @@ const router = createRouter({
           name: 'article-link',
           component: HelpCenter,
           props: true
-=======
-
+        },
         //使用者登入頁
         {
           path: "/user/login",
@@ -92,7 +97,6 @@ const router = createRouter({
           path: "/password-reset",
           name: "PasswordReset",
           component: () => import("@/views/auth/ResetPassword.vue"),
->>>>>>> 99fd65d6409b7e8ea56cfa9f34001aa2214d33b4
         },
       ],
     },

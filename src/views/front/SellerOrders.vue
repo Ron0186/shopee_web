@@ -39,19 +39,44 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, watchEffect } from "vue";
 import OrderFilter from "@/components/order.components/OrderFilter.vue";
 import OrderDetails from "@/components/order.components/OrderDetails.vue";
 import { fetchSellerOrders } from "@/api/orders";
+import axios from "@/plugins/axios";
+import { useUserStore } from "@/stores/user";
+import { useRoute } from "vue-router";
+import { onMounted } from "vue";
+
+
+const userStore = useUserStore();
+const route = useRoute();
+const isSeller = computed(() => userStore.roles?.includes("SELLER")); // 確保角色正確判斷
 
 const orders = ref([]);
 const selectedOrder = ref(null);
 const filterCriteria = ref({ status: "all", startDate: null, endDate: null });
 const sortAscending = ref(true);
 
+watchEffect(async () => {
+    let apiUrl = isSeller.value ? "/api/seller/orders" : "/api/user/orders";
+
+    try {
+        const response = await axios.get(apiUrl);
+        orders.value = response.data;
+    } catch (error) {
+        console.error("❌ 訂單 API 錯誤:", error);
+    }
+});
+
+
+
+
 onMounted(async () => {
     orders.value = await fetchSellerOrders();
 });
+
+
 
 // ✅ 確保篩選條件能夠正確更新
 const filteredOrders = computed(() => {
