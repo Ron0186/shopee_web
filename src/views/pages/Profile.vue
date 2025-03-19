@@ -1,95 +1,145 @@
 <template>
     <div class="container">
         <h2>編輯個人資料</h2>
-        <!-- TODO  自動帶入會員資料 -->
+
         <form @submit.prevent="updateProfile">
             <div>
                 <label>使用者名稱：</label>
-                <input type="text" v-model="user.userName" required />
+                <input type="text" v-model="user.userName"
+                    :placeholder="userPlaceholder.userName" required />
             </div>
 
             <div>
                 <label>電子郵件：</label>
-                <input type="email" v-model="user.email" required />
+                <input type="email" v-model="user.email"
+                    :placeholder="userPlaceholder.email" required />
             </div>
 
             <div>
                 <label>手機號碼：</label>
-
-                <input type="text" v-model="user.phone" @input="validatePhone"
+                <input type="text" v-model="user.phone"
+                    :placeholder="userPlaceholder.phone" @input="validatePhone"
                     @keypress="onlyNumber" required />
                 <p v-if="phoneError" class="error">{{ phoneError }}</p>
             </div>
 
-            <!-- 地址選擇元件 -->
-            <!-- <AddressSelector :onStoreSelected="handleStoreSelected" /> -->
-
             <button type="submit">更新</button>
+            <button type="button" @click="cancel">取消</button>
         </form>
+
         <p v-if="message" class="message">{{ message }}</p>
     </div>
 </template>
 
 <script>
-import axios from "axios";
-import AddressSelector from "@/components/address/AddressSelector.vue";
+import { useRouter } from 'vue-router';
+import { jwtDecode } from 'jwt-decode';
+import axios from 'axios';
 
 export default {
-    components: {
-        AddressSelector,
-    },
     data() {
         return {
-            userId: 1,
+            userId: null,
             user: {
                 userName: "",
                 email: "",
                 phone: "",
-                address: "",
             },
+            userPlaceholder: {
+                userName: "載入中...",
+                email: "載入中...",
+                phone: "載入中...",
+            },
+
             message: "",
+            phoneError: "",
+            router: useRouter()
         };
     },
     mounted() {
-        this.fetchUserData();
+        this.loadUserId();
+        if (this.userId) {
+            this.fetchUserData();
+        } else {
+            this.router.push('/user/login'); // 未登入則跳轉登入頁
+        }
     },
     methods: {
+        loadUserId() {
+            const token = sessionStorage.getItem("token");
+            console.log("獲取的 Token:", token);  // ✅ 確認 Token 是否存在
+
+            if (!token) {
+                console.warn("未找到 Token，跳轉至登入頁");
+                this.router.push('/user/login');
+                return;
+            }
+
+            try {
+                const decodedToken = jwtDecode(token);
+                this.userId = decodedToken.userId;
+                console.log("解析的 JWT User ID:", this.userId);  // ✅ 確認 userId 是否正確解析
+            } catch (error) {
+                console.error("無法解析 JWT:", error);
+                this.router.push('/user/login');
+            }
+        },
         async fetchUserData() {
             try {
-                const response = await axios.get(`/api/users/${this.userId}`);
+                const token = sessionStorage.getItem("token");
+                console.log("使用 Token 取得用戶資訊，User ID:", this.userId);  // ✅ 確保請求時 userId 正確
+
+                const response = await axios.get(`http://localhost:8081/api/admin/user/${this.userId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
                 this.user = response.data;
+                this.userPlaceholder = { ...this.user }; // 設定 placeholder
+                console.log("獲取的用戶資料:", this.user);  // ✅ 檢查 API 回傳的用戶資料
+
             } catch (error) {
-                console.error("獲取用戶數據失敗", error);
+                console.error("獲取用戶數據失敗:", error);
+                this.router.push('/user/login');
             }
         },
         async updateProfile() {
             try {
-                await axios.put(`/api/users/${this.userId}`, this.user);
+                const token = sessionStorage.getItem("token");
+                console.log("更新 User ID:", this.userId);  // ✅ 確認 userId 在更新時是否存在
+
+                const updatedUser = { ...this.user };
+                // delete updatedUser.password; // **不變更密碼**
+
+                await axios.put(`http://localhost:8081/api/admin/user/${this.userId}`, updatedUser, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
                 this.message = "個人資料更新成功！";
+                console.log("更新成功:", updatedUser);  // ✅ 確認更新的內容
+                setTimeout(() => {
+                    this.router.push('/memberCenter');
+                }, 1000);
             } catch (error) {
-                console.error("更新失敗", error);
+                console.error("更新失敗:", error);
                 this.message = "更新失敗，請稍後再試！";
             }
         },
         validatePhone() {
             const regex = /^09\d{8}$/;
-            if (!regex.test(this.user.phone)) {
-                this.phoneError = "";
-            } else {
-                this.phoneError = "";
-            }
+            this.phoneError = regex.test(this.user.phone) ? "" : "手機號碼需以09開頭，並為10位數";
         },
         onlyNumber(event) {
             if (!/[0-9]/.test(event.key)) {
                 event.preventDefault();
             }
         },
-        handleStoreSelected(store) {
-            this.user.address = `${store.StoreName} (${store.StoreAddress})`;
-        },
+        cancel() {
+            this.router.push('/memberCenter'); // 返回會員中心
+        }
     }
 };
 </script>
+
 <style scoped>
 .container {
     max-width: 400px;
@@ -132,7 +182,7 @@ button {
 }
 
 button:hover {
-    background-color: #3e8e41
+    background-color: #3e8e41;
 }
 
 button:active {
@@ -147,20 +197,9 @@ button:active {
     margin-top: 10px;
 }
 
-.dropdown {
-    display: flex;
-    gap: 5px;
-}
-
-.street {
-    flex-grow: 1;
-}
-
-.full-width {
-    display: block;
-    width: 100%;
-    /* 讓 input 佔滿整行 */
+.error {
+    color: red;
+    font-size: 12px;
     margin-top: 5px;
-    /* 可選，讓它和上面的選單稍微分開 */
 }
 </style>
