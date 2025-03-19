@@ -79,6 +79,13 @@ const router = createRouter({
           name: "PasswordReset",
           component: () => import("@/views/auth/ResetPassword.vue"),
         },
+
+        //申請賣家頁
+        {
+          path: "/shop/apply",
+          name: "ApplyShop",
+          component: () => import("@/views/front/ApplyShop.vue"),
+        },
       ],
     },
 
@@ -198,6 +205,12 @@ const router = createRouter({
           path: "coupons",
           name: "Coupons",
           component: () => import("@/views/admin/Coupons.vue"),
+        },
+        {
+          // 審核商店申請頁面
+          path: "shop/review",
+          name: "ShopReview",
+          component: () => import("@/views/admin/AdminShopApplication.vue"),
         },
       ],
       // path: "/search",
