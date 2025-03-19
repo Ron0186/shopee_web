@@ -48,6 +48,8 @@
         try {
           const userId = 1; // 這邊先假設 userId = 1
           const response = await axios.get(`http://localhost:8081/api/cart/${userId}`);
+
+          console.log("購物車 API 回傳:", response.data); // ✅ 確認 API 是否有回傳資料
           this.cart = response.data;
         } catch (error) {
           console.error("獲取購物車資料失敗", error);
