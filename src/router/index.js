@@ -209,17 +209,32 @@ const router = createRouter({
     {
       path: '/memberCenter',
       name: 'memberCenter',
-      component: () => import('@/views/pages/MemberCenter.vue')
+      component: () => import('@/views/member/MemberCenter.vue')
     },
     {
       path: '/profile',
       name: 'profile',
-      component: () => import('@/views/pages/Profile.vue')
+      component: () => import('@/views/member/Profile.vue')
     },
     {
       path: '/address',
       name: 'address',
-      component: () => import('@/views/pages/Address.vue')
+      component: () => import('@/views/member/Address.vue')
+    },
+    {
+      path: '/HomeAddressUpdate',
+      name: 'HomeAddressUpdate',
+      component: () => import('@/views/member/HomeAddressUpdate.vue')
+    },
+    {
+      path: '/CVSAddressUpdate',
+      name: 'CVSAddressUpdate',
+      component: () => import('@/views/member/CVSAddressUpdate.vue')
+    },
+    {
+      path: '/memberOrders',
+      name: 'memberOrders',
+      component: () => import('@/views/member/memberOrders.vue')
     }
   ],
 });

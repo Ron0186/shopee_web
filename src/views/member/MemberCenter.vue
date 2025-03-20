@@ -22,7 +22,7 @@
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">訂單管理</label>
                 <img src="@/assets/angle-small-right.png" class="icon ml-auto"
-                    @click="goToPage('/profile/orders')" />
+                    @click="goToPage('/memberOrders')" />
             </div>
 
             <div class="mb-4 flex items-center">

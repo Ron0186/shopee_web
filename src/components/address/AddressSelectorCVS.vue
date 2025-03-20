@@ -1,6 +1,6 @@
 <template>
     <div>
-        <label>宅配地址：</label>
+        <!-- <label>宅配地址：</label>
         <div class="dropdown">
             <select v-model="selectedCounty" @change="updateDistricts">
                 <option value="">選擇縣市</option>
@@ -21,14 +21,14 @@
 
             <input type="text" v-model="selectedZipcode" class="zipcode_box"
                 placeholder="郵遞區號" readonly />
-        </div>
+        </div> -->
 
-        <div>
+        <!-- <div>
             <input type="text" required v-model="address"
                 class="street full-width" placeholder="請輸入地址" />
-        </div>
+        </div> -->
 
-        <!-- <div>7-11超取</div>
+        <div>7-11超取：</div>
         <div>
             <label>選擇超商門市：</label>
             <button @click="openStorePicker" class="store-btn">選擇 7-11
@@ -39,10 +39,10 @@
                 <p><strong>門市地址：</strong>{{ selectedStore.StoreAddress }}</p>
                 <p><strong>門市編號：</strong>{{ selectedStore.StoreID }}</p>
             </div>
-        </div> -->
+        </div>
 
 
-        <!-- <button @click="openStorePicker">選擇超商門市</button> -->
+        <button @click="openStorePicker">選擇超商門市</button>
     </div>
 </template>
 
