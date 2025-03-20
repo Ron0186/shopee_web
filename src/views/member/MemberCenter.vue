@@ -28,17 +28,17 @@
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">我的優惠券</label>
                 <img src="@/assets/angle-small-right.png" class="icon ml-auto"
-                    @click="goToPage('/profile/coupons')" />
+                    @click="goToPage('/memberCoupons')" />
             </div>
 
-            <div class="mb-4 flex items-center">
+            <!-- <div class="mb-4 flex items-center">
                 <label class="font-semibold">我的錢包</label>
                 <img src="@/assets/angle-small-right.png" class="icon ml-auto"
                     @click="goToPage('/profile/wallet')" />
-            </div>
+            </div> -->
 
             <button @click="logout"
-                class="w-full bg-red-500 text-white py-2 rounded mt-4 hover:bg-red-600">
+                class="w-full bg-red-500 text-black py-2 rounded mt-4 hover:bg-red-600">
                 登出
             </button>
         </div>

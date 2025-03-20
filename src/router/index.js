@@ -235,6 +235,11 @@ const router = createRouter({
       path: '/memberOrders',
       name: 'memberOrders',
       component: () => import('@/views/member/memberOrders.vue')
+    },
+    {
+      path: '/memberCoupons',
+      name: 'memberCoupons',
+      component: () => import('@/views/member/memberCoupons.vue')
     }
   ],
 });

@@ -17,53 +17,53 @@
         <!-- 主要地址 (宅配地址) -->
         <div v-if="activeTab === 'primary'" class="address-card">
             <h3>🏠 宅配地址</h3>
-            <div v-if="primaryAddress">
-                <div class="icon-group">
-                    <img src="@/assets/data-processing.png" class="icon"
-                        @click="goToUpdatePage(primaryAddress.userAddressId)" />
-                    <img src="@/assets/trash.png" class="icon"
-                        @click="deleteAddress(primaryAddress.userAddressId)" />
+            <div v-if="primaryAddress.length > 0">
+                <div v-for="(address, index) in primaryAddress" :key="index"
+                    class="address-block">
+                    <div class="icon-group">
+                        <img src="@/assets/data-processing.png" class="icon"
+                            @click="goToUpdatePage(address.userAddressId)" />
+                        <img src="@/assets/trash.png" class="icon"
+                            @click="deleteAddress(address.userAddressId)" />
+                    </div>
+                    <p><strong>地址：</strong>{{ address.recipientPhone }}{{
+                        address.city }}{{ address.district }}{{
+                        address.streetEtc }}</p>
+                    <p><strong>郵遞區號：</strong>{{ address.zipCode }}</p>
+                    <p><strong>收件人：</strong>{{ address.recipientName }}</p>
+                    <p><strong>電話：</strong>{{ address.recipientPhone }}</p>
                 </div>
-                <p><strong>收件人：</strong>{{ userName }}</p>
-                <p><strong>城市：</strong> {{ primaryAddress.city || '尚未設定' }}</p>
-                <p><strong>區：</strong> {{ primaryAddress.district || '尚未設定' }}
-                </p>
-                <p><strong>郵遞區號：</strong> {{ primaryAddress.zipCode || '尚未設定' }}
-                </p>
-                <p><strong>詳細地址：</strong> {{ primaryAddress.streetEtc || '尚未設定'
-                    }}</p>
             </div>
-            <!-- 新增宅配地址按鈕 -->
             <button type="submit" @click="goToHomeAddressUpdate">新增宅配地址</button>
         </div>
 
         <!-- 次要地址 (超商取貨地址) -->
         <div v-if="activeTab === 'secondary'" class="address-card">
             <h3>📦 超商取貨</h3>
-            <div v-if="secondaryAddress">
-                <div class="icon-group">
-                    <img src="@/assets/data-processing.png" class="icon"
-                        @click="goToUpdatePage(secondaryAddress.userAddressId)" />
-                    <img src="@/assets/trash.png" class="icon"
-                        @click="deleteAddress(secondaryAddress.userAddressId)" />
+            <div v-if="secondaryAddress.length > 0">
+                <div v-for="(address, index) in secondaryAddress" :key="index"
+                    class="address-block">
+                    <div class="icon-group">
+                        <img src="@/assets/data-processing.png" class="icon"
+                            @click="goToUpdatePage(address.userAddressId)" />
+                        <img src="@/assets/trash.png" class="icon"
+                            @click="deleteAddress(address.userAddressId)" />
+                    </div>
+                    <p><strong>地址：</strong>{{ address.recipientPhone }}{{
+                        address.city }}{{ address.district }}{{
+                        address.streetEtc }}</p>
+                    <p><strong>郵遞區號：</strong>{{ address.zipCode }}</p>
+                    <p><strong>收件人：</strong>{{ address.recipientName }}</p>
+                    <p><strong>電話：</strong>{{ address.recipientPhone }}</p>
                 </div>
-                <p><strong>收件人：</strong>{{ userName }}</p>
-                <p><strong>城市：</strong> {{ secondaryAddress.city || '尚未設定' }}
-                </p>
-                <p><strong>區：</strong> {{ secondaryAddress.district || '尚未設定' }}
-                </p>
-                <p><strong>郵遞區號：</strong> {{ secondaryAddress.zipCode || '尚未設定'
-                    }}</p>
-                <p><strong>詳細地址：</strong> {{ secondaryAddress.streetEtc ||
-                    '尚未設定' }}</p>
             </div>
-            <!-- 新增超商取貨地址按鈕 -->
             <button type="submit" @click="goToCVSAddressUpdate">新增超商門市</button>
         </div>
 
         <p v-if="message" class="message">{{ message }}</p>
     </div>
 </template>
+
 
 <script>
 import { useRouter } from 'vue-router';
@@ -74,10 +74,10 @@ export default {
     data() {
         return {
             userId: null,
-            primaryAddress: null,  // 主要地址 (宅配)
-            secondaryAddress: null, // 次要地址 (超商取貨)
+            primaryAddress: [],  // 主要地址 (宅配)
+            secondaryAddress: [], // 次要地址 (超商取貨)
             message: "",
-            activeTab: "primary", // 預設顯示「宅配地址」
+            activeTab: "primary",
             router: useRouter(),
         };
     },
@@ -132,7 +132,9 @@ export default {
             try {
                 const decodedToken = jwtDecode(token);
                 this.userId = decodedToken.userId;
+                this.sub = decodedToken.sub;
                 console.log("解析的 JWT User ID:", this.userId);
+                console.log("解析的 JWT User Name:", this.sub);
             } catch (error) {
                 console.error("無法解析 JWT:", error);
                 this.router.push('/user/login');
@@ -155,7 +157,7 @@ export default {
                 console.log("🏠 主要地址 API 回應:", primaryRes.data);
                 console.log("📦 次要地址 API 回應:", secondaryRes.data);
 
-                this.primaryAddress = primaryRes.data;
+                this.primaryAddress = primaryRes.data;  // API 回應的是陣列
                 this.secondaryAddress = secondaryRes.data;
 
             } catch (error) {
@@ -196,6 +198,7 @@ h3 {
     background: #f4f4f4;
     border: 1px solid #ddd;
     cursor: pointer;
+    width: 45vw;
 }
 
 .navbar button.active {
