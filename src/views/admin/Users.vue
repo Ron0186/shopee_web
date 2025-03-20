@@ -1,13 +1,16 @@
 <template>
   <div class="container mt-4">
     <h2>管理使用者帳號</h2>
-    <div class="mb-3 d-flex align-items-center">
+    <div class="d-flex justify-content-between mb-3">
+      <div class="d-flex">
       <input v-model="searchName" class="form-control me-2" placeholder="搜尋使用者名稱" @input="searchUsers">
       <select v-model="pageSize" class="form-select w-auto" @change="handlePageSizeChange">
         <option :value="10">10 筆</option>
         <option :value="20">20 筆</option>
         <option :value="50">50 筆</option>
       </select>
+      <button class="btn btn-success" @click="openAddModal">新增會員</button>
+    </div>
     </div>
 
     
@@ -18,6 +21,7 @@
           <th style="width: 150px;">名稱</th>
           <th style="width: 250px;">Email</th>
           <th style="width: 120px;">電話</th>
+          <th style="width: 150px;">角色</th>
           <th style="width: 180px;">操作</th>
         </tr>
       </thead>
@@ -27,8 +31,10 @@
           <td>{{ user.userName }}</td>
           <td>{{ user.email }}</td>
           <td>{{ user.phone }}</td>
+          <td>{{ user.roles.join(', ') }}</td>
           <td>
             <button class="btn btn-primary btn-sm" @click="openEditModal(user)">編輯資料</button>
+            <button class="btn btn-warning btn-sm ms-2" @click="openModal(user)">編輯權限</button>
             <button class="btn btn-danger btn-sm ms-2" @click="deleteUser(user.userId)">刪除用戶</button>
           </td>
         </tr>
@@ -65,6 +71,14 @@
       @insert="handleInsertUser"
       v-if="addModalOpen"
     />
+    <UserRoleEdit
+  v-if="isModalOpen"
+  :is-open="isModalOpen"
+  :user="selectedUser || {}"
+  :all-available-roles="availableRoles"
+  @close="closeModal"
+  @save="handleSaveRoles"
+/>
   </div>
 </template>
 
@@ -73,6 +87,7 @@ import { ref, onMounted } from "vue";
 import axios from "@/plugins/axios";
 import UserEditModal from "@/components/admin/Account.components/UserEditModal.vue";
 import UserAddModal from "@/components/admin/Account.components/UserAddModal.vue";
+import UserRoleEdit from "@/components/admin/Account.components/UserRoleEdit.vue";
 import Swal from "sweetalert2";
 
 const users = ref([]);
@@ -83,13 +98,72 @@ const editModalOpen = ref(false);
 const selectedUser = ref(null);
 const addModalOpen = ref(false);
 const searchName = ref("");
+const isModalOpen = ref(false);
+const availableRoles=ref([
+  { id: 'User', roleName: 'User' },
+  { id: 'SELLER', roleName: 'SELLER' },
+]);
+
+const openModal = (user) => {
+  if (!user) return; // 確保 user 不為 null
+  selectedUser.value = user;
+  isModalOpen.value = true;
+};
+
+// 關閉 Modal 的方法
+const closeModal = () => {
+  isModalOpen.value = false;
+  selectedUser.value = null; // 清空選中的使用者
+};
+// 處理保存角色事件的方法
+const handleSaveRoles = async (updatedUserData) => {
+  try {
+    const response = await axios.put(`/api/admin/role/${updatedUserData.userId}`, {
+      roles: updatedUserData.roles
+    });
+
+    await fetchUsers(currentPage.value);
+
+    if (response.data.success) {
+      Swal.fire({
+        title: "角色更新成功",
+        icon: "success",
+      });
+
+      // 更新前端的使用者資料
+      const userIndex = users.value.findIndex(u => u.userId === updatedUserData.userId);
+      if (userIndex !== -1) {
+        users.value[userIndex] = { ...users.value[userIndex], roles: updatedUserData.roles };
+      }
+    } else {
+      Swal.fire({
+        title: "角色更新失敗",
+        text: response.data.message,
+        icon: "error",
+      });
+    }
+  } catch (error) {
+    Swal.fire({
+      title: "錯誤",
+      text: error.response?.data?.message || "無法更新角色",
+      icon: "error",
+    });
+  }
+};
 
 const fetchUsers = async (page = 0, name = "") => {
   try {
-    const response = await axios.get(
-      `/api/admin/user/any?page=${page}&size=${pageSize.value}&username=${name}`
-    );
+    const response = await axios.get(`/api/admin/any`, {
+            params: {
+              userName: name,
+              roleName: "User",
+              page: page,
+              size: pageSize.value
+            }
+          });
     users.value = response.data.content;
+    console.log(users.value)
+    console.log(response.data.content)
     totalPages.value = response.data.totalPages;
     currentPage.value = page;
   } catch (error) {

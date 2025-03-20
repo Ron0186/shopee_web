@@ -124,7 +124,8 @@
         try {
           const response = await axios.get(`/api/admin/any`, {
             params: {
-              username: this.searchQuery,
+              userName: this.searchQuery,
+              roleName: "Admin",
               page: page,
               size: this.pageSize
             }
