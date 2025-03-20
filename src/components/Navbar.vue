@@ -10,12 +10,14 @@
 
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
-      <router-link to="/user/login" v-if="!userStore.username">🔑 登入</router-link>
-      <router-link to="/user/register" v-if="!userStore.username">📝 註冊</router-link>
+      <router-link to="/user/login" v-if="!userStore.username"
+        >🔑 登入</router-link
+      >
+      <router-link to="/user/register" v-if="!userStore.username"
+        >📝 註冊</router-link
+      >
       <router-link to="/profile">👤 會員中心</router-link>
-      <router-link v-if="userStore.username" :to="(userStore.roles && userStore.roles.includes('ADMIN')) ? '/admin/orders'
-        : (userStore.roles && userStore.roles.includes('SELLER')) ? '/seller/orders'
-          : '/user/orders'">
+      <router-link v-if="userStore.username" :to="userOrderRoute">
         📦 訂單管理
       </router-link>
 
@@ -35,44 +37,69 @@
         <button @click="toggleCategory">🛍 商城分類 ▼</button>
         <ul v-if="categoryOpen">
           <li>
-            <router-link to="/shop?category=clothing" @click="toggleDrawer">👕 衣服</router-link>
+            <router-link to="/shop?category=clothing" @click="toggleDrawer"
+              >👕 衣服</router-link
+            >
           </li>
           <li>
-            <router-link to="/shop?category=electronics" @click="toggleDrawer">📱 電子產品</router-link>
+            <router-link to="/shop?category=electronics" @click="toggleDrawer"
+              >📱 電子產品</router-link
+            >
           </li>
           <li>
-            <router-link to="/shop?category=home" @click="toggleDrawer">🏠 家用品</router-link>
+            <router-link to="/shop?category=home" @click="toggleDrawer"
+              >🏠 家用品</router-link
+            >
           </li>
           <li>
-            <router-link to="/shop?category=others" @click="toggleDrawer">🔹 其他</router-link>
+            <router-link to="/shop?category=others" @click="toggleDrawer"
+              >🔹 其他</router-link
+            >
           </li>
         </ul>
       </li>
       <li>
-        <router-link to="/discounts" @click="toggleDrawer">💰 優惠專區</router-link>
+        <router-link to="/discounts" @click="toggleDrawer"
+          >💰 優惠專區</router-link
+        >
       </li>
       <li>
-        <router-link to="/notifications" @click="toggleDrawer">🔔 通知</router-link>
+        <router-link to="/notifications" @click="toggleDrawer"
+          >🔔 通知</router-link
+        >
       </li>
       <li>
-        <router-link to="/support" @click="toggleDrawer">📞 客服 & 幫助中心</router-link>
+        <router-link to="/support" @click="toggleDrawer"
+          >📞 客服 & 幫助中心</router-link
+        >
       </li>
       <li>
-        <router-link to="/address" @click="toggleDrawer">📍 地址管理</router-link>
+        <router-link to="/address" @click="toggleDrawer"
+          >📍 地址管理</router-link
+        >
       </li>
       <li>
-        <router-link to="/payment-methods" @click="toggleDrawer">💳 付款方式</router-link>
+        <router-link to="/payment-methods" @click="toggleDrawer"
+          >💳 付款方式</router-link
+        >
       </li>
       <li>
-        <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 & 使用者條款</router-link>
+        <router-link to="/privacy" @click="toggleDrawer"
+          >📜 隱私政策 & 使用者條款</router-link
+        >
       </li>
     </ul>
   </div>
 </template>
 
 <script setup>
+import { ref, computed, watchEffect, onMounted } from "vue";
+import { useUserStore } from "@/stores/user";
+import Swal from "sweetalert2";
+import router from "@/router/index";
+import { decodeToken } from "@/utils/jwtHelper";
 
-
+// 📌 UI 控制變數
 const drawerOpen = ref(false);
 const categoryOpen = ref(false);
 
@@ -84,62 +111,48 @@ const toggleCategory = () => {
   categoryOpen.value = !categoryOpen.value;
 };
 
+// 📌 獲取 `userStore`
+const userStore = useUserStore();
 
-//-------------------------以下是登出相關
-import { ref, watchEffect, onMounted } from "vue";
-import { useUserStore } from '@/stores/user';
-import Swal from "sweetalert2";
-import router from "@/router/index";
-import { decodeToken } from "@/utils/jwtHelper";
-
-
-// 定義變數
-const isSeller = ref(false);
-
-// 確保 JWT 解析在組件掛載後執行
-onMounted(() => {
-  checkSellerRole();
-});
-
-// 獨立函式來解析 JWT
-const checkSellerRole = () => {
+/** ✅ 解析 JWT 來取得角色資訊 */
+const updateUserRoles = () => {
   const token = localStorage.getItem("token");
   if (!token) {
     console.log("❌ 沒有 JWT，無法判斷角色");
-    isSeller.value = false;
+    userStore.roles = []; // 確保角色陣列是空的
     return;
   }
 
   const decoded = decodeToken(token);
   console.log("🔍 解析 JWT:", decoded);
 
-  if (decoded.roles?.includes("SELLER") || decoded.roles?.includes("ROLE_SELLER")) {
-    isSeller.value = true;
-    console.log("✅ 你是 SELLER");
-  } else {
-    isSeller.value = false;
-    console.log("🚫 你不是 SELLER");
-  }
-
-  console.log("🎯 isSeller 更新後的值:", isSeller.value);
+  // 確保 `userStore.roles` 正確儲存
+  userStore.roles = decoded.roles || [];
 };
 
+/** 📌 `onMounted` 解析 JWT */
+onMounted(() => {
+  updateUserRoles();
+});
 
+/** ✅ `computed` 來決定訂單管理頁面的導向 */
+const userOrderRoute = computed(() => {
+  if (!userStore.roles || userStore.roles.length === 0) return "/user/orders"; // 預設為一般用戶
+  if (userStore.roles.includes("ADMIN")) return "/admin/orders";
+  if (userStore.roles.includes("SELLER")) return "/seller/orders";
+  return "/user/orders";
+});
 
-
-const userStore = useUserStore();
+/** ✅ 登出功能 */
 async function logout() {
-  // 2. 清除 Pinia store 中的用户数据
   userStore.clearUserData();
-
-  // 登出後顯示訊息
   const response = await Swal.fire({
     title: "您已成功登出",
     icon: "success",
     confirmButtonText: "OK",
   });
   if (response.isConfirmed) {
-    router.push('/shop');
+    router.push("/shop");
   }
 }
 </script>
@@ -161,7 +174,7 @@ async function logout() {
   box-sizing: border-box;
 }
 
-.title>a {
+.title > a {
   color: #000;
   text-decoration: none;
   font-weight: 600;
@@ -253,7 +266,7 @@ async function logout() {
 .logout-link {
   color: #000;
   text-decoration: none;
-  font-size: 16px
+  font-size: 16px;
 }
 
 .logout-link:hover {
