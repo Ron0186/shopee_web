@@ -32,7 +32,7 @@ const orders = ref([]);
 
 async function fetchUserOrders() {
     try {
-        const response = await axios.get("/api/user/orders");
+        const response = await axios.get("/user/orders");
         orders.value = response.data;
     } catch (error) {
         console.error("❌ 獲取用戶訂單失敗:", error);

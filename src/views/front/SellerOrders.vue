@@ -59,7 +59,7 @@ const filterCriteria = ref({ status: "all", startDate: null, endDate: null });
 const sortAscending = ref(true);
 
 watchEffect(async () => {
-    let apiUrl = isSeller.value ? "/api/seller/orders" : "/api/user/orders";
+    let apiUrl = isSeller.value ? "/seller/orders" : "/user/orders";
 
     try {
         const response = await axios.get(apiUrl);

@@ -13,7 +13,9 @@
       <router-link to="/user/login" v-if="!userStore.username">🔑 登入</router-link>
       <router-link to="/user/register" v-if="!userStore.username">📝 註冊</router-link>
       <router-link to="/profile">👤 會員中心</router-link>
-      <router-link v-if="userStore.username" :to="isSeller ? '/seller/orders' : '/user/orders'">
+      <router-link v-if="userStore.username" :to="(userStore.roles && userStore.roles.includes('ADMIN')) ? '/admin/orders'
+        : (userStore.roles && userStore.roles.includes('SELLER')) ? '/seller/orders'
+          : '/user/orders'">
         📦 訂單管理
       </router-link>
 
