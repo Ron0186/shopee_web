@@ -2,25 +2,57 @@
     <div class="container">
         <h2>配送地址</h2>
 
+        <!-- 導覽列 -->
+        <div class="navbar">
+            <button :class="{ active: activeTab === 'primary' }"
+                @click="setActiveTab('primary')">
+                🏠 宅配地址
+            </button>
+            <button :class="{ active: activeTab === 'secondary' }"
+                @click="setActiveTab('secondary')">
+                📦 超商取貨地址
+            </button>
+        </div>
+
         <!-- 主要地址 (宅配地址) -->
-        <div v-if="primaryAddress">
+        <div v-if="activeTab === 'primary' && primaryAddress"
+            class="address-card">
             <h3>🏠 宅配地址</h3>
+            <div class="icon-group">
+                <img src="@/assets/data-processing.png" class="icon"
+                    @click="goToUpdatePage(primaryAddress.userAddressId)" />
+                <img src="@/assets/trash.png" class="icon"
+                    @click="deleteAddress(primaryAddress.userAddressId)" />
+            </div>
+            <p><strong>收件人：</strong>{{ userName }}</p>
             <p><strong>城市：</strong> {{ primaryAddress.city || '尚未設定' }}</p>
-            <p><strong>區：</strong> {{ primaryAddress.district }}</p>
-            <p><strong>郵遞區號：</strong> {{ primaryAddress.zipCode }}</p>
-            <p><strong>詳細地址：</strong> {{ primaryAddress.streetEtc }}</p>
+            <p><strong>區：</strong> {{ primaryAddress.district || '尚未設定' }}</p>
+            <p><strong>郵遞區號：</strong> {{ primaryAddress.zipCode || '尚未設定' }}</p>
+            <p><strong>詳細地址：</strong> {{ primaryAddress.streetEtc || '尚未設定' }}
+            </p>
         </div>
 
-        <!-- 次要地址 (可選) -->
-        <div v-if="secondaryAddress">
+        <!-- 次要地址 (超商取貨地址) -->
+        <div v-if="activeTab === 'secondary' && secondaryAddress"
+            class="address-card">
             <h3>📦 超商取貨地址</h3>
-            <p><strong>城市：</strong> {{ secondaryAddress.city }}</p>
-            <p><strong>區：</strong> {{ secondaryAddress.district }}</p>
-            <p><strong>郵遞區號：</strong> {{ secondaryAddress.zipCode }}</p>
-            <p><strong>詳細地址：</strong> {{ secondaryAddress.streetEtc }}</p>
+            <div class="icon-group">
+                <img src="@/assets/data-processing.png" class="icon"
+                    @click="goToUpdatePage(secondaryAddress.userAddressId)" />
+                <img src="@/assets/trash.png" class="icon"
+                    @click="deleteAddress(secondaryAddress.userAddressId)" />
+            </div>
+            <p><strong>收件人：</strong>{{ userName }}</p>
+            <p><strong>城市：</strong> {{ secondaryAddress.city || '尚未設定' }}</p>
+            <p><strong>區：</strong> {{ secondaryAddress.district || '尚未設定' }}</p>
+            <p><strong>郵遞區號：</strong> {{ secondaryAddress.zipCode || '尚未設定' }}
+            </p>
+            <p><strong>詳細地址：</strong> {{ secondaryAddress.streetEtc || '尚未設定' }}
+            </p>
         </div>
 
-        <button type="submit" @click="updateAddress">更新</button>
+        <!-- 新增按鈕 -->
+        <button type="submit" @click="goToAddPage">新增地址</button>
         <p v-if="message" class="message">{{ message }}</p>
     </div>
 </template>
@@ -30,7 +62,6 @@ import { useRouter } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
 
-
 export default {
     data() {
         return {
@@ -38,6 +69,7 @@ export default {
             primaryAddress: null,  // 主要地址 (宅配)
             secondaryAddress: null, // 次要地址 (超商取貨)
             message: "",
+            activeTab: "primary", // 預設顯示「宅配地址」
             router: useRouter(),
         };
     },
@@ -50,6 +82,35 @@ export default {
         }
     },
     methods: {
+        setActiveTab(tab) {
+            this.activeTab = tab;  // 切換分頁
+        },
+        goToUpdatePage(addressId) {
+            this.router.push(`/updateAddress/${addressId}`); // 跳轉到更新地址頁面
+        },
+        goToAddPage() {
+            this.router.push('/addAddress'); // 跳轉到新增地址頁面
+        },
+        async deleteAddress(addressId) {
+            if (!confirm("確定要刪除此地址嗎？")) return;
+
+            try {
+                const token = sessionStorage.getItem("token");
+                await axios.delete(`http://localhost:8081/api/user/address/${this.userId}/${addressId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                this.message = "地址刪除成功！";
+                console.log("✅ 地址刪除成功");
+
+                // 重新獲取地址數據
+                this.fetchAddresses();
+
+            } catch (error) {
+                console.error("刪除地址失敗:", error);
+                this.message = "刪除失敗，請稍後再試！";
+            }
+        },
         loadUserId() {
             const token = sessionStorage.getItem("token");
             if (!token) {
@@ -86,45 +147,9 @@ export default {
                 this.primaryAddress = primaryRes.data;
                 this.secondaryAddress = secondaryRes.data;
 
-                console.log("🏠 主要地址:", this.primaryAddress);
-                console.log("📦 次要地址:", this.secondaryAddress);
-
             } catch (error) {
                 console.error("獲取地址數據失敗:", error);
                 this.router.push('/user/login');
-            }
-        },
-        async updateAddress() {
-            try {
-                const token = sessionStorage.getItem("token");
-
-                // 更新主要地址
-                if (this.primaryAddress) {
-                    await axios.put(`http://localhost:8081/api/user/address/${this.userId}/${this.primaryAddress.userAddressId}`,
-                        this.primaryAddress, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                }
-
-                // 更新次要地址
-                if (this.secondaryAddress) {
-                    await axios.put(`http://localhost:8081/api/user/address/${this.userId}/${this.secondaryAddress.userAddressId}`,
-                        this.secondaryAddress, {
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                }
-
-                this.message = "地址更新成功！";
-                console.log("✅ 地址更新成功");
-
-                // 1 秒後回到會員中心
-                setTimeout(() => {
-                    this.router.push('/memberCenter');
-                }, 1000);
-
-            } catch (error) {
-                console.error("更新地址失敗:", error);
-                this.message = "更新失敗，請稍後再試！";
             }
         }
     }
@@ -146,6 +171,54 @@ h3 {
     text-align: center;
 }
 
+/* Navbar 樣式 */
+.navbar {
+    display: flex;
+    justify-content: space-around;
+    margin-bottom: 15px;
+}
+
+.navbar button {
+    flex: 1;
+    padding: 10px;
+    font-size: 16px;
+    background: #f4f4f4;
+    border: 1px solid #ddd;
+    cursor: pointer;
+}
+
+.navbar button.active {
+    background: #04AA6D;
+    color: white;
+    font-weight: bold;
+}
+
+/* 地址卡片 */
+.address-card {
+    position: relative;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 5px;
+    margin-bottom: 15px;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+}
+
+/* 編輯 & 刪除按鈕組 (h3 下方) */
+.icon-group {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 5px;
+    gap: 10px;
+}
+
+/* 圖示樣式 */
+.icon {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+}
+
+/* 按鈕樣式 */
 button {
     width: 100%;
     padding: 10px;
@@ -158,18 +231,7 @@ button {
     margin-top: 15px;
 }
 
-p {
-    font-size: 16px;
-    margin: 5px 0;
-}
-
 button:hover {
     background-color: #3e8e41;
-}
-
-.message {
-    text-align: center;
-    color: green;
-    margin-top: 10px;
 }
 </style>
