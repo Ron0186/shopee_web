@@ -20,7 +20,8 @@ const logout = () => {
     <router-link to="/admin/products">🛒 商品管理</router-link>
     <router-link to="/admin/products/categories">📑 商品分類</router-link>
     <router-link to="/admin/products/tags">🔖 商品標籤</router-link>
-    <router-link to="/admin/account">👥 會員管理</router-link>
+    <router-link to="/admin/users">👥 會員管理</router-link>
+    <router-link to="/admin/administrators">👥 管理員管理</router-link>
     <router-link to="/admin/users/customers">🙍‍♂️ 客戶管理</router-link>
     <router-link to="/admin/shop/review">🛍 商店申請管理</router-link>
     <router-link to="/admin/coupons">🎟️ 優惠券管理</router-link>

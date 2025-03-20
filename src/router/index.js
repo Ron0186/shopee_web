@@ -160,9 +160,15 @@ const router = createRouter({
         },
         {
           // 帳號頁面
-          path: "account",
-          name: "Account",
-          component: () => import("@/views/admin/Account.vue"),
+          path: "users",
+          name: "Users",
+          component: () => import("@/views/admin/Users.vue"),
+        },
+        {
+          // 管理員帳號頁面
+          path: "administrators",
+          name: "administrators",
+          component: () => import("@/views/admin/Administrators.vue"),
         },
         {
           // 商品頁面
