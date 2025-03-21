@@ -51,8 +51,8 @@
 <script>
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
-import ApplicationControls from "@/components/admin/ShopApplication.components/applicationControls.vue";
-import ApplicationItem from "@/components/admin/ShopApplication.components/applicationItem.vue";
+import ApplicationControls from "@/components/admin/ShopApplication.components/ApplicationControls.vue";
+import ApplicationItem from "@/components/admin/ShopApplication.components/ApplicationItem.vue";
 import RejectedApplicationItem from "./RejectedApplicationItem.vue";
 
 export default {

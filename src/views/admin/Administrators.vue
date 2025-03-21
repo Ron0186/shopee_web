@@ -35,6 +35,7 @@
             <td>
                 <button class="btn btn-primary btn-sm" @click="openEditProfileModal(admin)">編輯資料</button>
               <button class="btn btn-warning btn-sm ms-2" @click="openEditRoleModal(admin)">編輯權限</button>
+              <button class="btn btn-danger btn-sm ms-2" @click="deleteUser(admin.userId)">刪除用戶</button>
             </td>
           </tr>
           <tr v-else>
@@ -85,6 +86,7 @@
   
   <script>
   import axios from '@/plugins/axios';
+  import Swal from 'sweetalert2';
   import AdminRoleEditModal from '@/components/admin/Administrators.components/AdminRoleEditModal.vue';
   import AdminProfileEditModal from '@/components/admin/Administrators.components/AdminProfileEditModal.vue';
   import AdminAddModal from '@/components/admin/Administrators.components/AdminAddModal.vue';
@@ -124,7 +126,8 @@
         try {
           const response = await axios.get(`/api/admin/any`, {
             params: {
-              username: this.searchQuery,
+              userName: this.searchQuery,
+              roleName: "Admin",
               page: page,
               size: this.pageSize
             }
@@ -157,28 +160,95 @@
         this.showProfileModal = true;
       },
       async updateAdminRoles({ userId, roles }) {
-        try {
-          await axios.put(`/api/admin/role/${userId}`, { roles });
-          this.fetchAdmins();
-        } catch (error) {
-          console.error("更新失敗", error);
-          alert("更新失敗，請檢查後端 API 是否正常");
-        }
-        this.showModal = false;
-      },
+  try {
+    const response = await axios.put(`/api/admin/role/${userId}`, { roles });
+
+    if (response.data.success) {
+      console.log("更新成功，顯示成功訊息");
+
+      Swal.fire({
+        title: "角色更新成功",
+        icon: "success",
+        text: response.data.message || "使用者角色已成功更新", // 防止 message 為 undefined
+      });
+      // 更新 UI     
+        await this.fetchAdmins();
+      // 只有成功時才關閉 Modal
+      this.showModal = false;
+    } else {
+      console.log("進入 else 區塊，顯示失敗訊息");
+      Swal.fire({
+        title: "角色更新失敗",
+        text: response.data.message || "發生未知錯誤",
+        icon: "error",
+      });
+    }
+  } catch (error) {
+    console.log("進入 else 區塊，顯示失敗訊息");
+    Swal.fire({
+      title: "錯誤",
+      text: error.response?.data?.message || "無法更新角色",
+      icon: "error",
+    });
+  }
+},
       async updateAdminInfo(updatedAdmin) {
         try {
-          await axios.put(`/api/admin/profile/${updatedAdmin.userId}`, updatedAdmin);
-          const index = this.admins.findIndex(admin => admin.userId === updatedAdmin.userId);
-          if (index !== -1) {
-            this.admins[index] = { ...updatedAdmin };
+          const response= await axios.put(`/api/admin/user/any/${updatedAdmin.userId}`, updatedAdmin);
+
+          if (response.data.success) {
+              await Swal.fire({
+                title: response.data.message,
+                icon: "success",
+              });
+          
+              await this.fetchAdmins(this.pageNumber);
           }
           this.showProfileModal = false;
         } catch (error) {
-          console.error("更新失敗", error);
-          alert("更新失敗，請檢查後端 API 是否正常");
+          Swal.fire({
+            title: "錯誤:" + error.response.data.message,
+            icon: "error",
+          });
         }
       },
+      async deleteUser (adminId) {
+  try {
+    const result = await Swal.fire({
+      title: `確定要刪除 ID:${adminId} 的管理員嗎？`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "確定刪除",
+      cancelButtonText: "取消",
+    });
+
+    if (result.isConfirmed) {
+      const response = await axios.delete(`/api/admin/user/any/${adminId}`);
+      if (response.data.success) {
+        await Swal.fire({
+          title: response.data.message,
+          icon: "success",
+        });
+        // 計算要回到哪一頁：
+        // - 如果這一頁只剩 1 筆資料，且當前頁數 > 0，則回到上一頁
+        // - 否則維持當前頁數
+        const newPage = this.admins.length === 1 && this.pageNumber > 0 
+          ? this.pageNumber - 1 
+          : this.pageNumber;
+
+        // 重新載入管理員列表
+        this.fetchAdmins(newPage);
+      }
+    }
+  } catch (error) {
+    Swal.fire({
+      title: "錯誤:" + error.response.data.message,
+      icon: "error",
+    });
+  }
+},
       openAddModal() {
   this.showAddModal = true;
 },
