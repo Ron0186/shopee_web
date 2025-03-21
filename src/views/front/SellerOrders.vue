@@ -50,16 +50,12 @@
     </div>
 
     <!-- ✅ 訂單詳情 (彈跳視窗) -->
-    <OrderDetails
-      v-if="selectedOrder"
-      :order="selectedOrder"
-      @close="selectedOrder = null"
-    />
+    <OrderDetails v-if="selectedOrder" :order="selectedOrder" @close="selectedOrder = null" />
   </div>
 </template>
 
 <script setup>
-import { ref, computed, watchEffect } from "vue";
+import { ref, computed, watchEffect, onMounted } from "vue";
 import OrderDetails from "@/components/order.components/OrderDetails.vue";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
@@ -73,12 +69,30 @@ const selectedOrder = ref(null);
 const filterCriteria = ref({ status: "all" });
 const sortAscending = ref(true);
 
+const fetchOrders = async () => {
+  try {
+    if (!isSeller.value) {
+      console.error("🚫 你不是賣家，無法存取賣家訂單！");
+      return;
+    }
+
+    const response = await axios.get("/api/orders/seller/orders");
+    orders.value = response.data;
+  } catch (error) {
+    console.error("❌ 訂單 API 錯誤:", error);
+  }
+};
+
+
 // ✅ 取得賣家訂單
 watchEffect(async () => {
   let apiUrl = isSeller.value
     ? "/api/orders/seller/orders"
     : "/api/orders/user/orders";
 
+  onMounted(() => {
+    fetchOrders();
+  });
   try {
     const response = await axios.get(apiUrl);
     orders.value = response.data;

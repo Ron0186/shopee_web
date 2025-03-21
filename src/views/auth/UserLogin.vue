@@ -77,13 +77,14 @@ async function login() {
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("username", decodedToken.sub);
       localStorage.setItem("userId", decodedToken.userId);
+      localStorage.setItem("roles", decodedToken.roles);
 
       console.log("✅ JWT Token 已儲存:", response.data.token);
 
 
 
       //設定userStore
-      userStore.setUserData(decodedToken.sub, decodedToken.userId, response.data.token);
+      userStore.setUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
 
       if (result.isConfirmed) {
         router.push("/");

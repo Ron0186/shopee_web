@@ -1,6 +1,8 @@
 <template>
   <div class="user-orders">
-    <h2>🛍 我的訂單</h2>
+    <h2 v-if="isSeller">📦 賣家訂單管理</h2>
+    <h2 v-else>🛍 我的訂單</h2>
+
     <table>
       <thead>
         <tr>
@@ -17,9 +19,7 @@
           <td class="product-list">
             <ul>
               <li v-for="item in order.items" :key="item.productName">
-                <span class="product-name">{{ item.productName }}</span> (x{{
-                  item.quantity
-                }})
+                <span class="product-name">{{ item.productName }}</span> (x{{ item.quantity }})
               </li>
             </ul>
           </td>
@@ -33,24 +33,17 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, computed } from "vue";
 import axios from "@/plugins/axios";
+import { useUserStore } from "@/stores/user";
 
+const userStore = useUserStore();
+const isSeller = computed(() => userStore.isSeller);
 const orders = ref([]);
 
-const fetchOrders = async () => {
-  try {
-    const response = await axios.get(
-      isSeller.value ? "/api/orders/seller/orders" : "/api/orders/user/orders"
-    );
-    orders.value = response.data;
-  } catch (error) {
-    console.error("❌ 訂單 API 錯誤:", error);
-  }
-};
-
-// 格式化日期
+// ✅ **修正錯誤：補充 `formatDate` 函式**
 const formatDate = (dateString) => {
+  if (!dateString) return "N/A"; // 避免 undefined 導致錯誤
   return new Date(dateString).toLocaleString("zh-TW", {
     year: "numeric",
     month: "2-digit",
@@ -61,9 +54,28 @@ const formatDate = (dateString) => {
   });
 };
 
-onMounted(() => {
-  fetchOrders();
-});
+// ✅ **修正錯誤：確保 `fetchOrders` 正確取得資料**
+const fetchOrders = async () => {
+  try {
+    if (!userStore.token) {
+      console.error("❌ Token 不存在，請重新登入！");
+      return;
+    }
+
+    const apiUrl = isSeller.value ? "/api/orders/seller/orders" : "/api/orders/user/orders";
+
+    const response = await axios.get(apiUrl, {
+      headers: { Authorization: `Bearer ${userStore.token}` },
+    });
+
+    orders.value = response.data;
+  } catch (error) {
+    console.error("❌ 訂單 API 錯誤:", error);
+  }
+};
+
+// ✅ **確保訂單在組件掛載時載入**
+onMounted(fetchOrders);
 </script>
 
 <style scoped>
