@@ -122,19 +122,14 @@ const handleSaveRoles = async (updatedUserData) => {
       roles: updatedUserData.roles
     });
 
-    await fetchUsers(currentPage.value);
-
     if (response.data.success) {
       Swal.fire({
         title: "角色更新成功",
         icon: "success",
       });
 
-      // 更新前端的使用者資料
-      const userIndex = users.value.findIndex(u => u.userId === updatedUserData.userId);
-      if (userIndex !== -1) {
-        users.value[userIndex] = { ...users.value[userIndex], roles: updatedUserData.roles };
-      }
+      // 只在成功後更新使用者列表
+      await fetchUsers(currentPage.value);
     } else {
       Swal.fire({
         title: "角色更新失敗",
@@ -150,6 +145,7 @@ const handleSaveRoles = async (updatedUserData) => {
     });
   }
 };
+
 
 const fetchUsers = async (page = 0, name = "") => {
   try {
@@ -223,20 +219,14 @@ const saveUserChanges = async (editedUser) => {
       `/api/admin/user/any/${editedUser.userId}`,
       editedUser
     );
-
-    const updatedUser = response.data.userDTO;
-    const index = users.value.findIndex(
-      (user) => user.userId === updatedUser.userId
-    );
-    if (index !== -1) {
-      users.value[index] = updatedUser;
-    }
-
     if (response.data.success) {
       await Swal.fire({
         title: response.data.message,
         icon: "success",
       });
+    await fetchUsers(currentPage.value);
+
+    
     }
 
     closeEditModal();
