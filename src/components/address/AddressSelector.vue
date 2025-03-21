@@ -2,7 +2,7 @@
     <div>
         <label>宅配地址：</label>
         <div class="dropdown">
-            <select v-model="selectedCounty" @change="updateDistricts">
+            <select v-model="selectedCounty" @change="updateDistricts" required>
                 <option value="">選擇縣市</option>
                 <option v-for="(districts, county) in taiwanAddress"
                     :key="county" :value="county">
@@ -10,7 +10,8 @@
                 </option>
             </select>
 
-            <select v-model="selectedDistrict" @change="updateZipcode">
+            <select v-model="selectedDistrict" @change="updateZipcode"
+                v-if="selectedCounty" required>
                 <option value="">選擇鄉鎮市區</option>
                 <option
                     v-for="(zipcode, district) in taiwanAddress[selectedCounty]"
@@ -24,95 +25,69 @@
         </div>
 
         <div>
-            <input type="text" required v-model="address"
-                class="street full-width" placeholder="請輸入地址" />
+            <input type="text" v-model="address" class="street full-width"
+                placeholder="請輸入詳細地址" required />
         </div>
-
-        <!-- <div>7-11超取</div>
-        <div>
-            <label>選擇超商門市：</label>
-            <button @click="openStorePicker" class="store-btn">選擇 7-11
-                門市</button>
-
-            <div v-if="selectedStore">
-                <p><strong>門市名稱：</strong>{{ selectedStore.StoreName }}</p>
-                <p><strong>門市地址：</strong>{{ selectedStore.StoreAddress }}</p>
-                <p><strong>門市編號：</strong>{{ selectedStore.StoreID }}</p>
-            </div>
-        </div> -->
-
-
-        <!-- <button @click="openStorePicker">選擇超商門市</button> -->
     </div>
 </template>
 
-<script>
-import { ref } from "vue";
-import { taiwanAddress } from "@/assets/taiwanAddress.js";
+<script setup>
+import { ref, watch, onMounted } from 'vue';
+import { taiwanAddress } from '@/assets/taiwanAddress.js';
 
-export default {
-    props: {
-        modelValue: String, // Vue 3 v-model 需要的 prop
-    },
-    emits: ["update:modelValue"], // 定義 v-model 的事件
-    data() {
-        return {
-            selectedCounty: "",
-            selectedDistrict: "",
-            selectedZipcode: "",
-            address: this.modelValue || "",
-            taiwanAddress,
-        };
-    },
-    watch: {
-        address(newValue) {
-            this.$emit("update:modelValue", `${this.selectedCounty} ${this.selectedDistrict} ${newValue}`);
-        },
-    },
-    mounted() {
-        window.addEventListener("storage", this.getStoreSelection);
-    },
-    beforeUnmount() {
-        window.removeEventListener("storage", this.getStoreSelection);
-    },
-    methods: {
-        updateDistricts() {
-            this.selectedDistrict = "";
-            this.selectedZipcode = "";
-        },
-        updateZipcode() {
-            this.selectedZipcode = this.taiwanAddress[this.selectedCounty]?.[this.selectedDistrict] || "";
-        },
-    },
-    props: ["onStoreSelected"],  // 用於傳遞選擇的門市資訊
-    setup(props) {
-        const selectedStore = ref(null);
+const props = defineProps({
+    modelValue: String
+});
+const emit = defineEmits(['update:modelValue']);
 
-        const openStorePicker = () => {
-            const merchantId = "2000132"; // 測試用
-            const url = `https://logistics-stage.ecpay.com.tw/Express/map?MerchantID=${merchantId}&LogisticsType=CVS&LogisticsSubType=UNIMART&IsCollection=N`;
+const selectedCounty = ref('');
+const selectedDistrict = ref('');
+const selectedZipcode = ref('');
+const address = ref('');
 
-            // 打開新視窗選擇門市
-            const popup = window.open(url, "storePicker", "width=800,height=600");
-
-            // 監聽 localStorage 變化（當綠界回傳選擇的門市時）
-            window.addEventListener("storage", () => {
-                const storeInfo = localStorage.getItem("selectedStore");
-                if (storeInfo) {
-                    selectedStore.value = JSON.parse(storeInfo);
-                    localStorage.removeItem("selectedStore");
-
-                    // 傳遞門市資訊給父元件
-                    if (props.onStoreSelected) {
-                        props.onStoreSelected(selectedStore.value);
-                    }
-                }
-            });
-        };
-
-        return { selectedStore, openStorePicker };
+// 當父元件傳入值時，自動解析
+watch(
+    () => props.modelValue,
+    (newVal) => {
+        if (newVal) parseAddress(newVal);
     },
-};
+    { immediate: true }
+);
+
+// 組合地址 → 傳回父元件
+watch([selectedCounty, selectedDistrict, address], () => {
+    if (selectedCounty.value && selectedDistrict.value) {
+        emit('update:modelValue', `${selectedCounty.value} ${selectedDistrict.value} ${address.value}`);
+    }
+});
+
+
+function updateDistricts() {
+    selectedDistrict.value = '';
+    selectedZipcode.value = '';
+}
+
+function updateZipcode() {
+    selectedZipcode.value = taiwanAddress[selectedCounty.value]?.[selectedDistrict.value] || '';
+}
+
+function parseAddress(fullAddress) {
+
+    console.log("🚚 解析傳入的 address：", fullAddress); // ✅ 確認有沒有進來
+
+    const parts = fullAddress.split(' ');
+    if (parts.length >= 2) {
+        selectedCounty.value = parts[0];
+        selectedDistrict.value = parts[1];
+        address.value = parts.slice(2).join(' ');
+        updateZipcode();
+        console.log("📍 縣市：", selectedCounty.value);
+        console.log("🏘️ 區域：", selectedDistrict.value);
+        console.log("📫 地址：", address.value);
+    } else {
+        console.warn("❗地址格式不符，無法解析");
+    }
+}
 </script>
 
 <style scoped>
@@ -133,14 +108,5 @@ export default {
     display: block;
     width: 100%;
     margin-top: 5px;
-}
-
-.store-btn {
-    background-color: #007aff;
-    color: white;
-    padding: 8px 16px;
-    border: none;
-    cursor: pointer;
-    border-radius: 5px;
 }
 </style>

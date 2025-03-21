@@ -26,15 +26,17 @@
                         <img src="@/assets/trash.png" class="icon"
                             @click="deleteAddress(address.userAddressId)" />
                     </div>
-                    <p><strong>地址：</strong>{{ address.recipientPhone }}{{
+                    <p><strong>地址：</strong>{{
                         address.city }}{{ address.district }}{{
-                        address.streetEtc }}</p>
+                            address.streetEtc }}</p>
                     <p><strong>郵遞區號：</strong>{{ address.zipCode }}</p>
                     <p><strong>收件人：</strong>{{ address.recipientName }}</p>
                     <p><strong>電話：</strong>{{ address.recipientPhone }}</p>
                 </div>
             </div>
-            <button type="submit" @click="goToHomeAddressUpdate">新增宅配地址</button>
+            <button type="submit" class="func"
+                @click="goToHomeAddressUpdate">新增宅配地址</button>
+            <button type="button" class="func" @click="cancel">取消</button>
         </div>
 
         <!-- 次要地址 (超商取貨地址) -->
@@ -45,19 +47,21 @@
                     class="address-block">
                     <div class="icon-group">
                         <img src="@/assets/data-processing.png" class="icon"
-                            @click="goToUpdatePage(address.userAddressId)" />
+                            @click="goToCVSUpdatePage(address.userAddressId)" />
                         <img src="@/assets/trash.png" class="icon"
                             @click="deleteAddress(address.userAddressId)" />
                     </div>
-                    <p><strong>地址：</strong>{{ address.recipientPhone }}{{
+                    <p><strong>地址：</strong>{{
                         address.city }}{{ address.district }}{{
-                        address.streetEtc }}</p>
+                            address.streetEtc }}</p>
                     <p><strong>郵遞區號：</strong>{{ address.zipCode }}</p>
                     <p><strong>收件人：</strong>{{ address.recipientName }}</p>
                     <p><strong>電話：</strong>{{ address.recipientPhone }}</p>
                 </div>
             </div>
-            <button type="submit" @click="goToCVSAddressUpdate">新增超商門市</button>
+            <button type="submit" class="func"
+                @click="goToCVSAddressUpdate">新增超商門市</button>
+            <button type="button" class="func" @click="cancel">取消</button>
         </div>
 
         <p v-if="message" class="message">{{ message }}</p>
@@ -94,13 +98,15 @@ export default {
             this.activeTab = tab;  // 切換分頁
         },
         goToUpdatePage(addressId) {
-            this.router.push(`/updateAddress/${addressId}`); // 跳轉到更新地址頁面
+            this.router.push({ name: 'UpdateHomeAddress', params: { addressId } }); // 跳轉到更新地址頁面
+        }, goToCVSUpdatePage(addressId) {
+            this.router.push({ name: 'UpdateCVSAddress', params: { addressId } }); // 跳轉到更新超商地址頁面
         },
         goToHomeAddressUpdate() {
-            this.router.push({ name: 'HomeAddressUpdate' }); // 跳轉到新增宅配地址頁面
+            this.router.push({ name: 'HomeAddressCreate' }); // 跳轉到新增宅配地址頁面
         },
         goToCVSAddressUpdate() {
-            this.router.push({ name: 'CVSAddressUpdate' }); // 跳轉到新增超商取貨地址頁面
+            this.router.push({ name: 'CVSAddressCreate' }); // 跳轉到新增超商取貨地址頁面
         },
         async deleteAddress(addressId) {
             if (!confirm("確定要刪除此地址嗎？")) return;
@@ -164,9 +170,15 @@ export default {
                 console.error("獲取地址數據失敗:", error);
                 this.router.push('/user/login');
             }
+        },
+
+        cancel() {
+            this.router.push('/memberCenter');
         }
     }
-};
+}
+
+
 </script>
 
 <style scoped>
@@ -227,5 +239,30 @@ h3 {
     width: 24px;
     height: 24px;
     cursor: pointer;
+}
+
+.func {
+    display: inline-block;
+    padding: 15px 25px;
+    font-size: 24px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    outline: none;
+    color: #fff;
+    background-color: #04AA6D;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 9px #999;
+}
+
+.func:hover {
+    background-color: #3e8e41
+}
+
+.func:active {
+    background-color: #3e8e41;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
 }
 </style>

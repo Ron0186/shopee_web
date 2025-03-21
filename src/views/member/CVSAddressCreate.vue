@@ -2,13 +2,14 @@
     <div class="container">
         <h2>變更收件資訊</h2>
         <!-- TODO  自動帶入會員資料 -->
-        <form @submit.prevent="updateProfile">
+        <form @submit.prevent="createCVSAddress">
 
 
             <!-- 引入 AddressSelector 組件 -->
-            <AddressSelector v-model="user.address" />
+            <AddressSelectorCVS v-model="user.address" />
 
             <button type="submit">更新</button>
+            <button type="button" @click="cancel">取消</button>
         </form>
         <p v-if="message" class="message">{{ message }}</p>
     </div>
@@ -16,11 +17,12 @@
 
 <script>
 import axios from "axios";
-import AddressSelector from "@/components/address/AddressSelector.vue";
+import AddressSelectorCVS from "@/components/address/AddressSelectorCVS.vue";
+import { useRouter } from 'vue-router';
 
 export default {
     components: {
-        AddressSelector,
+        AddressSelectorCVS,
     },
     data() {
         return {
@@ -46,7 +48,7 @@ export default {
                 console.error("獲取用戶數據失敗", error);
             }
         },
-        async updateProfile() {
+        async createCVSAddress() {
             try {
                 await axios.put(`/api/users/${this.userId}`, this.user);
                 this.message = "個人資料更新成功！";
@@ -55,7 +57,10 @@ export default {
                 this.message = "更新失敗，請稍後再試！";
             }
         },
-    }
+        cancel() {
+            this.$router.push('/address');
+        },
+    },
 };
 </script>
 <style scoped>
