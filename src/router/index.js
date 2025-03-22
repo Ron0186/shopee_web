@@ -98,6 +98,13 @@ const router = createRouter({
           name: "PasswordReset",
           component: () => import("@/views/auth/ResetPassword.vue"),
         },
+
+        //申請賣家頁
+        {
+          path: "/shop/apply",
+          name: "ApplyShop",
+          component: () => import("@/views/front/ApplyShop.vue"),
+        },
       ],
     },
 
@@ -172,9 +179,15 @@ const router = createRouter({
         },
         {
           // 帳號頁面
-          path: "account",
-          name: "Account",
-          component: () => import("@/views/admin/Account.vue"),
+          path: "users",
+          name: "Users",
+          component: () => import("@/views/admin/Users.vue"),
+        },
+        {
+          // 管理員帳號頁面
+          path: "administrators",
+          name: "administrators",
+          component: () => import("@/views/admin/Administrators.vue"),
         },
         {
           // 商品頁面
@@ -217,6 +230,12 @@ const router = createRouter({
           path: "coupons",
           name: "Coupons",
           component: () => import("@/views/admin/Coupons.vue"),
+        },
+        {
+          // 審核商店申請頁面
+          path: "shop/review",
+          name: "ShopReview",
+          component: () => import("@/views/admin/AdminShopApplication.vue"),
         },
       ],
       // path: "/search",

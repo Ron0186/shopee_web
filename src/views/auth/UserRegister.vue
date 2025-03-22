@@ -9,11 +9,7 @@
             id="username"
             placeholder="6-20個字"
             v-model="username"
-            required
-            minlength="6"
-            maxlength="20"
-            pattern="[a-zA-Z0-9]+"
-            title="請輸入6到20個字元的英數字組合"
+
           />
         </div>
         <div class="form-group">
@@ -23,20 +19,16 @@
             id="password"
             placeholder="6-12個字，包含1個大寫字母"
             v-model="password"
-            required
-            minlength="6"
-            maxlength="12"
-            pattern="^(?=.*[A-Z]).{6,12}$"
-            title="請輸入6到12個字元，且至少包含一個大寫英文字母"
+
           />
         </div>
         <div class="form-group">
           <label for="email">Email</label>
-          <input type="email" id="email" v-model="email" required />
+          <input type="email" id="email" v-model="email"  />
         </div>
         <div class="form-group">
           <label for="phone">手機號碼</label>
-          <input type="tel" id="phone" v-model="phone" required  pattern="[0-9]+" title="請輸入數字"/>
+          <input type="tel" id="phone" v-model="phone" pattern="[0-9]+" title="請輸入數字"/>
         </div>
         <div class="form-group">
           <button type="submit">立即註冊</button>
