@@ -51,21 +51,19 @@ const router = createRouter({
           name: "HelpCenter",
           component: HelpCenter,
         },
-<<<<<<< HEAD
         // 幫助中心搜尋內容頁面
         {
-          path: '/search',
-          name: 'search-link',
+          path: "/search",
+          name: "search-link",
           component: SearchResult,
-          props: route => ({ query: route.query.q })
+          props: (route) => ({ query: route.query.q }),
         },
         {
-          path: '/article/:id',
-          name: 'article-link',
+          path: "/article/:id",
+          name: "article-link",
           component: HelpCenter,
-          props: true
-=======
-
+          props: true,
+        },
         //使用者登入頁
         {
           path: "/user/login",
@@ -99,15 +97,9 @@ const router = createRouter({
           path: "/shop/apply",
           name: "ApplyShop",
           component: () => import("@/views/front/ApplyShop.vue"),
->>>>>>> 173db1381d4355fc35309b356133a97ca8cd61be
         },
       ],
     },
-
-
-
-
-
 
     /**
      * 後台登入頁
@@ -184,6 +176,12 @@ const router = createRouter({
           path: "administrators",
           name: "administrators",
           component: () => import("@/views/admin/Administrators.vue"),
+        },
+        {
+          // 分類管理頁面
+          path: "category-management",
+          name: "categoryManagement",
+          component: () => import("@/views/admin/CategoryManagement.vue"),
         },
         {
           // 商品頁面
