@@ -72,7 +72,7 @@ export default {
   },
   methods: {
       getAdminId() {
-        const adminIdStr = sessionStorage.getItem("adminId");
+        const adminIdStr = sessionStorage.getItem("userId");
         console.log("getAdminId - adminIdStr:", adminIdStr); // 檢查原始值
 
         if (adminIdStr) {
