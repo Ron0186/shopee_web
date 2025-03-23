@@ -1,23 +1,25 @@
 <template>
   <div class="container mt-5">
     <h2 class="mb-4">商店申請審核</h2>
-    <ApplicationControls :showPending="showPending" :showRejected="showRejected" @updateView="updateView"/>
+    <ApplicationControls :showPending="showPending" :showRejected="showRejected" @updateView="updateView" />
 
     <table class="table table-bordered" v-if="showPending">
       <thead class="table-light">
         <tr>
-          <th>申請 ID</th><th>用戶 ID</th><th>用戶名稱</th><th>商店名稱</th><th>商店分類</th><th>商店簡介</th><th>申請時間</th><th>操作</th>
+          <th>申請 ID</th>
+          <th>用戶 ID</th>
+          <th>用戶名稱</th>
+          <th>商店名稱</th>
+          <th>商店分類</th>
+          <th>商店簡介</th>
+          <th>申請時間</th>
+          <th>操作</th>
         </tr>
       </thead>
       <tbody>
         <template v-if="pendingApplications.length > 0">
-          <ApplicationItem
-            v-for="app in pendingApplications"
-            :key="app.applicationId"
-            :app="app"
-            @approve="approveApplication"
-            @reject="rejectApplication"
-          />
+          <ApplicationItem v-for="app in pendingApplications" :key="app.applicationId" :app="app"
+            @approve="approveApplication" @reject="rejectApplication" />
         </template>
         <tr v-else>
           <td colspan="8" class="text-center">查無資料</td>
@@ -28,17 +30,23 @@
     <table class="table table-bordered" v-if="showRejected">
       <thead class="table-light">
         <tr>
-          <th>申請 ID</th><th>用戶 ID</th><th>用戶名稱</th><th>商店名稱</th><th>商店分類</th><th>商店簡介</th><th>申請時間</th><th>拒絕原因</th><th>審核人</th><th>審核時間</th><th>操作</th>
+          <th>申請 ID</th>
+          <th>用戶 ID</th>
+          <th>用戶名稱</th>
+          <th>商店名稱</th>
+          <th>商店分類</th>
+          <th>商店簡介</th>
+          <th>申請時間</th>
+          <th>拒絕原因</th>
+          <th>審核人</th>
+          <th>審核時間</th>
+          <th>操作</th>
         </tr>
       </thead>
       <tbody>
         <template v-if="rejectedApplications.length > 0">
-          <RejectedApplicationItem
-            v-for="app in rejectedApplications"
-            :key="app.applicationId"
-            :app="app"
-            @approve="approveApplication"
-          />
+          <RejectedApplicationItem v-for="app in rejectedApplications" :key="app.applicationId" :app="app"
+            @approve="approveApplication" />
         </template>
         <tr v-else>
           <td colspan="11" class="text-center">查無資料</td>
@@ -71,27 +79,23 @@ export default {
     };
   },
   methods: {
-      getAdminId() {
-<<<<<<< HEAD
-        const adminIdStr = sessionStorage.getItem("userId");
-=======
-        const adminIdStr = sessionStorage.getItem("adminId");
->>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
-        console.log("getAdminId - adminIdStr:", adminIdStr); // 檢查原始值
+    getAdminId() {
+      const adminIdStr = sessionStorage.getItem("userId");
+      console.log("getAdminId - adminIdStr:", adminIdStr); // 檢查原始值
 
-        if (adminIdStr) {
-            const adminId = parseInt(adminIdStr, 10);
-            console.log("getAdminId - adminId (parsed):", adminId); // 檢查轉換後的數字
+      if (adminIdStr) {
+        const adminId = parseInt(adminIdStr, 10);
+        console.log("getAdminId - adminId (parsed):", adminId); // 檢查轉換後的數字
 
-            if (!isNaN(adminId)) {
-                console.log("getAdminId - returning:", adminId);  // 檢查返回值
-                return adminId;
-            } else {
-                console.error("getAdminId - parseInt failed:", adminIdStr); // 檢查 parseInt 失敗的情況
-            }
+        if (!isNaN(adminId)) {
+          console.log("getAdminId - returning:", adminId);  // 檢查返回值
+          return adminId;
+        } else {
+          console.error("getAdminId - parseInt failed:", adminIdStr); // 檢查 parseInt 失敗的情況
         }
-        console.log("getAdminId - returning null");  // 檢查返回 null 的情況
-        return null;
+      }
+      console.log("getAdminId - returning null");  // 檢查返回 null 的情況
+      return null;
     },
     async fetchApplications() {
       try {
@@ -100,7 +104,7 @@ export default {
       } catch (error) {
         this.showError(
           "載入待審核申請失敗：" +
-            (error.response?.data.message || error.message)
+          (error.response?.data.message || error.message)
         );
       }
     },
@@ -111,7 +115,7 @@ export default {
       } catch (error) {
         this.showError(
           "載入已拒絕申請失敗：" +
-            (error.response?.data.message || error.message)
+          (error.response?.data.message || error.message)
         );
       }
     },
@@ -178,16 +182,16 @@ export default {
       });
 
       if (text) {
-          const { value: confirmResult } = await Swal.fire({
-            title: '確認拒絕？',
-            text: "此操作不可逆!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: '確認拒絕',
-            cancelButtonText: '取消'
-          });
+        const { value: confirmResult } = await Swal.fire({
+          title: '確認拒絕？',
+          text: "此操作不可逆!",
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: '確認拒絕',
+          cancelButtonText: '取消'
+        });
 
         if (confirmResult) {
           try {
@@ -218,12 +222,12 @@ export default {
         confirmButtonText: "確定",
       });
     },
-    updateView(view){
-      if(view === 'pending'){
+    updateView(view) {
+      if (view === 'pending') {
         this.showPending = true;
         this.showRejected = false;
       }
-      else{
+      else {
         this.showPending = false;
         this.showRejected = true;
       }

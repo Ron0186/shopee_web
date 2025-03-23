@@ -3,17 +3,17 @@
     <h2>管理使用者帳號</h2>
     <div class="d-flex justify-content-between mb-3">
       <div class="d-flex">
-      <input v-model="searchName" class="form-control me-2" placeholder="搜尋使用者名稱" @input="searchUsers">
-      <select v-model="pageSize" class="form-select w-auto" @change="handlePageSizeChange">
-        <option :value="10">10 筆</option>
-        <option :value="20">20 筆</option>
-        <option :value="50">50 筆</option>
-      </select>
-      <button class="btn btn-success" @click="openAddModal">新增會員</button>
-    </div>
+        <input v-model="searchName" class="form-control me-2" placeholder="搜尋使用者名稱" @input="searchUsers">
+        <select v-model="pageSize" class="form-select w-auto" @change="handlePageSizeChange">
+          <option :value="10">10 筆</option>
+          <option :value="20">20 筆</option>
+          <option :value="50">50 筆</option>
+        </select>
+        <button class="btn btn-success" @click="openAddModal">新增會員</button>
+      </div>
     </div>
 
-    
+
     <table class="table table-bordered user-table">
       <thead>
         <tr>
@@ -58,27 +58,11 @@
       </ul>
     </nav>
 
-    <UserEditModal
-      :user="selectedUser"
-      :isOpen="editModalOpen"
-      @close="closeEditModal"
-      @save="saveUserChanges"
-      v-if="editModalOpen"
-    />
-    <UserAddModal
-      :isOpen="addModalOpen"
-      @close="closeAddModal"
-      @insert="handleInsertUser"
-      v-if="addModalOpen"
-    />
-    <UserRoleEdit
-  v-if="isModalOpen"
-  :is-open="isModalOpen"
-  :user="selectedUser || {}"
-  :all-available-roles="availableRoles"
-  @close="closeModal"
-  @save="handleSaveRoles"
-/>
+    <UserEditModal :user="selectedUser" :isOpen="editModalOpen" @close="closeEditModal" @save="saveUserChanges"
+      v-if="editModalOpen" />
+    <UserAddModal :isOpen="addModalOpen" @close="closeAddModal" @insert="handleInsertUser" v-if="addModalOpen" />
+    <UserRoleEdit v-if="isModalOpen" :is-open="isModalOpen" :user="selectedUser || {}"
+      :all-available-roles="availableRoles" @close="closeModal" @save="handleSaveRoles" />
   </div>
 </template>
 
@@ -99,7 +83,7 @@ const selectedUser = ref(null);
 const addModalOpen = ref(false);
 const searchName = ref("");
 const isModalOpen = ref(false);
-const availableRoles=ref([
+const availableRoles = ref([
   { id: 'User', roleName: 'User' },
   { id: 'SELLER', roleName: 'SELLER' },
 ]);
@@ -122,27 +106,14 @@ const handleSaveRoles = async (updatedUserData) => {
       roles: updatedUserData.roles
     });
 
-<<<<<<< HEAD
-=======
-    await fetchUsers(currentPage.value);
-
->>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
     if (response.data.success) {
       Swal.fire({
         title: "角色更新成功",
         icon: "success",
       });
 
-<<<<<<< HEAD
       // 只在成功後更新使用者列表
       await fetchUsers(currentPage.value);
-=======
-      // 更新前端的使用者資料
-      const userIndex = users.value.findIndex(u => u.userId === updatedUserData.userId);
-      if (userIndex !== -1) {
-        users.value[userIndex] = { ...users.value[userIndex], roles: updatedUserData.roles };
-      }
->>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
     } else {
       Swal.fire({
         title: "角色更新失敗",
@@ -159,20 +130,16 @@ const handleSaveRoles = async (updatedUserData) => {
   }
 };
 
-<<<<<<< HEAD
-
-=======
->>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
 const fetchUsers = async (page = 0, name = "") => {
   try {
     const response = await axios.get(`/api/admin/any`, {
-            params: {
-              userName: name,
-              roleName: "User",
-              page: page,
-              size: pageSize.value
-            }
-          });
+      params: {
+        userName: name,
+        roleName: "User",
+        page: page,
+        size: pageSize.value
+      }
+    });
     users.value = response.data.content;
     console.log(users.value)
     console.log(response.data.content)
@@ -192,8 +159,8 @@ const closeAddModal = () => {
 };
 
 const handleInsertUser = () => {
-    fetchUsers(0);
-    closeAddModal();
+  fetchUsers(0);
+  closeAddModal();
 };
 
 const handlePageSizeChange = () => {
@@ -235,29 +202,14 @@ const saveUserChanges = async (editedUser) => {
       `/api/admin/user/any/${editedUser.userId}`,
       editedUser
     );
-<<<<<<< HEAD
-=======
-
-    const updatedUser = response.data.userDTO;
-    const index = users.value.findIndex(
-      (user) => user.userId === updatedUser.userId
-    );
-    if (index !== -1) {
-      users.value[index] = updatedUser;
-    }
-
->>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
     if (response.data.success) {
       await Swal.fire({
         title: response.data.message,
         icon: "success",
       });
-<<<<<<< HEAD
-    await fetchUsers(currentPage.value);
+      await fetchUsers(currentPage.value);
 
-    
-=======
->>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
+
     }
 
     closeEditModal();
