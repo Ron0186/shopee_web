@@ -24,12 +24,10 @@ const logout = () => {
     <router-link to="/admin/administrators">👥 管理員管理</router-link>
     <router-link to="/admin/users/customers">🙍‍♂️ 客戶管理</router-link>
     <router-link to="/admin/shop/review">🛍 商店申請管理</router-link>
-    <router-link to="/admin/coupons">🎟️ 優惠券管理</router-link>
+    <router-link to="/coupon/AdminCouponManager">🎟️ 優惠券管理</router-link>
     <router-link to="/admin/analytics">📊 數據分析</router-link>
     <router-link to="/admin/analytics/sales">📈 銷售報告</router-link>
-    <router-link to="/admin/analytics/user-behavior"
-      >👥 用戶行為分析</router-link
-    >
+    <router-link to="/admin/analytics/user-behavior">👥 用戶行為分析</router-link>
     <router-link to="/admin/settings">⚙️ 系統設定</router-link>
     <router-link to="/admin/settings/admins">🔧 管理員帳號</router-link>
     <router-link to="/admin/settings/platform">🛠 平台設定</router-link>

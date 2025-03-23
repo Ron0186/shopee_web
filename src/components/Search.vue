@@ -180,9 +180,9 @@ const selectSuggestion = () => {
 /* 下拉式選單定位 */
 .dropdown-overlay {
     position: absolute;
-    top: 280px;
-    left: 0px;
-    width: 103%;
+    top: 345px;
+    left: -8.5%;
+    width: 118%;
     z-index: 9999;
     display: flex;
     justify-content: center;

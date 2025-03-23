@@ -237,18 +237,17 @@ const router = createRouter({
           name: "ShopReview",
           component: () => import("@/views/admin/AdminShopApplication.vue"),
         },
+        {
+          //優惠券管理頁面
+          path: '/coupon/adminCouponManager',
+          name: 'adminCouponManager-link',
+          component: () => import("@/components/admin/Coupon.components/AdminCouponManager.vue"),
+          props: true
+        },
       ],
-      // path: "/search",
-      // name: "search-link",
-      // component: SearchResult,
-      // props: (route) => ({ query: route.query.q }),
+
     },
-    // {
-    //   path: "/article/:id",
-    //   name: "article-link",
-    //   component: HelpCenter,
-    //   props: true,
-    // },
+
   ],
 });
 
