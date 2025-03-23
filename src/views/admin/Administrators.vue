@@ -124,7 +124,7 @@
     methods: {
       async fetchAdmins(page = 0) {
         try {
-          const response = await axios.get(`/api/admin/any`, {
+          const response = await axios.get(`/api/admin/any/sa`, {
             params: {
               userName: this.searchQuery,
               roleName: "Admin",
@@ -161,7 +161,7 @@
       },
       async updateAdminRoles({ userId, roles }) {
   try {
-    const response = await axios.put(`/api/admin/role/${userId}`, { roles });
+    const response = await axios.put(`/api/admin/role/sa/${userId}`, { roles });
 
     if (response.data.success) {
       console.log("更新成功，顯示成功訊息");

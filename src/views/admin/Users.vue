@@ -100,7 +100,7 @@ const addModalOpen = ref(false);
 const searchName = ref("");
 const isModalOpen = ref(false);
 const availableRoles=ref([
-  { id: 'User', roleName: 'User' },
+  { id: 'USER', roleName: 'USER' },
   { id: 'SELLER', roleName: 'SELLER' },
 ]);
 
