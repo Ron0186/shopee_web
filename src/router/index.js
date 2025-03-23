@@ -1,5 +1,5 @@
-import SearchResult from "@/components/SearchResult.vue";
-import HelpCenter from "@/views/pages/HelpCenter.vue";
+
+
 import { createRouter, createWebHistory } from "vue-router";
 
 const router = createRouter({
@@ -54,21 +54,21 @@ const router = createRouter({
 
         // 幫助中心
         {
-          path: "HelpCenter",
-          name: "HelpCenter",
-          component: HelpCenter,
+          path: "/helpCenter",
+          name: "help-center",
+          component: () => import("@/views/pages/HelpCenter.vue"),
         },
         // 幫助中心搜尋內容頁面
         {
           path: '/search',
           name: 'search-link',
-          component: SearchResult,
+          component: () => import("@/components/SearchResult.vue"),
           props: route => ({ query: route.query.q })
         },
         {
           path: '/article/:id',
           name: 'article-link',
-          component: HelpCenter,
+          component: () => import("@/views/pages/HelpCenter.vue"),
           props: true
         },
         //使用者登入頁
@@ -143,7 +143,7 @@ const router = createRouter({
         },
         {
           // 幫助中心頁面
-          path: "help-center",
+          path: "/help-center",
           name: "HelpCenter",
           component: () => import("@/views/admin/HelpCenter.vue"),
         },

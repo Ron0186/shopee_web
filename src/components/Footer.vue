@@ -51,7 +51,9 @@
                     <li><router-link to="/cart">🛒 購物車</router-link></li>
                     <li><router-link to="/wishlist">💖 收藏清單</router-link></li>
                     <li><router-link to="/order-tracking">📦 訂單追蹤</router-link></li>
-                    <li><router-link to="/help">❓ 幫助中心</router-link></li>
+                    <li>
+                        <router-link to="/helpCenter">❓ 幫助中心</router-link>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -73,6 +75,7 @@
 
 <script setup>
 import { ref } from "vue";
+import { RouterLink } from "vue-router";
 
 const email = ref("");
 
