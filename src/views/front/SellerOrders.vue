@@ -305,6 +305,7 @@
                 <table class="table table-striped table-bordered">
                   <thead class="bg-light">
                     <tr>
+                      <th>商品圖片</th>
                       <th>商品名稱</th>
                       <th>單價</th>
                       <th>數量</th>
@@ -319,6 +320,18 @@
                       v-for="item in selectedOrder.items"
                       :key="item.productName"
                     >
+                      <td style="width: 80px">
+                        <img
+                          :src="getProductImageUrl(item)"
+                          :alt="item.productName"
+                          style="
+                            width: 60px;
+                            height: 60px;
+                            object-fit: cover;
+                            border-radius: 4px;
+                          "
+                        />
+                      </td>
                       <td>{{ item.productName }}</td>
                       <td>${{ item.unitPrice?.toLocaleString() }}</td>
                       <td>{{ item.quantity }}</td>
@@ -333,12 +346,12 @@
                         !selectedOrder.items || selectedOrder.items.length === 0
                       "
                     >
-                      <td colspan="4" class="text-center">沒有商品資訊</td>
+                      <td colspan="5" class="text-center">沒有商品資訊</td>
                     </tr>
                   </tbody>
                   <tfoot class="table-light">
                     <tr>
-                      <th colspan="3" class="text-end">總計:</th>
+                      <th colspan="4" class="text-end">總計:</th>
                       <th>${{ selectedOrder.totalPrice?.toLocaleString() }}</th>
                     </tr>
                   </tfoot>
@@ -674,6 +687,34 @@ const editingOrder = reactive({
   shippingPhone: "",
 });
 
+// 根據產品獲取圖片URL的函數
+const getProductImageUrl = (item) => {
+  // 如果產品有 imageUrl 屬性，優先使用
+  if (item.imageUrl && item.imageUrl.trim() !== "") {
+    // 檢查是否為完整URL
+    if (item.imageUrl.startsWith("http") || item.imageUrl.startsWith("/")) {
+      return item.imageUrl;
+    } else {
+      // 如果不是完整URL，加上assets路徑前綴
+      return `../../assets/${item.imageUrl}`;
+    }
+  }
+
+  // 如果沒有imageUrl但有image屬性
+  if (item.image && item.image.trim() !== "") {
+    // 檢查是否為完整URL
+    if (item.image.startsWith("http") || item.image.startsWith("/")) {
+      return item.image;
+    } else {
+      // 如果不是完整URL，加上assets路徑前綴
+      return `../../assets/${item.image}`;
+    }
+  }
+
+  // 如果沒有image屬性或imageUrl屬性，使用預設圖片
+  return "/images/product-placeholder.png";
+};
+
 // 監聽 selectedOrder 變化，控制詳情模態框顯示
 watch(showDetailModal, (newVal) => {
   if (newVal) {
@@ -750,6 +791,21 @@ const fetchOrders = async () => {
       // 直接數據格式
       orders.value = response.data || [];
     }
+
+    // 確保每個訂單項目都有圖片屬性
+    orders.value = orders.value.map((order) => {
+      if (order.items && Array.isArray(order.items)) {
+        order.items = order.items.map((item) => {
+          return {
+            ...item,
+            // 確保每個項目都有圖片相關屬性（即使是空值）
+            imageUrl: item.imageUrl || "",
+            image: item.image || "",
+          };
+        });
+      }
+      return order;
+    });
 
     loading.value = false;
   } catch (err) {
