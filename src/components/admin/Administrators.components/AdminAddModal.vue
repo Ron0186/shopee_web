@@ -44,7 +44,10 @@
   <script setup>
   import { ref, defineProps, defineEmits } from 'vue';
   import axios from '@/plugins/axios';
+<<<<<<< HEAD
   import Swal from 'sweetalert2';
+=======
+>>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
   
   const props = defineProps({
     isOpen: Boolean,
@@ -63,6 +66,7 @@
   
   const addAdmin = async () => {
   try {
+<<<<<<< HEAD
    const response = await axios.post('/api/admin/any', newAdmin.value);
     // alert('新增成功');
     
@@ -96,6 +100,25 @@
         title: "錯誤:" + error.response.data.message,
         icon: "error",
       });
+=======
+    await axios.post('/api/admin/any', newAdmin.value);
+    alert('新增成功');
+
+    // 清空表單
+    newAdmin.value = {
+      userName: '',
+      email: '',
+      phone: '',
+      password: '',
+      roles: []
+    };
+
+    emit('refresh'); // 通知父元件重新獲取管理員列表
+    emit('close'); // 關閉 Modal
+  } catch (error) {
+    console.error('新增管理員失敗', error);
+    alert('新增失敗，請檢查後端 API');
+>>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
   }
 };
   </script>

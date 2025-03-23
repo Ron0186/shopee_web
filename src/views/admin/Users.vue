@@ -122,14 +122,27 @@ const handleSaveRoles = async (updatedUserData) => {
       roles: updatedUserData.roles
     });
 
+<<<<<<< HEAD
+=======
+    await fetchUsers(currentPage.value);
+
+>>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
     if (response.data.success) {
       Swal.fire({
         title: "角色更新成功",
         icon: "success",
       });
 
+<<<<<<< HEAD
       // 只在成功後更新使用者列表
       await fetchUsers(currentPage.value);
+=======
+      // 更新前端的使用者資料
+      const userIndex = users.value.findIndex(u => u.userId === updatedUserData.userId);
+      if (userIndex !== -1) {
+        users.value[userIndex] = { ...users.value[userIndex], roles: updatedUserData.roles };
+      }
+>>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
     } else {
       Swal.fire({
         title: "角色更新失敗",
@@ -146,7 +159,10 @@ const handleSaveRoles = async (updatedUserData) => {
   }
 };
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
 const fetchUsers = async (page = 0, name = "") => {
   try {
     const response = await axios.get(`/api/admin/any`, {
@@ -219,14 +235,29 @@ const saveUserChanges = async (editedUser) => {
       `/api/admin/user/any/${editedUser.userId}`,
       editedUser
     );
+<<<<<<< HEAD
+=======
+
+    const updatedUser = response.data.userDTO;
+    const index = users.value.findIndex(
+      (user) => user.userId === updatedUser.userId
+    );
+    if (index !== -1) {
+      users.value[index] = updatedUser;
+    }
+
+>>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
     if (response.data.success) {
       await Swal.fire({
         title: response.data.message,
         icon: "success",
       });
+<<<<<<< HEAD
     await fetchUsers(currentPage.value);
 
     
+=======
+>>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
     }
 
     closeEditModal();

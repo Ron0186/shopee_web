@@ -35,7 +35,10 @@
             <td>
                 <button class="btn btn-primary btn-sm" @click="openEditProfileModal(admin)">編輯資料</button>
               <button class="btn btn-warning btn-sm ms-2" @click="openEditRoleModal(admin)">編輯權限</button>
+<<<<<<< HEAD
               <button class="btn btn-danger btn-sm ms-2" @click="deleteUser(admin.userId)">刪除用戶</button>
+=======
+>>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
             </td>
           </tr>
           <tr v-else>
@@ -86,7 +89,10 @@
   
   <script>
   import axios from '@/plugins/axios';
+<<<<<<< HEAD
   import Swal from 'sweetalert2';
+=======
+>>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
   import AdminRoleEditModal from '@/components/admin/Administrators.components/AdminRoleEditModal.vue';
   import AdminProfileEditModal from '@/components/admin/Administrators.components/AdminProfileEditModal.vue';
   import AdminAddModal from '@/components/admin/Administrators.components/AdminAddModal.vue';
@@ -160,6 +166,7 @@
         this.showProfileModal = true;
       },
       async updateAdminRoles({ userId, roles }) {
+<<<<<<< HEAD
   try {
     const response = await axios.put(`/api/admin/role/${userId}`, { roles });
 
@@ -249,6 +256,30 @@
     });
   }
 },
+=======
+        try {
+          await axios.put(`/api/admin/role/${userId}`, { roles });
+          this.fetchAdmins();
+        } catch (error) {
+          console.error("更新失敗", error);
+          alert("更新失敗，請檢查後端 API 是否正常");
+        }
+        this.showModal = false;
+      },
+      async updateAdminInfo(updatedAdmin) {
+        try {
+          await axios.put(`/api/admin/profile/${updatedAdmin.userId}`, updatedAdmin);
+          const index = this.admins.findIndex(admin => admin.userId === updatedAdmin.userId);
+          if (index !== -1) {
+            this.admins[index] = { ...updatedAdmin };
+          }
+          this.showProfileModal = false;
+        } catch (error) {
+          console.error("更新失敗", error);
+          alert("更新失敗，請檢查後端 API 是否正常");
+        }
+      },
+>>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
       openAddModal() {
   this.showAddModal = true;
 },
