@@ -10,11 +10,18 @@
 
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
-      <router-link to="/user/login">🔑 登入</router-link>
-      <router-link to="/user/register">📝 註冊</router-link>
+      <router-link to="/user/login" v-if="!userStore.username">🔑 登入</router-link>
+      <router-link to="/user/register" v-if="!userStore.username">📝 註冊</router-link>
       <router-link to="/profile">👤 會員中心</router-link>
-      <router-link to="/orders">📦 訂單</router-link>
+      <router-link v-if="userStore.username" :to="userStore.isSeller ? '/seller/orders' : '/user/orders'">
+        📦 訂單管理
+      </router-link>
+
+
       <router-link to="/cart">🛒 購物車</router-link>
+      <span v-if="userStore.username" @click="logout" class="logout-link">
+        <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
+      </span>
     </div>
   </nav>
 
@@ -27,66 +34,54 @@
         <button @click="toggleCategory">🛍 商城分類 ▼</button>
         <ul v-if="categoryOpen">
           <li>
-            <router-link to="/shop?category=clothing" @click="toggleDrawer"
-              >👕 衣服</router-link
-            >
+            <router-link to="/shop?category=clothing" @click="toggleDrawer">👕 衣服</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=electronics" @click="toggleDrawer"
-              >📱 電子產品</router-link
-            >
+            <router-link to="/shop?category=electronics" @click="toggleDrawer">📱 電子產品</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=home" @click="toggleDrawer"
-              >🏠 家用品</router-link
-            >
+            <router-link to="/shop?category=home" @click="toggleDrawer">🏠 家用品</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=others" @click="toggleDrawer"
-              >🔹 其他</router-link
-            >
+            <router-link to="/shop?category=others" @click="toggleDrawer">🔹 其他</router-link>
           </li>
         </ul>
       </li>
       <li>
-        <router-link to="/discounts" @click="toggleDrawer"
-          >💰 優惠專區</router-link
-        >
+        <router-link to="/discounts" @click="toggleDrawer">💰 優惠專區</router-link>
       </li>
       <li>
-        <router-link to="/notifications" @click="toggleDrawer"
-          >🔔 通知</router-link
-        >
+        <router-link to="/notifications" @click="toggleDrawer">🔔 通知</router-link>
       </li>
       <li>
-        <router-link to="/support" @click="toggleDrawer"
-          >📞 客服 & 幫助中心</router-link
-        >
+        <router-link to="/support" @click="toggleDrawer">📞 客服 & 幫助中心</router-link>
       </li>
       <li>
-        <router-link to="/address" @click="toggleDrawer"
-          >📍 地址管理</router-link
-        >
+        <router-link to="/address" @click="toggleDrawer">📍 地址管理</router-link>
       </li>
       <li>
-        <router-link to="/payment-methods" @click="toggleDrawer"
-          >💳 付款方式</router-link
-        >
+        <router-link to="/payment-methods" @click="toggleDrawer">💳 付款方式</router-link>
       </li>
       <li>
-        <router-link to="/privacy" @click="toggleDrawer"
-          >📜 隱私政策 & 使用者條款</router-link
-        >
+        <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 & 使用者條款</router-link>
       </li>
     </ul>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, } from "vue";
+import { useUserStore } from '@/stores/user';
+import Swal from "sweetalert2";
+import router from "@/router/index";
 
+const userStore = useUserStore();
 const drawerOpen = ref(false);
 const categoryOpen = ref(false);
+
+
+
+
 
 const toggleDrawer = () => {
   drawerOpen.value = !drawerOpen.value;
@@ -95,13 +90,25 @@ const toggleDrawer = () => {
 const toggleCategory = () => {
   categoryOpen.value = !categoryOpen.value;
 };
+
+// ✅ 登出功能
+async function logout() {
+  userStore.clearUserData();
+  const response = await Swal.fire({
+    title: "您已成功登出",
+    icon: "success",
+    confirmButtonText: "OK",
+  });
+  if (response.isConfirmed) {
+    router.push('/shop');
+  }
+}
 </script>
 
 <style scoped>
 /* 📌 Navbar 樣式 */
 .navbar {
   width: 100vw;
-  /* ✅ 讓 Navbar 填滿畫面 */
   max-width: 100%;
   height: 60px;
   display: flex;
@@ -114,7 +121,7 @@ const toggleCategory = () => {
   box-sizing: border-box;
 }
 
-.title > a {
+.title>a {
   color: #000;
   text-decoration: none;
   font-weight: 600;
@@ -200,5 +207,17 @@ const toggleCategory = () => {
 
 .dropdown.open ul {
   display: block;
+}
+
+/*登出相關 */
+.logout-link {
+  color: #000;
+  text-decoration: none;
+  font-size: 16px
+}
+
+.logout-link:hover {
+  cursor: pointer;
+  text-decoration: underline;
 }
 </style>

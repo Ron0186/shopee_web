@@ -13,7 +13,7 @@ const router = createRouter({
       component: () => import("@/layouts/FrontLayout.vue"),
       children: [
         {
-          path: "/",
+          path: "/home",
           name: "FrontHome",
           component: () => import("@/views/front/Home.vue"),
         },
@@ -40,9 +40,16 @@ const router = createRouter({
 
         // ...其他前台路由
         {
-          path: "SellerOrder",
-          name: "SellerOrder",
+          path: "/seller/orders",
+          name: "SellerOrders",
           component: () => import("@/views/front/SellerOrders.vue"),
+          meta: { role: "SELLER" }, // 只有 SELLER 會用到
+        },
+        {
+          path: "/user/orders",
+          name: "UserOrders",
+          component: () => import("@/views/front/UserOrders.vue"),
+          meta: { role: "USER" }, // 一般使用者用
         },
 
         // 幫助中心
@@ -51,22 +58,60 @@ const router = createRouter({
           name: "HelpCenter",
           component: HelpCenter,
         },
+        // 幫助中心搜尋內容頁面
+        {
+          path: '/search',
+          name: 'search-link',
+          component: SearchResult,
+          props: route => ({ query: route.query.q })
+        },
+        {
+          path: '/article/:id',
+          name: 'article-link',
+          component: HelpCenter,
+          props: true
+        },
+        //使用者登入頁
+        {
+          path: "/user/login",
+          name: "UserLogin",
+          component: () => import("@/views/auth/UserLogin.vue"),
+        },
+
+        //使用者註冊頁
+        {
+          path: "/user/register",
+          name: "UserRegister",
+          component: () => import("@/views/auth/UserRegister.vue"),
+        },
+
+        //使用者註冊頁
+        {
+          path: "/forgot-password",
+          name: "ForgotPassword",
+          component: () => import("@/views/auth/ForgotPassword.vue"),
+        },
+
+        //使用者註冊頁
+        {
+          path: "/password-reset",
+          name: "PasswordReset",
+          component: () => import("@/views/auth/ResetPassword.vue"),
+        },
+
+        //申請賣家頁
+        {
+          path: "/shop/apply",
+          name: "ApplyShop",
+          component: () => import("@/views/front/ApplyShop.vue"),
+        },
       ],
     },
 
-    //使用者登入頁
-    {
-      path: "/user/login",
-      name: "UserLogin",
-      component: () => import("@/views/auth/UserLogin.vue"),
-    },
 
-    //使用者註冊頁
-    {
-      path: "/user/register",
-      name: "UserRegister",
-      component: () => import("@/views/auth/UserRegister.vue"),
-    },
+
+
+
 
     /**
      * 後台登入頁
@@ -134,9 +179,15 @@ const router = createRouter({
         },
         {
           // 帳號頁面
-          path: "account",
-          name: "Account",
-          component: () => import("@/views/admin/Account.vue"),
+          path: "users",
+          name: "Users",
+          component: () => import("@/views/admin/Users.vue"),
+        },
+        {
+          // 管理員帳號頁面
+          path: "administrators",
+          name: "administrators",
+          component: () => import("@/views/admin/Administrators.vue"),
         },
         {
           // 商品頁面
@@ -179,6 +230,12 @@ const router = createRouter({
           path: "coupons",
           name: "Coupons",
           component: () => import("@/views/admin/Coupons.vue"),
+        },
+        {
+          // 審核商店申請頁面
+          path: "shop/review",
+          name: "ShopReview",
+          component: () => import("@/views/admin/AdminShopApplication.vue"),
         },
       ],
       // path: "/search",
