@@ -1,12 +1,28 @@
 <script setup>
 import { useRouter } from "vue-router";
+import { useUserStore } from "@/stores/user";
+import Swal from "sweetalert2";
 
 const router = useRouter(); // Vue Router 實例
+const userStore = useUserStore();
 
-const logout = () => {
-  console.log("已登出");
-  router.push("/"); // 跳轉到首頁
-};
+async function logout() {
+  // 清除 sessionStorage
+  sessionStorage.removeItem("token");
+  sessionStorage.removeItem("username");
+  sessionStorage.removeItem("userId");
+  sessionStorage.removeItem("roles");
+
+  // 清除 pinia userStore
+  userStore.clearUserData();
+  
+  await Swal.fire({
+          title: "登出成功",
+          icon: "success",
+        });
+  // 跳轉到登入頁
+  router.push({ name: "AdminLogin" });
+}
 </script>
 
 <template>
