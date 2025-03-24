@@ -64,6 +64,18 @@ const router = createRouter({
         },
         // 幫助中心搜尋內容頁面
         {
+<<<<<<< HEAD
+          path: "/search",
+          name: "search-link",
+          component: SearchResult,
+          props: (route) => ({ query: route.query.q }),
+        },
+        {
+          path: "/article/:id",
+          name: "article-link",
+          component: HelpCenter,
+          props: true,
+=======
           path: '/search',
           name: 'search-link',
           component: () => import("@/components/SearchResult.vue"),
@@ -74,6 +86,7 @@ const router = createRouter({
           name: 'article-link',
           component: () => import("@/views/pages/HelpCenter.vue"),
           props: true
+>>>>>>> origin/Arthur
         },
         //使用者登入頁
         {
@@ -108,6 +121,15 @@ const router = createRouter({
           path: "/shop/apply",
           name: "ApplyShop",
           component: () => import("@/views/front/ApplyShop.vue"),
+<<<<<<< HEAD
+=======
+        },
+        //賣家商店頁
+        {
+          path: "/store/:shopId",
+          name: "Store",
+          component: () => import("@/views/front/SellerStore.vue"),
+>>>>>>> origin/Arthur
         },
 
         //客服中心
@@ -118,11 +140,6 @@ const router = createRouter({
         },
       ],
     },
-
-
-
-
-
 
     /**
      * 後台登入頁
@@ -165,10 +182,10 @@ const router = createRouter({
           component: () => import("@/views/admin/Logistics.vue"),
         },
         {
-          // 付款方式頁面
-          path: "payment-methods",
-          name: "PaymentMethods",
-          component: () => import("@/views/admin/PaymentMethods.vue"),
+          // 管理付款方式頁面
+          path: "payment-method-management",
+          name: "PaymentMethodManagement",
+          component: () => import("@/views/admin/PaymentMethodManagement.vue"),
         },
         {
           // 後台管理頁面
@@ -199,6 +216,12 @@ const router = createRouter({
           path: "administrators",
           name: "administrators",
           component: () => import("@/views/admin/Administrators.vue"),
+        },
+        {
+          // 分類管理頁面
+          path: "category-management",
+          name: "categoryManagement",
+          component: () => import("@/views/admin/CategoryManagement.vue"),
         },
         {
           // 商品頁面
