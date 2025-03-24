@@ -109,6 +109,13 @@ const router = createRouter({
           name: "ApplyShop",
           component: () => import("@/views/front/ApplyShop.vue"),
         },
+
+        //客服中心
+        {
+          path: "/customerService",
+          name: "CustomerService",
+          component: () => import("@/views/pages/CustomerService/CustomerService.vue"),
+        },
       ],
     },
 
