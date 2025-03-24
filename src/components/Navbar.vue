@@ -17,7 +17,7 @@
       <router-link to="/shop/apply"
         v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
         我要當賣家!!</router-link>
-      <router-link to="/profile">👤 會員中心</router-link>
+      <router-link to="/memberCenter">👤 會員中心</router-link>
       <router-link v-if="userStore.username"
         :to="userStore.isSeller ? '/seller/orders' : '/user/orders'">
         📦 訂單管理

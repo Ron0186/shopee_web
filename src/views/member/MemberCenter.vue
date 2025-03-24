@@ -6,29 +6,48 @@
         <div v-else-if="error" class="text-red-500">{{ error }}</div>
         <div v-else>
             <h4 class="text-2xl font-semibold text-gray-700 mb-4">Hi, {{
-                user?.userName || '' }}</h4>
+                user?.username || '' }}</h4>
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">編輯個人資訊</label>
-                <img src="@/assets/angle-small-right.png" class="icon ml-auto"
-                    @click="goToPage('/profile')" />
+                <div class="icon-group">
+                    <img src="@/assets/angle-small-right.png"
+                        class="icon ml-auto" @click="goToPage('/profile')" />
+                </div>
+            </div>
+
+            <div class="mb-4 flex items-center">
+                <label class="font-semibold">變更密碼</label>
+                <div class="icon-group">
+                    <img src="@/assets/angle-small-right.png"
+                        class="icon ml-auto"
+                        @click="goToPage('/changePassword')" />
+                </div>
             </div>
 
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">配送資訊</label>
-                <img src="@/assets/angle-small-right.png" class="icon ml-auto"
-                    @click="goToPage('/address')" />
+                <div class="icon-group">
+                    <img src="@/assets/angle-small-right.png"
+                        class="icon ml-auto" @click="goToPage('/address')" />
+                </div>
             </div>
 
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">訂單管理</label>
-                <img src="@/assets/angle-small-right.png" class="icon ml-auto"
-                    @click="goToPage('/memberOrders')" />
+                <div class="icon-group">
+                    <img src="@/assets/angle-small-right.png"
+                        class="icon ml-auto"
+                        @click="goToPage('/MemberOrders')" />
+                </div>
             </div>
 
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">我的優惠券</label>
-                <img src="@/assets/angle-small-right.png" class="icon ml-auto"
-                    @click="goToPage('/memberCoupons')" />
+                <div class="icon-group">
+                    <img src="@/assets/angle-small-right.png"
+                        class="icon ml-auto"
+                        @click="goToPage('/MemberCoupons')" />
+                </div>
             </div>
 
             <!-- <div class="mb-4 flex items-center">
@@ -59,7 +78,7 @@ const router = useRouter();
 
 const fetchUserData = async () => {
     try {
-        const token = sessionStorage.getItem('token');
+        const token = localStorage.getItem('token');
         if (!token) {
             throw new Error("未登入");
         }
@@ -74,7 +93,7 @@ const fetchUserData = async () => {
 
         // ✅ 改用 userId 取得使用者資訊
         //http://localhost:8081設置?
-        const response = await axios.get(`http://localhost:8081/api/admin/user/${userId}`, {
+        const response = await axios.get(`http://localhost:8081/api/user/check/${userId}`, {
             headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -115,14 +134,47 @@ body {
     background-color: #f4f4f4;
 }
 
+.icon-group {
+    display: flex;
+    justify-content: flex-end;
+    /* 讓圖示靠右 */
+    gap: 10px;
+}
+
 .icon {
     width: 20px;
     height: 20px;
     cursor: pointer;
     transition: opacity 0.2s ease-in-out;
+
 }
 
 .icon:hover {
     opacity: 0.7;
+}
+
+button {
+    display: inline-block;
+    padding: 15px 25px;
+    font-size: 24px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    outline: none;
+    color: #fff;
+    background-color: #04AA6D;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 9px #999;
+}
+
+button:hover {
+    background-color: #3e8e41
+}
+
+button:active {
+    background-color: #3e8e41;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
 }
 </style>
