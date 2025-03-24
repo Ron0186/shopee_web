@@ -63,6 +63,7 @@ async function login(){
       sessionStorage.setItem("adminName",decodedToken.sub);
       console.log(decodedToken.sub)
       sessionStorage.setItem("adminToken",response.data.token)
+      sessionStorage.setItem("adminId",decodedToken.userId)
       //導向Dashboard
       router.push({
           name: "Dashboard"
