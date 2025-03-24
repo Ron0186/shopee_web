@@ -16,9 +16,24 @@
 </template>
 
 <script setup>
-const logout = () => {
-    alert("已登出");
-};
+import { useUserStore } from '@/stores/user';
+import Swal from 'sweetalert2';
+import { useRouter } from "vue-router";
+const router = useRouter();
+
+const userStore=useUserStore();
+async function logout() {
+
+  // 清除 pinia userStore
+  userStore.clearUserData();
+  
+  await Swal.fire({
+          title: "登出成功",
+          icon: "success",
+        });
+  // 跳轉到登入頁
+  router.push({ name: "AdminLogin" });
+}
 </script>
 
 <style scoped>

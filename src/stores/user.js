@@ -11,14 +11,17 @@ export const useUserStore = defineStore('user', () => {
     // ✅ 改為 computed 確保 Vue 會自動監聽變更
     const isSeller = computed(() => roles.value.includes("SELLER"));
     const isAdmin = computed(() => roles.value.includes("ADMIN"));
+    const isSuperAdmin = computed(() => roles.value.includes("SUPER_ADMIN"));
+    const isUser = computed(() => roles.value.includes("USER"));
     console.log(isSeller.value)
 
-    function loadUserData() {
-        username.value = sessionStorage.getItem('username') || '';
-        userId.value = sessionStorage.getItem('userId') || '';
-        token.value = sessionStorage.getItem('token') || '';
 
-        const rolesString = sessionStorage.getItem('roles');
+    function loadUserData() {
+        username.value = localStorage.getItem('username') || '';
+        userId.value = localStorage.getItem('userId') || '';
+        token.value = localStorage.getItem('token') || '';
+
+        const rolesString = localStorage.getItem('roles');
         roles.value = rolesString ? JSON.parse(rolesString) : [];
 
         console.log("📌 讀取用戶數據: ", {
@@ -30,10 +33,10 @@ export const useUserStore = defineStore('user', () => {
     }
 
     function saveUserData() {
-        sessionStorage.setItem('username', username.value);
-        sessionStorage.setItem('userId', userId.value);
-        sessionStorage.setItem('token', token.value);
-        sessionStorage.setItem('roles', JSON.stringify(roles.value));
+        localStorage.setItem('username', username.value);
+        localStorage.setItem('userId', userId.value);
+        localStorage.setItem('token', token.value);
+        localStorage.setItem('roles', JSON.stringify(roles.value));
 
         console.log("💾 儲存用戶數據: ", {
             username: username.value,
@@ -69,10 +72,10 @@ export const useUserStore = defineStore('user', () => {
         token.value = '';
         roles.value = [];
 
-        sessionStorage.removeItem('username');
-        sessionStorage.removeItem('userId');
-        sessionStorage.removeItem('token');
-        sessionStorage.removeItem('roles');
+        localStorage.removeItem('username');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('token');
+        localStorage.removeItem('roles');
 
         console.log("🗑️ 清除用戶數據");
     }
@@ -85,7 +88,7 @@ export const useUserStore = defineStore('user', () => {
     loadUserData();
 
     return {
-        username, userId, token, roles, isSeller, isAdmin,
+        username, userId, token, roles, isSeller, isAdmin, isUser, isSuperAdmin,
         setUserData, clearUserData
     };
 });

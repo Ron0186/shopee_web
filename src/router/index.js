@@ -1,5 +1,9 @@
 import SearchResult from "@/components/SearchResult.vue";
 import HelpCenter from "@/views/pages/HelpCenter.vue";
+import UpdateHomeAddress from '@/views/member/UpdateHomeAddress.vue';
+import UpdateCVSAddress from '@/views/member/UpdateCVSAddress.vue';
+
+
 import { createRouter, createWebHistory } from "vue-router";
 
 const router = createRouter({
@@ -54,21 +58,21 @@ const router = createRouter({
 
         // 幫助中心
         {
-          path: "HelpCenter",
-          name: "HelpCenter",
-          component: HelpCenter,
+          path: "/helpCenter",
+          name: "help-center",
+          component: () => import("@/views/pages/HelpCenter.vue"),
         },
         // 幫助中心搜尋內容頁面
         {
           path: '/search',
           name: 'search-link',
-          component: SearchResult,
+          component: () => import("@/components/SearchResult.vue"),
           props: route => ({ query: route.query.q })
         },
         {
           path: '/article/:id',
           name: 'article-link',
-          component: HelpCenter,
+          component: () => import("@/views/pages/HelpCenter.vue"),
           props: true
         },
         //使用者登入頁
@@ -143,7 +147,7 @@ const router = createRouter({
         },
         {
           // 幫助中心頁面
-          path: "help-center",
+          path: "/help-center",
           name: "HelpCenter",
           component: () => import("@/views/admin/HelpCenter.vue"),
         },
@@ -237,11 +241,15 @@ const router = createRouter({
           name: "ShopReview",
           component: () => import("@/views/admin/AdminShopApplication.vue"),
         },
+        {
+          //優惠券管理頁面
+          path: '/coupon/adminCouponManager',
+          name: 'adminCouponManager-link',
+          component: () => import("@/components/admin/Coupon.components/AdminCouponManager.vue"),
+          props: true
+        },
       ],
-      // path: "/search",
-      // name: "search-link",
-      // component: SearchResult,
-      // props: (route) => ({ query: route.query.q }),
+
     },
     // {
     //   path: "/article/:id",
@@ -249,6 +257,54 @@ const router = createRouter({
     //   component: HelpCenter,
     //   props: true,
     // },
+    //會員中心
+    {
+      path: '/memberCenter',
+      name: 'memberCenter',
+      component: () => import('@/views/member/MemberCenter.vue')
+    },
+    {
+      path: '/profile',
+      name: 'profile',
+      component: () => import('@/views/member/Profile.vue')
+    },
+    {
+      path: '/address',
+      name: 'address',
+      component: () => import('@/views/member/Address.vue')
+    },
+    {
+      path: '/HomeAddressCreate',
+      name: 'HomeAddressCreate',
+      component: () => import('@/views/member/HomeAddressCreate.vue')
+    },
+    {
+      path: '/CVSAddressCreate',
+      name: 'CVSAddressCreate',
+      component: () => import('@/views/member/CVSAddressCreate.vue')
+    },
+    {
+      path: '/memberOrders',
+      name: 'memberOrders',
+      component: () => import('@/views/member/memberOrders.vue')
+    },
+    {
+      path: '/memberCoupons',
+      name: 'memberCoupons',
+      component: () => import('@/views/member/memberCoupons.vue')
+    },
+    {
+      path: '/updateHomeAddress/:addressId',
+      name: 'UpdateHomeAddress',
+      component: UpdateHomeAddress,
+      props: true // 讓 route 參數能當作 props 傳給元件
+    },
+    {
+      path: '/updateCVSAddress/:addressId',
+      name: 'UpdateCVSAddress',
+      component: UpdateCVSAddress,
+      props: true // 讓 route 參數能當作 props 傳給元件
+    },
   ],
 });
 
