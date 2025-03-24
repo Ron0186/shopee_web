@@ -77,7 +77,7 @@ async function login() {
       userStore.saveUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
       userStore.reloadUserData();
       if (result.isConfirmed) {
-        router.push("/");
+        router.push("/shop");
       }
     }
   } catch (error) {
