@@ -40,10 +40,9 @@
               @click="openEditProfileModal(admin)">編輯資料</button>
             <button class="btn btn-warning btn-sm ms-2"
               @click="openEditRoleModal(admin)">編輯權限</button>
-            <<<<<<< HEAD <button class="btn btn-danger btn-sm ms-2"
+            <button class="btn btn-danger btn-sm ms-2"
               @click="deleteUser(admin.userId)">刪除用戶</button>
-              =======
-              >>>>>>> 73dca5e19dd3f967da844617a114e84cfaa3edbf
+
           </td>
         </tr>
         <tr v-else>

@@ -34,6 +34,8 @@
   import Swal from 'sweetalert2';
   import { useRouter } from 'vue-router';
   import { jwtDecode } from 'jwt-decode';
+  import { useUserStore } from '@/stores/user';
+  const userStore= useUserStore();
   
   const router = useRouter();
   const username = ref("");
@@ -62,12 +64,12 @@
   
         const decodedToken = jwtDecode(response.data.token);
         axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
-  
-        localStorage.setItem("token", response.data.token);
-        localStorage.setItem("username", decodedToken.sub);
-        localStorage.setItem("userId", decodedToken.userId);
-        localStorage.setItem("roles", decodedToken.roles);
-  
+        console.log(decodedToken.sub);
+        console.log(decodedToken.userId);
+        console.log(response.data.token);
+        console.log(decodedToken.roles);
+        userStore.saveUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
+        
         router.push({ name: "Dashboard" });
       }
     } catch (error) {

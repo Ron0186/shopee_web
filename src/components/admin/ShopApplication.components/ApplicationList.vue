@@ -176,7 +176,7 @@ export default {
       });
 
       if (text) {
-        const { value: confirmResult } = await Swal.fire({
+        const response = await Swal.fire({
           title: '確認拒絕？',
           text: "此操作不可逆!",
           icon: 'warning',
@@ -187,7 +187,7 @@ export default {
           cancelButtonText: '取消'
         });
 
-        if (isConfirmed) {
+        if (response.isConfirmed) {
           try {
             const response = await axios.post(
               `/api/shop/application/reject/${applicationId}?adminId=${this.adminId}&comment=${encodeURIComponent(text)}`

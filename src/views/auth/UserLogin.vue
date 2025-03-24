@@ -73,19 +73,9 @@ async function login() {
       const decodedToken = jwtDecode(response.data.token);
       axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
 
-
-      localStorage.setItem("token", response.data.token);
-      localStorage.setItem("username", decodedToken.sub);
-      localStorage.setItem("userId", decodedToken.userId);
-      localStorage.setItem("roles", decodedToken.roles);
-
-      console.log("✅ JWT Token 已儲存:", response.data.token);
-
-
-
       //設定userStore
-      userStore.setUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
-
+      userStore.saveUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
+      userStore.reloadUserData();
       if (result.isConfirmed) {
         router.push("/");
       }

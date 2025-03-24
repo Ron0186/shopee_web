@@ -31,19 +31,30 @@ export const useUserStore = defineStore('user', () => {
             roles: roles.value
         });
     }
+    //登入儲存
+    function saveUserData(username, userId, token, roles) {
 
-    function saveUserData() {
-        localStorage.setItem('username', username.value);
-        localStorage.setItem('userId', userId.value);
-        localStorage.setItem('token', token.value);
-        localStorage.setItem('roles', JSON.stringify(roles.value));
+        this.username = username;
+        this.userId = userId;
+        this.token = token;
+        this.roles = roles || [];
+        if (!Array.isArray(roles)) {
+            console.error('roles 不是陣列，無法存入 localStorage:', roles);
+            return;
+        }
 
-        console.log("💾 儲存用戶數據: ", {
-            username: username.value,
-            userId: userId.value,
-            token: token.value,
-            roles: roles.value
-        });
+        localStorage.setItem('username', username);
+        localStorage.setItem('userId', userId);
+        localStorage.setItem('token', token);
+        localStorage.setItem('roles', JSON.stringify(roles)); // 轉成 JSON 字串存入
+    }
+
+    function reloadUserData() {
+        // 重新從 localStorage 讀取
+        this.username = localStorage.getItem("username") || "";
+        this.userId = localStorage.getItem("userId") || "";
+        this.token = localStorage.getItem("token") || "";
+        this.roles = JSON.parse(localStorage.getItem("roles")) || [];
     }
 
     function setUserData(newUsername, newUserId, newToken, newRoles = []) {
@@ -89,6 +100,6 @@ export const useUserStore = defineStore('user', () => {
 
     return {
         username, userId, token, roles, isSeller, isAdmin, isUser, isSuperAdmin,
-        setUserData, clearUserData
+        setUserData, clearUserData, saveUserData, reloadUserData
     };
 });
