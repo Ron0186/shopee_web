@@ -11,8 +11,8 @@
         <tr>
           <th style="width: 50px">ID</th>
           <th style="width: 50px">圖片</th>
-          <th style="width: 150px">名稱</th>
-          <th style="width: 150px">描述</th>
+          <th style="width: 150px">商品名稱</th>
+          <th style="width: 150px">商品描述</th>
           <th style="width: 150px">上架/審核中</th>
           <th style="width: 150px">創建時間</th>
           <th style="width: 150px">更新時間</th>
@@ -80,8 +80,8 @@ import { ref, onMounted } from "vue";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user.js"; // 引入 UserStore
-import ProductAddModal from "@/components/product.components/ProductAddModal.vue";
-import ProductEditModal from "@/components/product.components/ProductEditModal.vue";
+// import ProductAddModal from "@/components/product.components/ProductAddModal.vue";
+// import ProductEditModal from "@/components/product.components/ProductEditModal.vue";
 
 const userStore = useUserStore(); // 取得用戶資訊
 const products = ref([]);
@@ -91,15 +91,16 @@ const selectedElement = ref(null);
 
 // 獲取「我的商品」列表
 const fetchProducts = async () => {
-  if (!userStore.userId) {
-    console.error("用戶未登入，無法獲取商品列表");
-    return;
-  }
-
   try {
-    const response = await axios.get(`/api/product/byUserId${userId}`, {
-      params: { userId: userStore.userId }, // 傳遞 userId 參數
-    });
+    const userStore = useUserStore(); // 取得 store 實例
+    const userId = userStore.userId; // 讀取 userId
+
+    if (!userId) {
+      console.error("用戶未登入或 userId 不存在");
+      return;
+    }
+
+    const response = await axios.get(`/api/product/byUserId?userId=${userId}`);
     console.log("API 回傳的「我的商品」資料：", response.data);
     products.value = response.data;
   } catch (error) {
@@ -111,6 +112,65 @@ const fetchProducts = async () => {
 const openEditModal = (e) => {
   selectedElement.value = { ...e }; //複製物件，避免影響原資料
   showEditModal.value = true;
+};
+
+// 更新「我的商品」
+const updateProduct = async (updatedData, imageFile) => {
+  if (!updatedData || !updatedData.id) {
+    Swal.fire({
+      title: "錯誤",
+      text: "無效的更新資料",
+      icon: "error",
+    });
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append(
+      "product",
+      new Blob([JSON.stringify(updatedData)], { type: "application/json" })
+    );
+
+    // 如果有新圖片，則加入 FormData
+    if (imageFile) {
+      formData.append("image", imageFile);
+    }
+
+    const response = await axios.put(
+      `/api/product/${updatedData.id}`,
+      formData,
+      {
+        headers: { "Content-Type": "multipart/form-data" },
+      }
+    );
+
+    if (response.status >= 200 && response.status < 300) {
+      console.log("更新成功，API 回傳的商品資料：", response.data);
+
+      Swal.fire({
+        title: "更新成功",
+        icon: "success",
+      });
+
+      // 重新載入列表 (更新 UI)
+      await fetchProducts();
+      // 關閉 Modal
+      showEditModal.value = false;
+    } else {
+      Swal.fire({
+        title: "更新失敗",
+        icon: "error",
+      });
+    }
+  } catch (error) {
+    Swal.fire({
+      title: "錯誤",
+      text: error.response?.data?.message || "無法更新商品",
+      icon: "error",
+    });
+    console.error("錯誤", error);
+  }
 };
 
 // 刪除「我的商品」
