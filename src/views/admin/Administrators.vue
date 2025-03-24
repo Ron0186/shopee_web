@@ -46,6 +46,7 @@
       </tbody>
     </table>
 
+<<<<<<< HEAD
     <nav>
       <ul class="pagination justify-content-center">
         <li class="page-item" :class="{ disabled: pageNumber === 0 }">
@@ -59,6 +60,55 @@
         </li>
       </ul>
     </nav>
+=======
+      };
+    },
+    mounted() {
+      this.fetchAdmins();
+      this.fetchAdminRoles();
+    },
+    methods: {
+      async fetchAdmins(page = 0) {
+        try {
+          const response = await axios.get(`/api/admin/any/sa`, {
+            params: {
+              userName: this.searchQuery,
+              roleName: "Admin",
+              page: page,
+              size: this.pageSize
+            }
+          });
+          console.log("API 回傳的管理員資料：", response.data);
+          this.admins = response.data.content.map(admin => ({
+            ...admin,
+            roles: admin.roles || []
+          }));
+          this.pageNumber = response.data.number;
+          this.hasNextPage = !response.data.last;
+        } catch (error) {
+          console.error("載入管理員列表失敗", error);
+        }
+      },
+      async fetchAdminRoles() {
+        try {
+          const response = await axios.get('/api/admin/role/all');
+          this.availableRoles = response.data;
+        } catch (error) {
+          console.error("載入管理員角色失敗", error);
+        }
+      },
+      openEditRoleModal(admin) {
+        this.selectedAdmin = { ...admin };
+        this.showModal = true;
+      },
+      openEditProfileModal(admin) {
+        this.selectedAdmin = { ...admin };
+        this.showProfileModal = true;
+      },
+      async updateAdminRoles({ userId, roles }) {
+  try {
+    const response = await axios.put(`/api/admin/role/sa/${userId}`, { roles });
+>>>>>>> origin/dev
 
     <admin-role-edit-modal v-if="selectedAdmin" :admin="selectedAdmin" :isOpen="showModal"
       :allAvailableRoles="availableRoles" @close="showModal = false" @save="updateAdminRoles" />

@@ -1,12 +1,23 @@
 <script setup>
 import { useRouter } from "vue-router";
+import { useUserStore } from "@/stores/user";
+import Swal from "sweetalert2";
 
 const router = useRouter(); // Vue Router 實例
+const userStore = useUserStore();
+async function logout() {
 
-const logout = () => {
-  console.log("已登出");
-  router.push("/"); // 跳轉到首頁
-};
+
+  // 清除 pinia userStore
+  userStore.clearUserData();
+  
+  await Swal.fire({
+          title: "登出成功",
+          icon: "success",
+        });
+  // 跳轉到登入頁
+  router.push({ name: "AdminLogin" });
+}
 </script>
 
 <template>
@@ -21,7 +32,7 @@ const logout = () => {
     <router-link to="/admin/products/categories">📑 商品分類</router-link>
     <router-link to="/admin/products/tags">🔖 商品標籤</router-link>
     <router-link to="/admin/users">👥 會員管理</router-link>
-    <router-link to="/admin/administrators">👥 管理員管理</router-link>
+    <router-link to="/admin/administrators" >👥 管理員管理</router-link>
     <router-link to="/admin/users/customers">🙍‍♂️ 客戶管理</router-link>
     <router-link to="/admin/shop/review">🛍 商店申請管理</router-link>
     <router-link to="/coupon/AdminCouponManager">🎟️ 優惠券管理</router-link>

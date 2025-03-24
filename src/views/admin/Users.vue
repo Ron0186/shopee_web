@@ -83,8 +83,13 @@ const selectedUser = ref(null);
 const addModalOpen = ref(false);
 const searchName = ref("");
 const isModalOpen = ref(false);
+<<<<<<< HEAD
 const availableRoles = ref([
   { id: 'User', roleName: 'User' },
+=======
+const availableRoles=ref([
+  { id: 'USER', roleName: 'USER' },
+>>>>>>> origin/dev
   { id: 'SELLER', roleName: 'SELLER' },
 ]);
 
