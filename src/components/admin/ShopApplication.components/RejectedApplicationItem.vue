@@ -7,8 +7,8 @@
       <td>{{ app.shopCategory }}</td>
       <td>{{ app.description }}</td>
       <td>{{ new Date(app.createdAt).toLocaleString() }}</td>
-      <td>{{ app.adminComment }}</td>
       <td>{{ app.reviewer }}</td>
+      <td>{{ app.adminComment }}</td>
       <td>{{ app.reviewedAt ? new Date(app.reviewedAt).toLocaleString() : "" }}</td>
       <td>
         <button class="btn btn-success btn-sm" @click="approve(app.applicationId)">
@@ -18,7 +18,7 @@
     </tr>
   </template>
   
-  <script>
+  <script scoped>
   export default {
     props: {
       app: {
@@ -33,4 +33,13 @@
       },
     },
   };
+  
   </script>
+
+<style scoped>
+/* 讓長文字換行 */
+td.wrap-text {
+  white-space: normal;
+  word-break: break-word;
+}
+</style>

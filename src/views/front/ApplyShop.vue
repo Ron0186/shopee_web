@@ -70,7 +70,7 @@
           returnRecipientPhone: "",
           description: "",
         },
-        userId: sessionStorage.getItem("userId"), // 假設這裡是目前登入的用戶 ID，之後可改為從 Vuex / Pinia 取得
+        userId: localStorage.getItem("userId"), // 假設這裡是目前登入的用戶 ID，之後可改為從 Vuex / Pinia 取得
       };
     },
     methods: {

@@ -2,6 +2,8 @@ import SearchResult from "@/components/SearchResult.vue";
 import HelpCenter from "@/views/pages/HelpCenter.vue";
 import UpdateHomeAddress from '@/views/member/UpdateHomeAddress.vue';
 import UpdateCVSAddress from '@/views/member/UpdateCVSAddress.vue';
+
+
 import { createRouter, createWebHistory } from "vue-router";
 
 const router = createRouter({
@@ -24,11 +26,11 @@ const router = createRouter({
           name: "FrontAbout",
           component: () => import("@/views/front/About.vue"),
         },
-        // {
-        //   path: "/Cart",
-        //   name: "Cart",
-        //   component: () => import("@/views/Cart.vue"),
-        // },
+        {
+          path: "/Cart",
+          name: "Cart",
+          component: () => import("@/views/Cart.vue"),
+        },
         {
           path: "shop",
           name: "Shop",
@@ -42,32 +44,37 @@ const router = createRouter({
 
         // ...其他前台路由
         {
-          path: "SellerOrder",
-          name: "SellerOrder",
+          path: "/seller/orders",
+          name: "SellerOrders",
           component: () => import("@/views/front/SellerOrders.vue"),
+          meta: { role: "SELLER" }, // 只有 SELLER 會用到
+        },
+        {
+          path: "/user/orders",
+          name: "UserOrders",
+          component: () => import("@/views/front/UserOrders.vue"),
+          meta: { role: "USER" }, // 一般使用者用
         },
 
         // 幫助中心
         {
-          path: "HelpCenter",
-          name: "HelpCenter",
-          component: HelpCenter,
+          path: "/helpCenter",
+          name: "help-center",
+          component: () => import("@/views/pages/HelpCenter.vue"),
         },
-<<<<<<< HEAD
         // 幫助中心搜尋內容頁面
         {
           path: '/search',
           name: 'search-link',
-          component: SearchResult,
+          component: () => import("@/components/SearchResult.vue"),
           props: route => ({ query: route.query.q })
         },
         {
           path: '/article/:id',
           name: 'article-link',
-          component: HelpCenter,
+          component: () => import("@/views/pages/HelpCenter.vue"),
           props: true
-=======
-
+        },
         //使用者登入頁
         {
           path: "/user/login",
@@ -101,7 +108,6 @@ const router = createRouter({
           path: "/shop/apply",
           name: "ApplyShop",
           component: () => import("@/views/front/ApplyShop.vue"),
->>>>>>> 173db1381d4355fc35309b356133a97ca8cd61be
         },
       ],
     },
@@ -139,12 +145,12 @@ const router = createRouter({
           name: "Activities",
           component: () => import("@/views/admin/Activities.vue"),
         },
-        // {
-        //   // 幫助中心頁面
-        //   path: "help-center",
-        //   name: "HelpCenter",
-        //   component: () => import("@/views/admin/HelpCenter.vue"),
-        // },
+        {
+          // 幫助中心頁面
+          path: "/help-center",
+          name: "HelpCenter",
+          component: () => import("@/views/admin/HelpCenter.vue"),
+        },
         {
           // 物流管理頁面
           path: "logistics",
@@ -235,11 +241,15 @@ const router = createRouter({
           name: "ShopReview",
           component: () => import("@/views/admin/AdminShopApplication.vue"),
         },
+        {
+          //優惠券管理頁面
+          path: '/coupon/adminCouponManager',
+          name: 'adminCouponManager-link',
+          component: () => import("@/components/admin/Coupon.components/AdminCouponManager.vue"),
+          props: true
+        },
       ],
-      // path: "/search",
-      // name: "search-link",
-      // component: SearchResult,
-      // props: (route) => ({ query: route.query.q }),
+
     },
     // {
     //   path: "/article/:id",

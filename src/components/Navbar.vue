@@ -10,19 +10,21 @@
 
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
-<<<<<<< HEAD
-      <router-link to="/user/login">🔑 登入</router-link>
-      <router-link to="/user/register">📝 註冊</router-link>
-      <router-link to="/memberCenter">👤 會員中心</router-link>
-=======
-      <router-link to="/user/login" v-if="!userStore.username">🔑 登入</router-link>
-      <router-link to="/user/register" v-if="!userStore.username">📝 註冊</router-link>
+      <router-link to="/user/login" v-if="!userStore.username">🔑
+        登入</router-link>
+      <router-link to="/user/register" v-if="!userStore.username">📝
+        註冊</router-link>
+      <router-link to="/shop/apply"
+        v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
+        我要當賣家!!</router-link>
       <router-link to="/profile">👤 會員中心</router-link>
->>>>>>> origin/chien2
-      <router-link to="/orders">📦 訂單</router-link>
+      <router-link v-if="userStore.username"
+        :to="userStore.isSeller ? '/seller/orders' : '/user/orders'">
+        📦 訂單管理
+      </router-link>
       <router-link to="/cart">🛒 購物車</router-link>
       <span v-if="userStore.username" @click="logout" class="logout-link">
-          <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
+        <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
       </span>
     </div>
   </nav>
@@ -80,10 +82,18 @@
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { ref, } from "vue";
+import { useUserStore } from '@/stores/user';
+import Swal from "sweetalert2";
+import router from "@/router/index";
 
+const userStore = useUserStore();
 const drawerOpen = ref(false);
 const categoryOpen = ref(false);
+
+
+
+
 
 const toggleDrawer = () => {
   drawerOpen.value = !drawerOpen.value;
@@ -93,24 +103,16 @@ const toggleCategory = () => {
   categoryOpen.value = !categoryOpen.value;
 };
 
-
-//-------------------------以下是登出相關
-import { useUserStore } from '@/stores/user';
-import Swal from "sweetalert2";
-import router from "@/router/index";
-const userStore = useUserStore();
+// ✅ 登出功能
 async function logout() {
-  // 2. 清除 Pinia store 中的用户数据
   userStore.clearUserData();
-
-   // 登出後顯示訊息
-   const response = await Swal.fire({
-     title: "您已成功登出",
-     icon: "success",
-     confirmButtonText: "OK",
-   });
-   if(response.isConfirmed){
-   router.push('/shop'); 
+  const response = await Swal.fire({
+    title: "您已成功登出",
+    icon: "success",
+    confirmButtonText: "OK",
+  });
+  if (response.isConfirmed) {
+    router.push('/shop');
   }
 }
 </script>
@@ -119,7 +121,6 @@ async function logout() {
 /* 📌 Navbar 樣式 */
 .navbar {
   width: 100vw;
-  /* ✅ 讓 Navbar 填滿畫面 */
   max-width: 100%;
   height: 60px;
   display: flex;
@@ -229,7 +230,6 @@ async function logout() {
 
 .logout-link:hover {
   cursor: pointer;
-   /* 滑鼠懸停時的樣式 */
-    text-decoration: underline; /* 或其他樣式 */
+  text-decoration: underline;
 }
 </style>
