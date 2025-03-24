@@ -1,6 +1,7 @@
 <template>
   <div>
     <!-- <AdminNavbar /> -->
+    <AdminNavbar></AdminNavbar>
     <div class="admin-container">
       <Sidebar />
       <main class="content">
