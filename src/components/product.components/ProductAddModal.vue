@@ -38,6 +38,7 @@
 import { ref, defineProps, defineEmits } from "vue";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
+import { useUserStore } from "@/stores/user";
 
 const props = defineProps({
   isOpen: Boolean,
@@ -46,15 +47,34 @@ const props = defineProps({
 const emit = defineEmits(["close", "refresh"]);
 
 const newProduct = ref({
-  image: "",
+  shopId: null,
+  category1Id: null,
+  category2Id: null,
   productName: "",
   description: "",
-  active: "",
+  image: null,
 });
 
+// 新增商品
 const addProduct = async () => {
+  const userStore = useUserStore();
+  const userId = userStore.userId;
+  const token = userStore.token; // 獲取 token
+
   try {
-    const response = await axios.post("/api/product", newProduct.value);
+    let formData = new FormData();
+
+    formData.append("userId", userId);
+    formData.append("product", JSON.stringify(newProduct.value));
+    formData.append("image", newProduct.value.imageFile);
+
+    const response = await axios.post("/api/product", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
     console.log(response);
     // console.log(response.data);
 
@@ -66,10 +86,12 @@ const addProduct = async () => {
 
       // 清空表單
       newProduct.value = {
-        image: "",
+        shopId: null,
+        category1Id: null,
+        category2Id: null,
         productName: "",
         description: "",
-        active: "",
+        image: null,
       };
 
       emit("refresh"); // 通知父元件重新獲取商品列表

@@ -79,28 +79,41 @@
 import { ref, onMounted } from "vue";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
-import { useUserStore } from "@/stores/user.js"; // 引入 UserStore
-// import ProductAddModal from "@/components/product.components/ProductAddModal.vue";
-// import ProductEditModal from "@/components/product.components/ProductEditModal.vue";
+import { useUserStore } from "@/stores/user";
+import ProductAddModal from "@/components/product.components/ProductAddModal.vue";
+import ProductEditModal from "@/components/product.components/ProductEditModal.vue";
 
-const userStore = useUserStore(); // 取得用戶資訊
 const products = ref([]);
 const showAddModal = ref(false);
 const showEditModal = ref(false);
 const selectedElement = ref(null);
 
+// 取得用戶資訊
+const userStore = useUserStore();
+const userId = userStore.userId;
+const token = userStore.token;
+// 檢查是否有 SELLER 角色
+const isSeller = computed(() => {
+  console.log("當前角色:", userStore.roles);
+  return userStore.roles?.includes("SELLER");
+});
+
 // 獲取「我的商品」列表
 const fetchProducts = async () => {
   try {
-    const userStore = useUserStore(); // 取得 store 實例
-    const userId = userStore.userId; // 讀取 userId
-
     if (!userId) {
       console.error("用戶未登入或 userId 不存在");
       return;
     }
 
-    const response = await axios.get(`/api/product/byUserId?userId=${userId}`);
+    if (!isSeller) {
+      console.error("不是賣家，無法獲取「我的商品」列表");
+      return;
+    }
+
+    const response = await axios.get(`/api/product/byUserId?userId=${userId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     console.log("API 回傳的「我的商品」資料：", response.data);
     products.value = response.data;
   } catch (error) {
@@ -115,61 +128,50 @@ const openEditModal = (e) => {
 };
 
 // 更新「我的商品」
-const updateProduct = async (updatedData, imageFile) => {
-  if (!updatedData || !updatedData.id) {
-    Swal.fire({
-      title: "錯誤",
-      text: "無效的更新資料",
-      icon: "error",
-    });
-    return;
-  }
-
+const updateProduct = async (productId) => {
   try {
-    const formData = new FormData();
+    const userStore = useUserStore();
+    const token = userStore.token; // 獲取 token
+
+    if (!productId) {
+      Swal.fire({ title: "商品 ID 不存在", icon: "warning" });
+      return;
+    }
+
+    let formData = new FormData();
     formData.append(
       "product",
-      new Blob([JSON.stringify(updatedData)], { type: "application/json" })
+      new Blob([JSON.stringify(updatedProduct.value)], {
+        type: "application/json",
+      })
     );
 
-    // 如果有新圖片，則加入 FormData
-    if (imageFile) {
-      formData.append("image", imageFile);
+    if (updatedProduct.value.image) {
+      formData.append("image", updatedProduct.value.image); // 上傳圖片
     }
 
-    const response = await axios.put(
-      `/api/product/${updatedData.id}`,
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
+    const response = await axios.put(`/api/product/${productId}`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
     if (response.status >= 200 && response.status < 300) {
-      console.log("更新成功，API 回傳的商品資料：", response.data);
+      await Swal.fire({ title: "更新成功", icon: "success" });
 
-      Swal.fire({
-        title: "更新成功",
-        icon: "success",
-      });
-
-      // 重新載入列表 (更新 UI)
-      await fetchProducts();
-      // 關閉 Modal
-      showEditModal.value = false;
+      emit("refresh"); // 通知父元件重新獲取商品列表
+      emit("close"); // 關閉 Modal
     } else {
-      Swal.fire({
-        title: "更新失敗",
-        icon: "error",
-      });
+      Swal.fire({ title: "錯誤:" + response.data.message, icon: "error" });
     }
   } catch (error) {
+    console.error(error);
     Swal.fire({
-      title: "錯誤",
-      text: error.response?.data?.message || "無法更新商品",
+      title:
+        "錯誤:" + (error.response?.data?.message || "請求失敗，請稍後再試"),
       icon: "error",
     });
-    console.error("錯誤", error);
   }
 };
 

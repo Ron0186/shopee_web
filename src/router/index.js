@@ -64,7 +64,6 @@ const router = createRouter({
         },
         // 幫助中心搜尋內容頁面
         {
-<<<<<<< HEAD
           path: "/search",
           name: "search-link",
           component: SearchResult,
@@ -75,7 +74,6 @@ const router = createRouter({
           name: "article-link",
           component: HelpCenter,
           props: true,
-=======
           path: '/search',
           name: 'search-link',
           component: () => import("@/components/SearchResult.vue"),
@@ -86,7 +84,6 @@ const router = createRouter({
           name: 'article-link',
           component: () => import("@/views/pages/HelpCenter.vue"),
           props: true
->>>>>>> origin/Arthur
         },
         //使用者登入頁
         {
@@ -121,15 +118,12 @@ const router = createRouter({
           path: "/shop/apply",
           name: "ApplyShop",
           component: () => import("@/views/front/ApplyShop.vue"),
-<<<<<<< HEAD
-=======
         },
         //賣家商店頁
         {
           path: "/store/:shopId",
           name: "Store",
           component: () => import("@/views/front/SellerStore.vue"),
->>>>>>> origin/Arthur
         },
       ],
     },
