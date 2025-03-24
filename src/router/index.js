@@ -142,10 +142,10 @@ const router = createRouter({
           component: () => import("@/views/admin/Logistics.vue"),
         },
         {
-          // 付款方式頁面
-          path: "payment-methods",
-          name: "PaymentMethods",
-          component: () => import("@/views/admin/PaymentMethods.vue"),
+          // 管理付款方式頁面
+          path: "payment-method-management",
+          name: "PaymentMethodManagement",
+          component: () => import("@/views/admin/PaymentMethodManagement.vue"),
         },
         {
           // 後台管理頁面
