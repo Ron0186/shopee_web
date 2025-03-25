@@ -116,6 +116,12 @@ const router = createRouter({
           name: "CustomerService",
           component: () => import("@/views/pages/CustomerService/CustomerService.vue"),
         },
+        //賣家商店頁
+        {
+          path: "/store/:shopId",
+          name: "Store",
+          component: () => import("@/views/front/SellerStore.vue"),
+        },
       ],
     },
 
