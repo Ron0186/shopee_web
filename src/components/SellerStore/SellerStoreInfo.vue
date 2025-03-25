@@ -53,7 +53,7 @@ const startChat = async () => {
     console.log('shopId:', shopId);
     // 如果沒有找到 userId 或 shopId，顯示錯誤提示
     if (!userId || !shopId) {
-      alert("無效的使用者 ID 或商店 ID");
+      alert("已有買家存在聊天室");
       return;
     }
 
