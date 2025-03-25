@@ -56,7 +56,7 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const buyerId = ref(null)
-const shopId = ref(null)
+const shopId = ref([])
 const chatRoomId = ref(null)
 const messages = ref([])
 const messageContent = ref('')
@@ -66,11 +66,11 @@ let stompClient = null
 const userId = ref(localStorage.getItem("userId")); // 從 localStorage 讀取 userId
 
 /* --- 貼圖列表 (範例) --- */
-const stickers = [
-    { id: 1, url: '/images/sticker1.png' },
-    { id: 2, url: '/images/sticker2.png' },
-    { id: 3, url: '/images/sticker3.png' },
-]
+// const stickers = [
+//     { id: 1, url: '/images/sticker1.png' },
+//     { id: 2, url: '/images/sticker2.png' },
+//     { id: 3, url: '/images/sticker3.png' },
+// ]
 
 /* --- 1. 掛載時流程 --- */
 onMounted(async () => {
@@ -87,7 +87,7 @@ onMounted(async () => {
         // (2) 從後端取得 shopId
         const shopRes = await axiosapi.get(`/api/shop/${shopId.value}`)
 
-        shopId.value = shopRes.data.shopId // 假設後端回傳 { shopId: 999, shopName: "賣家商店", ... }
+        // shopId.value = shopRes.data.shopId // 假設後端回傳 { shopId: 999, shopName: "賣家商店", ... }
 
         // (3) 建立或取得聊天室
         await createOrGetChatRoom()
