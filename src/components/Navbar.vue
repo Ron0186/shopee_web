@@ -14,12 +14,10 @@
         登入</router-link>
       <router-link to="/user/register" v-if="!userStore.username">📝
         註冊</router-link>
-      <router-link to="/shop/apply"
-        v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
+      <router-link to="/shop/apply" v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
         我要當賣家!!</router-link>
       <router-link to="/profile">👤 會員中心</router-link>
-      <router-link v-if="userStore.username"
-        :to="userStore.isSeller ? '/seller/orders' : '/user/orders'">
+      <router-link v-if="userStore.username" :to="userStore.isSeller ? '/seller/orders' : '/user/orders'">
         📦 訂單管理
       </router-link>
       <router-link to="/cart">🛒 購物車</router-link>
@@ -42,8 +40,7 @@
               衣服</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=electronics"
-              @click="toggleDrawer">📱 電子產品</router-link>
+            <router-link to="/shop?category=electronics" @click="toggleDrawer">📱 電子產品</router-link>
           </li>
           <li>
             <router-link to="/shop?category=home" @click="toggleDrawer">🏠
@@ -63,7 +60,7 @@
           通知</router-link>
       </li>
       <li>
-        <router-link to="/support" @click="toggleDrawer">📞 客服 &
+        <router-link to="/customerService" @click="toggleDrawer">📞 客服 &
           幫助中心</router-link>
       </li>
       <li>
