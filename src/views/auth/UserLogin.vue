@@ -42,7 +42,7 @@ import Swal from "sweetalert2";
 import { useRouter } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 import { useUserStore } from "@/stores/user";
-import GoogleLoginButton from "@/components/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
 
 const userStore = useUserStore();
 
