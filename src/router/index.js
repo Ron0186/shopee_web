@@ -109,6 +109,44 @@ const router = createRouter({
           name: "ApplyShop",
           component: () => import("@/views/front/ApplyShop.vue"),
         },
+
+        // 添加支付結帳頁面
+        {
+          path: "/checkout/:orderId",
+          name: "Checkout",
+          component: () => import("@/views/CheckoutPage.vue"),
+          meta: { role: "USER" } // 一般使用者用
+        },
+        {
+          path: '/checkout/pay/:orderId',
+          name: 'OrderPayment',
+          component: () => import('@/components/order.components/OrderPayment.vue'),
+          meta: { requiresAuth: true }
+        },
+
+        // 添加支付結果頁面
+        {
+          path: '/checkout/payment/:orderId',
+          name: 'OrderPaymentAlias',
+          component: () => import('@/components/order.components/OrderPayment.vue'),
+          meta: { role: "USER" } // 一般使用者用
+        },
+        {
+          path: '/debug/payment/:id',
+          name: 'DebugPayment',
+          component: () => import('@/views/DebugPaymentPage.vue')
+        }
+        // ,
+        // {
+        //   path: '/wishlist',
+        //   name: 'Wishlist',
+        //   component: () => import('@/views/Placeholder.vue')
+        // },
+        // {
+        //   path: '/order-tracking',
+        //   name: 'OrderTracking',
+        //   component: () => import('@/views/Placeholder.vue')
+        // }
       ],
     },
 
@@ -135,7 +173,7 @@ const router = createRouter({
       children: [
         {
           // 首頁儀表板
-          path: "/dashboard",
+          path: "dashboard",
           name: "Dashboard",
           component: () => import("@/views/admin/Dashboard.vue"),
         },
@@ -219,7 +257,7 @@ const router = createRouter({
         },
         {
           // 訂單頁面
-          path: "AdminOrders",
+          path: "/admin/orders",
           name: "AdminOrders",
           component: () => import("@/views/admin/AdminOrders.vue"),
         },

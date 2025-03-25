@@ -1,11 +1,13 @@
 import "./assets/main.css";
-
 import { createApp } from "vue";
 import { createPinia } from "pinia";
 import App from "./App.vue";
 import router from "./router";
 
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
+
+// 正確導入 Bootstrap Vue Next
+import { BModal, BButton } from 'bootstrap-vue-next';
 
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);
@@ -20,5 +22,8 @@ const app = createApp(App);
 
 app.use(pinia);
 app.use(router);
+// 註冊個別組件
+app.component('BModal', BModal);
+app.component('BButton', BButton);
 
 app.mount("#app");
