@@ -156,10 +156,17 @@ const router = createRouter({
           name: 'UpdateCVSAddress',
           component: UpdateCVSAddress,
           props: true // 讓 route 參數能當作 props 傳給元件
-        }, {
+        },
+        {
           path: '/changePassword',
           name: 'changePassword',
           component: () => import('@/views/member/ChangePassword.vue')
+        },
+        //賣家營收
+        {
+          path: '/revenue',
+          name: 'revenue',
+          component: () => import('@/views/seller/RevenueDetails.vue')
         },
       ],
     },

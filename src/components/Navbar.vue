@@ -22,6 +22,9 @@
         :to="userStore.isSeller ? '/seller/orders' : '/user/orders'">
         📦 訂單管理
       </router-link>
+      <router-link to="/revenue"
+        v-if="userStore.token && userStore.roles.includes('SELLER')">📊
+        營收簡覽</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
       <span v-if="userStore.username" @click="logout" class="logout-link">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出

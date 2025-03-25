@@ -1,5 +1,6 @@
 <template>
-    <div class="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg">
+    <div
+        class="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg container">
         <h2 class="text-2xl font-semibold text-gray-700 mb-4">會員中心</h2>
 
         <div v-if="loading" class="text-center text-gray-500">載入中...</div>
@@ -32,14 +33,14 @@
                 </div>
             </div>
 
-            <div class="mb-4 flex items-center">
+            <!-- <div class="mb-4 flex items-center">
                 <label class="font-semibold">訂單管理</label>
                 <div class="icon-group">
                     <img src="@/assets/angle-small-right.png"
                         class="icon ml-auto"
                         @click="goToPage('/MemberOrders')" />
                 </div>
-            </div>
+            </div> -->
 
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">我的優惠券</label>
@@ -166,6 +167,7 @@ button {
     border: none;
     border-radius: 15px;
     box-shadow: 0 9px #999;
+    margin-bottom: 25px;
 }
 
 button:hover {
