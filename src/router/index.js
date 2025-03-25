@@ -111,10 +111,19 @@ const router = createRouter({
         },
 
         //客服中心
+
         {
-          path: "/customerService",
-          name: "CustomerService",
-          component: () => import("@/views/pages/CustomerService/CustomerService.vue"),
+          path: "/chat/:chatRoomId",
+          name: "ChatRoom",
+          component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
+          meta: { requiresAuth: true }
+
+        },
+        //賣家商店頁
+        {
+          path: "/store/:shopId",
+          name: "Store",
+          component: () => import("@/views/front/SellerStore.vue"),
         },
         //賣家商店頁
         {
@@ -318,12 +327,6 @@ const router = createRouter({
       name: 'UpdateCVSAddress',
       component: UpdateCVSAddress,
       props: true // 讓 route 參數能當作 props 傳給元件
-    },
-    //賣家商店頁
-    {
-      path: "/store/:shopId",
-      name: "Store",
-      component: () => import("@/views/front/SellerStore.vue"),
     },
   ],
 });

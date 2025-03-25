@@ -8,7 +8,7 @@
           <span class="highlight">{{ shop.shopName }}</span>
         </h2>
         <div class="shop-actions">
-          <button class="btn btn-chat" v-if="!isOwner">💬 聊聊</button>
+          <button class="btn btn-chat" v-if="!isOwner" @click="startChat">💬 聊聊</button>
         </div>
       </div>
     </div>
@@ -21,15 +21,18 @@
 
     <!-- 編輯按鈕 (右側) -->
     <button class="btn btn-edit-shop" :style="{ visibility: isOwner ? 'visible' : 'hidden' }">
-  ⚙️ 編輯賣場資訊
-</button>
+      ⚙️ 編輯賣場資訊
+    </button>
+
+
   </div>
 </template>
 
 <script setup>
 import { computed } from 'vue';
 import defaultLogo from "@/assets/shop-logo.jpg";
-
+import { useRouter } from "vue-router";
+import axios from "@/plugins/axios";
 const shopLogo = computed(() => {
   return props.shop.logo ? props.shop.logo : defaultLogo;
 });
@@ -38,6 +41,43 @@ const props = defineProps({
   shop: Object,
   isOwner: Boolean
 });
+
+const router = useRouter();
+
+const startChat = async () => {
+  try {
+    // 從 localStorage 讀取 userId 和 shopId
+    const userId = localStorage.getItem('userId'); // 假設已經存放在 localStorage 中
+    const shopId = props.shop.shopId; // 假設 shopId 從 props 中傳遞
+    console.log('userId:', userId);
+    console.log('shopId:', shopId);
+    // 如果沒有找到 userId 或 shopId，顯示錯誤提示
+    if (!userId || !shopId) {
+      alert("無效的使用者 ID 或商店 ID");
+      return;
+    }
+
+    // 準備要發送的請求資料
+    const chatRequest = {
+      shopId: shopId,
+      userId: userId, // 從 localStorage 讀取的 userId
+      shopName: props.shop.shopName, // 可選：商店名稱
+    };
+
+    // 發送請求到後端
+    const response = await axios.post("/api/chat/start", chatRequest);
+
+    if (response.data.success) {
+      const chatRoomId = response.data.chatRoomId;
+      router.push(`/chat/${chatRoomId}`); // 跳轉到聊天室
+    } else {
+      alert("無法開啟聊天室：" + response.data.message);
+    }
+  } catch (error) {
+    console.error("開啟聊天室失敗:", error);
+    alert("聊天室開啟失敗，請稍後再試");
+  }
+};
 </script>
 
 <style scoped>
@@ -102,6 +142,7 @@ const props = defineProps({
 .btn-chat:hover {
   background-color: #388E3C;
 }
+
 .btn-edit-shop {
   background-color: #3498db;
   color: white;
@@ -110,7 +151,8 @@ const props = defineProps({
   border-radius: 5px;
   cursor: pointer;
   margin-left: 10px;
-  visibility: hidden; /* 隱藏但保留空間 */
+  visibility: hidden;
+  /* 隱藏但保留空間 */
 }
 
 .btn-edit-shop:hover {
