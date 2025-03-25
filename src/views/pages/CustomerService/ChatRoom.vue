@@ -17,11 +17,14 @@ import { useRoute } from "vue-router";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
 import axios from "@/plugins/axios";
+import { useChatStore } from '@/stores/chatStore';
+const chatStore = useChatStore();
 
 const route = useRoute();
 const chatRoomId = route.params.chatRoomId;
 const messages = ref([]);
 const newMessage = ref("");
+
 
 let stompClient = null;
 
@@ -37,22 +40,37 @@ onUnmounted(() => {
 });
 
 const connectWebSocket = () => {
-    const socket = new SockJS("http://localhost:8081/ws/info");
+    const socket = new SockJS("http://localhost:8081/ws");
     stompClient = Stomp.over(socket);
 
-    stompClient.connect({}, () => {
-        // 訂閱聊天室的話題，注意模板字串需要正確
-        stompClient.subscribe(`/topic/chatroom/${chatRoomId}`, (message) => {
-            // 收到訊息後，將其推送至 messages 中
-            messages.value.push(JSON.parse(message.body));
-        });
-    });
+    stompClient.connect({},
+        () => {
+            stompClient.subscribe(`/topic/chatroom/${chatRoomId}`, (message) => {
+                const parsedMessage = JSON.parse(message.body);
+                // 添加伺服器返回的訊息
+                messages.value.push({
+                    id: parsedMessage.id,      // 假設後端返回唯一 ID
+                    sender: parsedMessage.sender || '用戶',  // 後端需提供發送者
+                    content: parsedMessage.content
+                });
+            });
+        },
+        (error) => {
+            console.error("連接失敗:", error);
+        }
+    );
 };
 
 const fetchMessages = async () => {
     try {
         const response = await axios.get(`/api/chat/${chatRoomId}/messages`);
-        messages.value = response.data;
+        // 強制確保 response.data 是陣列
+        if (Array.isArray(response.data)) {
+            messages.value = response.data;
+        } else {
+            console.error("後端回傳資料格式錯誤，預期為陣列:", response.data);
+            messages.value = []; // 回退為空陣列
+        }
     } catch (error) {
         console.error("無法載入訊息", error);
     }
@@ -61,19 +79,45 @@ const fetchMessages = async () => {
 const sendMessage = async () => {
     if (!newMessage.value.trim()) return;
 
-    const message = {
-        chatRoomId,
-        content: newMessage.value,
+    // 確保 messages.value 是陣列
+    if (!Array.isArray(messages.value)) {
+        console.error("messages.value 不是陣列，當前值為:", messages.value);
+        messages.value = []; // 強制重置為陣列
+    }
+
+    // 暫存新訊息
+    const tempMessage = {
+        id: Date.now(), // 臨時唯一 ID
+        sender: "我",
+        content: newMessage.value
     };
 
+    // 使用解構賦值確保響應式更新
+    messages.value = [...messages.value, tempMessage];
+    newMessage.value = "";
+
+    // 發送至後端
     try {
-        // 發送訊息到 WebSocket 伺服器
-        stompClient.send(`/app/chat/sendMessage`, {}, JSON.stringify(message));
-        newMessage.value = "";  // 發送後清空輸入框
+        stompClient.send("/app/chat/sendMessage", {}, JSON.stringify({
+            chatRoomId,
+            content: tempMessage.content
+        }));
     } catch (error) {
         console.error("訊息發送失敗", error);
-    }
+        // 可選：移除臨時訊息
+        messages.value = messages.value.filter(msg => msg.id !== tempMessage.id);
+    };
+    chatStore.addMessage(chatRoomId, tempMessage);
+
 };
+// 初始化時從全局狀態讀取訊息
+onMounted(() => {
+    if (chatStore.activeMessages[chatRoomId]) {
+        messages.value = chatStore.activeMessages[chatRoomId];
+    } else {
+        fetchMessages(); // 從 API 獲取並存入全局狀態
+    }
+});
 </script>
 
 <style scoped>
