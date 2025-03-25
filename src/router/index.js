@@ -319,6 +319,12 @@ const router = createRouter({
       component: UpdateCVSAddress,
       props: true // 讓 route 參數能當作 props 傳給元件
     },
+    //賣家商店頁
+    {
+      path: "/store/:shopId",
+      name: "Store",
+      component: () => import("@/views/front/SellerStore.vue"),
+    },
   ],
 });
 
