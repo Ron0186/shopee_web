@@ -107,16 +107,11 @@ onMounted(async () => {
             text: error.message || "聊天室加載失敗，請稍後重試",
             icon: "error"
         });
-        router.push('/'); // 返回首頁
+        router.push('/user/login'); // 返回首頁
     }
 });
 
-// 組件卸載時斷開連接
-onUnmounted(() => {
-    if (stompClient) {
-        stompClient.disconnect();
-    }
-});
+
 
 const send = () => {
     if (!newMessage.value.trim()) return;
@@ -135,9 +130,18 @@ const send = () => {
     if (stompClient) {
         const message = {
             content: newMessage.value,
-            chatRoomId: route.params.chatRoomId,
-            senderId: chatStore.currentUser.id
+            chatRoomEntity: { chatRoomId: route.params.chatRoomId }, // 傳送聊天室 ID
+            sender: { id: chatStore.currentUser.id } // 傳送發送者 ID
         };
+
+        // 將訊息先加入本地顯示，避免伺服器回傳有延遲
+        chatStore.messages.push({
+            id: Date.now(),  // 用 timestamp 作為暫時的 id
+            content: newMessage.value,
+            sender: {
+                username: chatStore.currentUser.name  // 假設 currentUser 有 name 欄位
+            }
+        });
 
         stompClient.send(
             "/app/chat/sendMessage",
@@ -148,6 +152,13 @@ const send = () => {
         newMessage.value = '';
     }
 };
+
+// 組件卸載時斷開連接
+onUnmounted(() => {
+    if (stompClient) {
+        stompClient.disconnect();
+    }
+});
 </script>
 
 <style scoped>
