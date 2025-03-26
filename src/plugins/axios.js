@@ -6,6 +6,21 @@ const instance = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+instance.interceptors.response.use(
+  function (response) {
+    return response;
+  },
+  function (error) {
+    if (
+      error.response &&
+      error.response.status &&
+      error.response.status === 403
+    ) {
+      window.location.href = "/403";
+    }
+    return Promise.reject(error);
+  }
+);
 
 // 🔒 自動在請求中加入 Token
 instance.interceptors.request.use(

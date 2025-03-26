@@ -1,8 +1,7 @@
 import SearchResult from "@/components/SearchResult.vue";
 import HelpCenter from "@/views/pages/HelpCenter.vue";
-import UpdateHomeAddress from '@/views/member/UpdateHomeAddress.vue';
-import UpdateCVSAddress from '@/views/member/UpdateCVSAddress.vue';
-
+import UpdateHomeAddress from "@/views/member/UpdateHomeAddress.vue";
+import UpdateCVSAddress from "@/views/member/UpdateCVSAddress.vue";
 
 import { createRouter, createWebHistory } from "vue-router";
 
@@ -74,6 +73,16 @@ const router = createRouter({
           name: "article-link",
           component: HelpCenter,
           props: true,
+          path: "/search",
+          name: "search-link",
+          component: () => import("@/components/SearchResult.vue"),
+          props: (route) => ({ query: route.query.q }),
+        },
+        {
+          path: "/article/:id",
+          name: "article-link",
+          component: () => import("@/views/pages/HelpCenter.vue"),
+          props: true,
         },
         //使用者登入頁
         {
@@ -111,11 +120,12 @@ const router = createRouter({
         },
 
         //客服中心
-        {
-          path: "/customerService",
-          name: "CustomerService",
-          component: () => import("@/views/pages/CustomerService/CustomerService.vue"),
-        },
+        // {
+        //   path: "/customerService",
+        //   name: "CustomerService",
+        //   component: () =>
+        //     import("@/views/pages/CustomerService/CustomerService.vue"),
+        // },
         //賣家商店頁
         {
           path: "/store/:shopId",
@@ -130,20 +140,20 @@ const router = createRouter({
         },
         //google登入後成功頁
         {
-          path: '/login/oauth2/success',
-          name: 'OAuth2Success',
+          path: "/login/oauth2/success",
+          name: "OAuth2Success",
           component: () => import("@/views/auth/OAuth2Success.vue"),
         },
         //google綁定帳號頁
         {
-          path: '/link-account',
-          name: 'LinkAccount',
+          path: "/link-account",
+          name: "LinkAccount",
           component: () => import("@/views/auth/LinkAccount.vue"),
           meta: {
-            title: '連結帳號',
-            requiresAuth: false // 此頁面不需要身份驗證
-          }
-        }
+            title: "連結帳號",
+            requiresAuth: false, // 此頁面不需要身份驗證
+          },
+        },
       ],
     },
 
@@ -230,10 +240,11 @@ const router = createRouter({
           component: () => import("@/views/admin/CategoryManagement.vue"),
         },
         {
-          // 商品頁面
-          path: "products",
+          // 「我的商品」頁面
+          path: "/my-products/:shopId",
           name: "Products",
           component: () => import("@/views/admin/Products.vue"),
+          meta: { requiresAuth: true }, // 如果需要登入驗證
         },
         {
           // 商品分類頁面
@@ -279,13 +290,15 @@ const router = createRouter({
         },
         {
           //優惠券管理頁面
-          path: '/coupon/adminCouponManager',
-          name: 'adminCouponManager-link',
-          component: () => import("@/components/admin/Coupon.components/AdminCouponManager.vue"),
-          props: true
+          path: "/coupon/adminCouponManager",
+          name: "adminCouponManager-link",
+          component: () =>
+            import(
+              "@/components/admin/Coupon.components/AdminCouponManager.vue"
+            ),
+          props: true,
         },
       ],
-
     },
     // {
     //   path: "/article/:id",
@@ -295,51 +308,51 @@ const router = createRouter({
     // },
     //會員中心
     {
-      path: '/memberCenter',
-      name: 'memberCenter',
-      component: () => import('@/views/member/MemberCenter.vue')
+      path: "/memberCenter",
+      name: "memberCenter",
+      component: () => import("@/views/member/MemberCenter.vue"),
     },
     {
-      path: '/profile',
-      name: 'profile',
-      component: () => import('@/views/member/Profile.vue')
+      path: "/profile",
+      name: "profile",
+      component: () => import("@/views/member/Profile.vue"),
     },
     {
-      path: '/address',
-      name: 'address',
-      component: () => import('@/views/member/Address.vue')
+      path: "/address",
+      name: "address",
+      component: () => import("@/views/member/Address.vue"),
     },
     {
-      path: '/HomeAddressCreate',
-      name: 'HomeAddressCreate',
-      component: () => import('@/views/member/HomeAddressCreate.vue')
+      path: "/HomeAddressCreate",
+      name: "HomeAddressCreate",
+      component: () => import("@/views/member/HomeAddressCreate.vue"),
     },
     {
-      path: '/CVSAddressCreate',
-      name: 'CVSAddressCreate',
-      component: () => import('@/views/member/CVSAddressCreate.vue')
+      path: "/CVSAddressCreate",
+      name: "CVSAddressCreate",
+      component: () => import("@/views/member/CVSAddressCreate.vue"),
     },
     {
-      path: '/memberOrders',
-      name: 'memberOrders',
-      component: () => import('@/views/member/memberOrders.vue')
+      path: "/memberOrders",
+      name: "memberOrders",
+      component: () => import("@/views/member/memberOrders.vue"),
     },
     {
-      path: '/memberCoupons',
-      name: 'memberCoupons',
-      component: () => import('@/views/member/memberCoupons.vue')
+      path: "/memberCoupons",
+      name: "memberCoupons",
+      component: () => import("@/views/member/memberCoupons.vue"),
     },
     {
-      path: '/updateHomeAddress/:addressId',
-      name: 'UpdateHomeAddress',
+      path: "/updateHomeAddress/:addressId",
+      name: "UpdateHomeAddress",
       component: UpdateHomeAddress,
-      props: true // 讓 route 參數能當作 props 傳給元件
+      props: true, // 讓 route 參數能當作 props 傳給元件
     },
     {
-      path: '/updateCVSAddress/:addressId',
-      name: 'UpdateCVSAddress',
+      path: "/updateCVSAddress/:addressId",
+      name: "UpdateCVSAddress",
       component: UpdateCVSAddress,
-      props: true // 讓 route 參數能當作 props 傳給元件
+      props: true, // 讓 route 參數能當作 props 傳給元件
     },
   ],
 });
