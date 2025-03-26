@@ -132,6 +132,28 @@ const router = createRouter({
           name: "Store",
           component: () => import("@/views/front/SellerStore.vue"),
         },
+        //google登入後回填頁
+        {
+          path: "/fill-phone",
+          name: "FillPhone",
+          component: () => import("@/views/auth/FillPhone.vue"),
+        },
+        //google登入後成功頁
+        {
+          path: "/login/oauth2/success",
+          name: "OAuth2Success",
+          component: () => import("@/views/auth/OAuth2Success.vue"),
+        },
+        //google綁定帳號頁
+        {
+          path: "/link-account",
+          name: "LinkAccount",
+          component: () => import("@/views/auth/LinkAccount.vue"),
+          meta: {
+            title: "連結帳號",
+            requiresAuth: false, // 此頁面不需要身份驗證
+          },
+        },
       ],
     },
 

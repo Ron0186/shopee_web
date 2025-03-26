@@ -18,6 +18,10 @@
       <div class="form-group">
         <button type="submit">開始購物吧!</button>
       </div>
+
+            <!-- 添加 Google 登入按鈕 -->
+            <GoogleLoginButton />
+      
       <div class="form-links">
         <router-link to="/user/register">還沒有帳號？ 立即註冊</router-link>
       </div>
@@ -38,6 +42,7 @@ import Swal from "sweetalert2";
 import { useRouter } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 import { useUserStore } from "@/stores/user";
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
 
 const userStore = useUserStore();
 
@@ -77,7 +82,7 @@ async function login() {
       userStore.saveUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
       userStore.reloadUserData();
       if (result.isConfirmed) {
-        router.push("/");
+        router.push("/shop");
       }
     }
   } catch (error) {

@@ -1,7 +1,7 @@
 <template>
     <div class="container-search">
         <div class="container-fluid">
-            <h1 style="color: aliceblue;text-align: center;margin-bottom: 0;font-size: 45px;">
+            <h1 class="title">
                 <svg xmlns="http://www.w3.org/2000/svg" height="60px" viewBox="0 -960 960 960" width="60px"
                     fill="#ecfb13" style="margin-bottom: 8px;">
                     <path
@@ -11,14 +11,12 @@
             </h1>
             <!-- 搜尋框 -->
             <div class="d-flex">
-
-
-                <input type="text" class="form-control me-3" placeholder="遇到問題了? 輸入關鍵字搜尋看看!!!" v-model="query"
+                <input type="text" class="form-control" placeholder="遇到問題了? 輸入關鍵字搜尋看看!!!" v-model="query"
                     :style="searched ? 'background-color: white;' : ''" @input="updateSuggestions"
                     @focus="showSuggestions = true" @keydown.down.prevent="moveDown" @keydown.up.prevent="moveUp"
                     @keydown.enter.prevent="selectSuggestion" />
                 <!-- 使用 fromButton 標示這是按鈕觸發 -->
-                <button type="submit" class="btn btn-primary" @click="search(null, true)">
+                <button type="submit" class="btn btn-search" @click="search(null, true)">
                     <svg xmlns="http://www.w3.org/2000/svg" height="40px" viewBox="0 -960 960 960" width="40px"
                         fill="#FFFFFF">
                         <path
@@ -29,7 +27,7 @@
 
             <!-- 下拉式選單 -->
             <div v-if="showSuggestions && suggestions.length" class="dropdown-overlay">
-                <ul class="list-group w-50 shadow bg-white mt-1 mx-auto" style="max-height: 300px; overflow-y: auto;">
+                <ul class="list-group">
                     <li v-for="(item, index) in suggestions" :key="item.id" class="list-group-item"
                         :class="{ 'active': index === activeIndex }" @click="search(item.question)"
                         @mouseover="activeIndex = index">
@@ -53,11 +51,9 @@ const route = useRoute();
 
 const query = ref("");
 const showSuggestions = ref(false);
-// 預設設定 activeIndex 為 -1 表示無選取
 const activeIndex = ref(-1);
 const searched = ref(false);
 
-// 計算符合的建議結果（只要包含輸入文字即為匹配）
 const suggestions = computed(() => {
     if (!query.value.trim()) return [];
     return store.faqCategories
@@ -65,30 +61,24 @@ const suggestions = computed(() => {
         .filter(item => item.question.toLowerCase().includes(query.value.toLowerCase()));
 });
 
-// 檢查是否有任何匹配結果
 const hasResults = (searchText) => {
     return store.faqCategories.flatMap(category => category.items)
         .some(item => item.question.toLowerCase().includes(searchText.toLowerCase()));
 };
 
-// 更新建議清單狀態
 const updateSuggestions = () => {
     showSuggestions.value = !!query.value;
-    activeIndex.value = -1; // 重置為 -1
+    activeIndex.value = -1;
 };
 
-// 搜尋功能：新增 fromButton 參數來區分來源
 const search = (searchQuery = null, fromButton = false) => {
-    // 若 searchQuery 是事件物件則忽略它
     if (searchQuery && searchQuery instanceof Event) {
         searchQuery = null;
     }
     let searchText = "";
     if (fromButton) {
-        // 按下搜尋按鈕時，直接使用輸入框內的文字
         searchText = query.value.trim();
     } else {
-        // 若有明確傳入參數（例如從建議項點選或按 Enter 時）
         searchText = searchQuery !== null ? searchQuery : query.value.trim();
     }
 
@@ -101,10 +91,9 @@ const search = (searchQuery = null, fromButton = false) => {
 
     showSuggestions.value = false;
     searched.value = true;
-    query.value = ""; // 搜尋後清空輸入框
+    query.value = "";
 };
 
-// 鍵盤上下選擇功能
 const moveDown = () => {
     if (suggestions.value.length === 0) return;
     if (activeIndex.value < suggestions.value.length - 1) {
@@ -121,9 +110,8 @@ const moveUp = () => {
     }
 };
 
-// 修改處：按下 Enter 時始終使用輸入框內容進行搜尋，不採用鍵盤選取的建議
 const selectSuggestion = () => {
-    search(); // 不管 activeIndex 狀態如何，都直接用輸入框內容搜尋
+    search();
 };
 </script>
 
@@ -138,7 +126,14 @@ const selectSuggestion = () => {
     max-width: 900px;
     padding: 80px 0 31px;
     margin: 0 auto;
+}
 
+.title {
+    color: aliceblue;
+    text-align: center;
+    margin-bottom: 0;
+    font-size: 45px;
+    font-weight: bold;
 }
 
 .d-flex {
@@ -158,41 +153,62 @@ const selectSuggestion = () => {
     border-style: hidden;
     font-size: 20px;
     box-shadow: none;
+    width: 100%;
+    /* 設置搜尋框寬度為 100% */
+    max-width: 700px;
+    /* 限制最大寬度 */
+    margin-right: 10px;
+    /* 給搜尋框和按鈕間距 */
 }
 
-/* 移除下拉式選單的外框線 */
+/* 按鈕樣式 */
+.btn-search {
+    background-color: #ff5722;
+    color: white;
+    border: none;
+    padding: 15px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-search:hover {
+    background-color: #e64a19;
+}
+
+/* 下拉式選單 */
 .list-group {
-    border: none !important;
+    border: none;
+    max-height: 250px;
+    overflow-y: auto;
+    width: 100%;
 }
 
-/* 移除 list-group-item 的邊框，預設為白色 */
 .list-group-item {
-    border: none !important;
-    background-color: white !important;
+    border: none;
+    background-color: white;
     cursor: pointer;
 }
 
-/* 滑鼠移到項目時背景色改為灰色 */
 .list-group-item:hover {
-    background-color: #f0f0f0 !important;
+    background-color: #f0f0f0;
 }
 
-/* 下拉式選單定位 */
 .dropdown-overlay {
     position: absolute;
-    top: 345px;
-    left: -8.5%;
-    width: 118%;
-    z-index: 9999;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
+    top: 50%;
+    left: 21%0;
+    z-index: 999;
+    width: 59%;
+    background-color: #fff;
+    border-radius: 4px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    padding: 0;
 }
 
 /* active 狀態背景為白色 */
 .list-group-item.active {
     color: black;
-    border-color: white;
     background-color: white;
 }
 
@@ -200,5 +216,28 @@ const selectSuggestion = () => {
 .list-group-item:focus {
     outline: none;
     box-shadow: none;
+}
+
+/* 響應式設計 */
+@media (max-width: 768px) {
+    .form-control {
+        width: 80%;
+        /* 當螢幕寬度小於768px時，搜尋框寬度佔80% */
+    }
+
+    .btn-search {
+        padding: 12px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .form-control {
+        width: 70%;
+        /* 當螢幕寬度小於480px時，搜尋框寬度佔70% */
+    }
+
+    .btn-search {
+        padding: 10px 12px;
+    }
 }
 </style>

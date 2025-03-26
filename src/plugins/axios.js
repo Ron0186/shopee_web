@@ -6,18 +6,22 @@ const instance = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
-<<<<<<< HEAD
-instance.interceptors.response.use(function (response) {
-  return response;
-}, function (error) {
-  if (error.response && error.response.status && error.response.status === 403) {
-    window.location.href = "/403";
+instance.interceptors.response.use(
+  function (response) {
+    return response;
+  },
+  function (error) {
+    if (
+      error.response &&
+      error.response.status &&
+      error.response.status === 403
+    ) {
+      window.location.href = "/403";
+    }
+    return Promise.reject(error);
   }
-  return Promise.reject(error);
-});
+);
 
-=======
->>>>>>> b9553c7 (商品頁面CRUD)
 // 🔒 自動在請求中加入 Token
 instance.interceptors.request.use(
   (config) => {

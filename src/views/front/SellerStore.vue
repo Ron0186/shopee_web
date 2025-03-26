@@ -15,6 +15,7 @@
     <!-- 商品區塊  這是搜尋商品跟上架商品-->
     <div class="product-section">
       <div class="section-header">
+<<<<<<< HEAD
         <input type="text" class="search-bar" placeholder="🔍 搜尋商品..." />
         <button class="btn btn-add-product" v-if="isOwner">➕ 上架商品</button>
       </div>
@@ -34,6 +35,26 @@
               <p class="product-rating">
                 ⭐ {{ product.rating }} 已售出 {{ product.sold }}
               </p>
+=======
+        <input type="text" class="search-bar" placeholder="🔍 搜尋商品...">
+        <button class="btn btn-add-product" v-if="isOwner">➕ 上架商品</button>
+      </div>
+
+
+
+
+
+
+      <!-- 商品區塊  都是商品資訊相關 是商店擁有者的話你會看到編輯&刪除-->
+      <div class="product-wrapper">
+        <div class="product-list">
+          <div class="product-card" v-for="product in products" :key="product.id">
+            <img :src="product.image" class="product-img" alt="商品圖片">
+            <div class="product-info">
+              <p class="product-title">{{ product.name }}</p>
+              <p class="product-price">$ {{ product.price }}</p>
+              <p class="product-rating">⭐ {{ product.rating }} 已售出 {{ product.sold }}</p>
+>>>>>>> origin/dev
             </div>
             <div class="product-actions">
               <button class="btn btn-edit" v-if="isOwner">✏️ 編輯</button>
@@ -65,7 +86,11 @@ const fetchShopData = async () => {
   try {
     const response = await axios.get(`/api/shop/${shopId}`);
     if (response.data.success && response.data.shopDTO) {
+<<<<<<< HEAD
       shop.value = response.data.shopDTO;
+=======
+      shop.value = response.data.shopDTO; 
+>>>>>>> origin/dev
     } else {
       errorMessage.value = response.data.message || "商店資訊獲取失敗";
     }
@@ -110,6 +135,7 @@ onMounted(async () => {
 
 // 商品列表
 const products = ref([
+<<<<<<< HEAD
   {
     id: 1,
     name: "大寬牛仔褲",
@@ -158,6 +184,14 @@ const products = ref([
     sold: 12,
     image: "https://via.placeholder.com/150",
   },
+=======
+  { id: 1, name: "大寬牛仔褲", price: 454, rating: 4.7, sold: 67, image: "https://via.placeholder.com/150" },
+  { id: 2, name: "水洗牛仔褲", price: 449, rating: 3.0, sold: 6, image: "https://via.placeholder.com/150" },
+  { id: 3, name: "迷彩長褲", price: 479, rating: 4.8, sold: 23, image: "https://via.placeholder.com/150" },
+  { id: 4, name: "復古皮帶", price: 281, rating: 4.8, sold: 50, image: "https://via.placeholder.com/150" },
+  { id: 5, name: "拼接工裝褲", price: 473, rating: 5.0, sold: 12, image: "https://via.placeholder.com/150" },
+  { id: 5, name: "拼接工裝褲", price: 473, rating: 5.0, sold: 12, image: "https://via.placeholder.com/150" }
+>>>>>>> origin/dev
 ]);
 </script>
 
@@ -289,4 +323,8 @@ const products = ref([
   border-radius: 5px;
   font-size: 16px;
 }
+<<<<<<< HEAD
 </style>
+=======
+</style>
+>>>>>>> origin/dev

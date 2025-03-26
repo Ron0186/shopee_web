@@ -21,8 +21,9 @@
           <th style="width: 150px;">名稱</th>
           <th style="width: 250px;">Email</th>
           <th style="width: 120px;">電話</th>
+          <th style="width: 120px;">商店狀態</th>
           <th style="width: 150px;">角色</th>
-          <th style="width: 180px;">操作</th>
+          <th style="width: 240px;">操作</th>
         </tr>
       </thead>
       <tbody>
@@ -31,6 +32,17 @@
           <td>{{ user.userName }}</td>
           <td>{{ user.email }}</td>
           <td>{{ user.phone }}</td>
+          <td>
+          <span v-if="user.shopIsActive === true" class="status-active">
+            <i class="bi bi-check-circle-fill"></i> 已啟用
+          </span>
+          <span v-else-if="user.shopIsActive === false" class="status-inactive">
+            <i class="bi bi-x-circle-fill"></i> 已停用
+          </span>
+          <span v-else class="status-no-shop">
+            <i class="bi bi-exclamation-triangle"></i> 無商店
+          </span>
+        </td>
           <td>{{ user.roles.join(', ') }}</td>
           <td>
             <button class="btn btn-primary btn-sm" @click="openEditModal(user)">編輯資料</button>
@@ -99,11 +111,10 @@ const closeModal = () => {
   isModalOpen.value = false;
   selectedUser.value = null; // 清空選中的使用者
 };
-// 處理保存角色事件的方法
 const handleSaveRoles = async (updatedUserData) => {
   try {
     const response = await axios.put(`/api/admin/role/${updatedUserData.userId}`, {
-      roles: updatedUserData.roles
+      roles: updatedUserData.roles // 這裡包成物件
     });
 
     if (response.data.success) {
@@ -112,7 +123,6 @@ const handleSaveRoles = async (updatedUserData) => {
         icon: "success",
       });
 
-      // 只在成功後更新使用者列表
       await fetchUsers(currentPage.value);
     } else {
       Swal.fire({
@@ -256,5 +266,14 @@ const deleteUser = async (userId) => {
 .user-table {
   table-layout: fixed;
   width: 100%;
+}
+.status-active {
+  color: green;
+}
+.status-inactive {
+  color: red;
+}
+.status-no-shop {
+  color: rgb(165, 75, 1);
 }
 </style>
