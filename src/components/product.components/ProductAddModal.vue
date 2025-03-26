@@ -2,7 +2,7 @@
   <div v-if="isOpen" class="modal-backdrop">
     <div class="modal-content">
       <h4 class="modal-title">新增「我的商品」</h4>
-      <form @submit.prevent="addProduct">
+      <form @submit.prevent="addProduct" method="post">
         <div class="mb-3">
           <label class="form-label">圖片上傳</label>
           <input
@@ -190,12 +190,24 @@ const addProduct = async () => {
       formData.append("image", emptyBlob, "empty.jpg");
     }
 
+    // 打印 formData 內容進行調試
     console.log("FormData contents:");
     for (let [key, value] of formData.entries()) {
       console.log(`${key}: ${value}`);
     }
 
-    const response = await axios.post("/api/product", formData, {
+    // 確保 URL 是絕對路徑，避免相對路徑問題
+    const apiUrl = import.meta.env.VITE_API_URL
+      ? `${import.meta.env.VITE_API_URL}/api/product`
+      : "/api/product";
+
+    console.log(`準備發送 POST 請求到: ${apiUrl}`);
+
+    // 使用顯式 POST 方法，並設置完整的配置
+    const response = await axios({
+      method: "POST",
+      url: apiUrl,
+      data: formData,
       headers: {
         "Content-Type": "multipart/form-data",
         Authorization: `Bearer ${token}`,
@@ -231,9 +243,20 @@ const addProduct = async () => {
     }
   } catch (error) {
     console.error("Complete error object:", error);
-    console.error("Error response:", error.response);
-    console.error("Error request:", error.request);
-    console.error("Error message:", error.message);
+
+    // 詳細記錄錯誤信息，包括請求信息
+    if (error.response) {
+      console.error("Error status:", error.response.status);
+      console.error("Error data:", error.response.data);
+      console.error("Error headers:", error.response.headers);
+    } else if (error.request) {
+      console.error("Error request:", error.request);
+      console.error("No response received");
+    } else {
+      console.error("Error setting up request:", error.message);
+    }
+
+    console.error("Error config:", error.config);
 
     Swal.fire({
       title: "錯誤",
