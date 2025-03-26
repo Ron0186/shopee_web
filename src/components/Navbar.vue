@@ -21,6 +21,9 @@
         📦 訂單管理
       </router-link>
       <router-link to="/cart">🛒 購物車</router-link>
+      <!-- 導入通知元件，傳入 userId -->
+      <NotificationBadge v-if="userStore.userId" :userId="Number(userStore.userId)"
+        @notification-click="handleNotificationClick" />
       <span v-if="userStore.username" @click="logout" class="logout-link">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
       </span>
@@ -83,7 +86,7 @@ import { ref, } from "vue";
 import { useUserStore } from '@/stores/user';
 import Swal from "sweetalert2";
 import router from "@/router/index";
-
+import NotificationBadge from "@/views/pages/CustomerService/NotificationBadge.vue";
 const userStore = useUserStore();
 const drawerOpen = ref(false);
 const categoryOpen = ref(false);
@@ -112,6 +115,13 @@ async function logout() {
     router.push('/shop');
   }
 }
+
+// 當通知元件點擊時，導向相應聊天室頁面
+const handleNotificationClick = (chatRoomId) => {
+  console.log("即將導向聊天室：", chatRoomId)
+  router.push(`/chat/${chatRoomId}`);
+};
+
 </script>
 
 <style scoped>

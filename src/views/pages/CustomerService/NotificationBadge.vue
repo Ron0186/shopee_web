@@ -1,10 +1,10 @@
 <template>
     <div class="notification-badge">
-        <button @click="toggleNotifications">
-            🔔 {{ unreadCount }}
+        <button @click="toggleNotifications" class="notification-icon">
+            🔔 聊天通知<span v-if="unreadCount">{{ unreadCount }}</span>
         </button>
         <div v-if="showNotifications" class="notification-list">
-            <div v-for="notice in notifications" :key="notice.id" @click="openChat(notice.chatRoom.id)">
+            <div v-for="notice in notifications" :key="notice.id" class="notification-item" @click="openChat(notice)">
                 {{ notice.message }}
             </div>
         </div>
@@ -21,13 +21,12 @@ const props = defineProps({
         required: true
     }
 });
-
 const emit = defineEmits(['notification-click']);
 
 const showNotifications = ref(false);
 const notifications = ref([]);
 
-// 獲取未讀通知
+// 取得未讀通知，請確保後端 API 能根據 userId 回傳資料
 const fetchUnreadNotifications = async () => {
     try {
         const response = await axios.get(`/api/notifications/unread/${props.userId}`);
@@ -40,7 +39,7 @@ const fetchUnreadNotifications = async () => {
 // 初始化載入通知
 onMounted(fetchUnreadNotifications);
 
-// 計算未讀數量
+// 未讀通知數量
 const unreadCount = computed(() =>
     notifications.value.filter(n => !n.isRead).length
 );
@@ -50,9 +49,18 @@ const toggleNotifications = () => {
     showNotifications.value = !showNotifications.value;
 };
 
-// 點擊通知處理
-const openChat = (chatRoomId) => {
-    emit('notification-click', chatRoomId);
+// 點擊通知：呼叫 API 更新通知狀態後，emit 通知點擊事件
+const openChat = async (notice) => {
+    console.log("點擊通知，資料：", notice);
+    try {
+        // 更新通知狀態為已讀（依後端 API 規範設計）
+        await axios.post(`http:localhost:8081/api/notifications/unread/${userId}`);
+        // 更新前端通知狀態
+        notice.isRead = true;
+    } catch (error) {
+        console.error("更新通知狀態失敗:", error);
+    }
+    emit('notification-click', notice.chatRoom.id);
     showNotifications.value = false;
 };
 </script>
@@ -63,17 +71,18 @@ const openChat = (chatRoomId) => {
 }
 
 .notification-icon {
-    background: #ff5722;
-    color: white;
+    background: #f7e9d2;
+    color: rgb(26, 25, 25);
     border: none;
     padding: 8px 12px;
     border-radius: 20px;
     cursor: pointer;
     transition: background 0.3s;
+
 }
 
 .notification-icon:hover {
-    background: #e64a19;
+    background: #f7e9d2;
 }
 
 .notification-list {

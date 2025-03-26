@@ -17,18 +17,7 @@ export const useChatStore = defineStore('chat', {
     }),
     actions: {
 
-        // setActiveChatRoom(chatRoomData) {
-        //     this.activeChatRoom = {
-        //         id: chatRoomData.chatRoomId,
-        //         seller: {
-        //             id: chatRoomData.seller.userId,
-        //             name: chatRoomData.seller.username,
-        //             shopName: chatRoomData.seller.shopName || '個人賣家'
-        //         },
-        //         shop: chatRoomData.shop || null,
-        //         shopId: chatRoomData.shop?.shopId || null
-        //     };
-        // },
+
         setCurrentUser(userData) {
             this.currentUser = {
                 userId: userData.id,

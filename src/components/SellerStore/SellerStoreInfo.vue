@@ -20,7 +20,7 @@
     </div>
     <!-- 右側區域：通知 + 編輯按鈕 -->
     <div class="shop-right">
-      <NotificationBadge v-if="isOwner" :userId="currentUserId" @notification-click="handleNotificationClick" />
+
       <!-- 編輯按鈕 (右側) -->
       <button class="btn btn-edit-shop" :style="{ visibility: isOwner ? 'visible' : 'hidden' }">
         ⚙️ 編輯賣場資訊
@@ -35,7 +35,6 @@ import { ref, computed } from 'vue';
 import defaultLogo from "@/assets/shop-logo.jpg";
 import { useRouter } from "vue-router";
 import axios from "@/plugins/axios";
-import NotificationBadge from "@/views/pages/CustomerService/NotificationBadge.vue"; // 導入通知組件
 
 const props = defineProps({
   shop: Object,
@@ -50,10 +49,7 @@ const currentUserId = ref(localStorage.getItem('userId'));
 const shopLogo = computed(() => {
   return props.shop.logo ? props.shop.logo : defaultLogo;
 });
-// 處理通知點擊事件（跳轉到聊天室）
-const handleNotificationClick = (chatRoomId) => {
-  router.push(`/chat/${chatRoomId}`);
-};
+
 const startChat = async () => {
   try {
     const userId = localStorage.getItem("userId");
