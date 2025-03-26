@@ -125,17 +125,12 @@ const router = createRouter({
           name: "Store",
           component: () => import("@/views/front/SellerStore.vue"),
         },
-        //賣家商店頁
+
+        //聊天室頁面
         {
-          path: "/store/:shopId",
-          name: "Store",
-          component: () => import("@/views/front/SellerStore.vue"),
-        },
-        //客服按鈕
-        {
-          path: "/sellerStoreButtom",
-          name: "SellerStoreButtom",
-          component: () => import("@/views/pages/CustomerService/SellerStoreButtom.vue"),
+          path: '/chat/:chatRoomId',
+          name: 'ChatRoom',
+          component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
         },
       ],
     },

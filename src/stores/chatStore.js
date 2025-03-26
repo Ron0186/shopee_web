@@ -1,6 +1,6 @@
 // stores/chatStore.js
 import { defineStore } from 'pinia';
-
+import axios from "@/plugins/axios";
 export const useChatStore = defineStore('chat', {
     state: () => ({
         activeChatRoom: null,      // 當前聊天室 { id, buyer, seller }

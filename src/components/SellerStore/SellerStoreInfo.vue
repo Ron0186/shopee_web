@@ -78,19 +78,23 @@ const startChat = async () => {
     };
 
     // 發送請求到後端
-    const response = await axios.post("http://localhost:8081/api/chat/create", chatRequest);
 
-    if (response.data.success) {
-      const chatRoomId = response.data.chatRoomId;
-      router.push(`/chat/${chatRoomId}`); // 跳轉到聊天室
+    const response = await axios.post("http://localhost:8081/api/chat/create", chatRequest);
+    const data = response.data; // 即 ChatRoomResponseDTO 物件
+
+    if (data.success) {
+      const chatRoomId = data.chatRoomId;
+      console.log("成功建立聊天室，ID:", chatRoomId);
+      router.push(`/chat/${chatRoomId}`)
     } else {
-      alert("無法開啟聊天室：" + response.data.message);
+      alert("建立聊天室失敗：" + data.message);
     }
   } catch (error) {
     console.error("開啟聊天室失敗:", error);
     alert("聊天室開啟失敗，請稍後再試");
   }
-};
+}
+
 </script>
 
 <style scoped>
