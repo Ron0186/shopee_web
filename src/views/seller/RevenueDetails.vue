@@ -4,7 +4,7 @@
 
         <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
 
-        <!-- 迴圈無法運作  SKU&訂單數量 GET有誤 -->
+        <!-- 迴圈detail  SKU GET有誤 -->
         <div v-else>
             <!-- 每個區塊都分頁 -->
             <div class="section">
@@ -13,8 +13,8 @@
                 <!-- <input v-model="shopSearch" placeholder="搜尋商品名稱..." /> -->
                 <ul>
                     <li v-for="product in paginated(shopData, productPage)"
-                        :key="product.id">
-                        {{ product.name }}
+                        :key="product.productId">
+                        {{ product.productName }}
                     </li>
                 </ul>
                 <div class="pagination">
@@ -30,8 +30,8 @@
                 <h2>📦 訂單數量：{{ orderData.length }}</h2>
                 <ul>
                     <li v-for="order in paginated(orderData, orderPage)"
-                        :key="order.id">
-                        訂單編號：{{ order.id }}
+                        :key="order.orderId">
+                        訂單編號：{{ order.orderId }}
                     </li>
                 </ul>
                 <div class="pagination">
@@ -64,8 +64,8 @@
                 <h2>🌟 評論數量：{{ reviewData.length }}</h2>
                 <ul>
                     <li v-for="review in paginated(reviewData, reviewPage)"
-                        :key="review.id">
-                        評論：{{ review.content }}
+                        :key="review.reviewId">
+                        評論：{{ review.reviewContent }}
                     </li>
                 </ul>
                 <div class="pagination">
@@ -140,9 +140,14 @@ onMounted(async () => {
         ])
 
         shopData.value = shopRes.data
-        orderData.value = orderRes.data
+        orderData.value = orderRes.data.data || []
         reviewData.value = reviewRes.data
         // skuData.value = skuRes.data
+
+        console.log("📦 shopData", shopRes.data)
+        console.log("📦 orderData", orderRes.data)
+        console.log("📦 reviewData", reviewRes.data)
+
 
     } catch (error: any) {
         console.error("❌ 錯誤：", error)
