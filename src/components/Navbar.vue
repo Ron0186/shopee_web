@@ -60,7 +60,7 @@
           通知</router-link>
       </li>
       <li>
-        <router-link to="/customerService" @click="toggleDrawer">📞 客服 &
+        <router-link to="/helpCenter" @click="toggleDrawer">📞 客服 &
           幫助中心</router-link>
       </li>
       <li>

@@ -131,6 +131,12 @@ const router = createRouter({
           name: "Store",
           component: () => import("@/views/front/SellerStore.vue"),
         },
+        //客服按鈕
+        {
+          path: "/sellerStoreButtom",
+          name: "SellerStoreButtom",
+          component: () => import("@/views/pages/CustomerService/SellerStoreButtom.vue"),
+        },
       ],
     },
 

@@ -6,6 +6,7 @@ import App from "./App.vue";
 import router from "./router";
 
 import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
+import { useChatStore } from '@/stores/chatStore'; // 正確導入 Store
 
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);
@@ -20,5 +21,11 @@ const app = createApp(App);
 
 app.use(pinia);
 app.use(router);
+
+const chatStore = useChatStore();
+if (chatStore.currentUser) {
+    chatStore.connectWebSocket(chatStore.currentUser.id);
+}
+
 
 app.mount("#app");
