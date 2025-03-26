@@ -120,12 +120,12 @@ const router = createRouter({
         },
 
         //客服中心
-        {
-          path: "/customerService",
-          name: "CustomerService",
-          component: () =>
-            import("@/views/pages/CustomerService/CustomerService.vue"),
-        },
+        // {
+        //   path: "/customerService",
+        //   name: "CustomerService",
+        //   component: () =>
+        //     import("@/views/pages/CustomerService/CustomerService.vue"),
+        // },
         //賣家商店頁
         {
           path: "/store/:shopId",

@@ -64,7 +64,7 @@
   <!-- 新增商品 Modal -->
   <product-add-modal
     :isOpen="showAddModal"
-    :shopId="shopId"
+    :shopId="Number(shopId)"
     @close="showAddModal = false"
     @refresh="fetchProducts"
   />
@@ -89,7 +89,7 @@ import ProductEditModal from "@/components/product.components/ProductEditModal.v
 import defaultImage from "@/assets/default-image.png"; // 默认图片
 
 const route = useRoute();
-const shopId = ref(route.params.shopId);
+const shopId = parseInt(route.params.shopId) || null;
 
 const products = ref([]);
 const showAddModal = ref(false);
@@ -117,13 +117,18 @@ const formatDate = (dateString) => {
 // 獲取「我的商品」列表
 const fetchProducts = async () => {
   try {
+    if (!shopId || isNaN(shopId)) {
+      console.error("無效的商店ID:", shopId);
+      return;
+    }
+
     console.log("正在請求的 shopId:", shopId.value);
     console.log("當前 userId:", userId);
     console.log("當前 token:", token);
 
     const response = await axios.get(`/api/product/byShop`, {
       params: {
-        shopId: Number(shopId.value), // 確保是數字
+        shopId: shopId,
       },
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -178,7 +183,6 @@ const openEditModal = (e) => {
   showEditModal.value = true;
 };
 
-<<<<<<< HEAD
 // 更新「我的商品」
 const updateProduct = async (productId) => {
   try {
@@ -227,8 +231,6 @@ const updateProduct = async (productId) => {
   }
 };
 
-=======
->>>>>>> b9553c7 (商品頁面CRUD)
 // 刪除「我的商品」
 const deleteProduct = async (id) => {
   try {

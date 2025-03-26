@@ -167,18 +167,27 @@ const addProduct = async () => {
   try {
     const formData = new FormData();
 
-    // 設置所有必要的參數
-    formData.append("userId", userId);
-    formData.append("shopId", props.shopId);
-    formData.append("category1Id", newProduct.value.category1Id);
-    formData.append("category2Id", newProduct.value.category2Id);
+    // 確保所有數值參數都是數字類型
+    formData.append("userId", Number(userId));
+    formData.append("shopId", Number(props.shopId));
+    formData.append("category1Id", Number(newProduct.value.category1Id));
+    formData.append("category2Id", Number(newProduct.value.category2Id));
+
+    // 字符串參數
     formData.append("productName", newProduct.value.productName);
     formData.append("description", newProduct.value.description);
-    formData.append("active", newProduct.value.active);
+
+    // 布爾值參數 (轉為字符串的 "true" 或 "false")
+    formData.append("active", newProduct.value.active.toString());
 
     // 添加圖片文件
     if (imageFile.value) {
       formData.append("image", imageFile.value);
+    } else {
+      // 如果沒有選擇圖片，可能需要添加一個空文件或處理這種情況
+      // 這裡取決於後端是否允許 image 參數為空
+      const emptyBlob = new Blob([""], { type: "application/octet-stream" });
+      formData.append("image", emptyBlob, "empty.jpg");
     }
 
     console.log("FormData contents:");
