@@ -38,9 +38,9 @@ import Swal from "sweetalert2";
 import { useRouter } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 import { useUserStore } from "@/stores/user";
-
+import { useChatStore } from '@/stores/chatStore';
 const userStore = useUserStore();
-
+const chatStore = useChatStore();
 const router = useRouter();
 
 const username = ref("");
@@ -66,6 +66,7 @@ async function login() {
     const response = await axios.post("/api/auth/login", data);
 
     if (response.data.success) {
+
       const result = await Swal.fire({
         title: response.data.message,
         icon: "success",

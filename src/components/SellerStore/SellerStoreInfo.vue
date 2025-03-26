@@ -37,9 +37,6 @@ import { useRouter } from "vue-router";
 import axios from "@/plugins/axios";
 import NotificationBadge from "@/views/pages/CustomerService/NotificationBadge.vue"; // 導入通知組件
 
-
-
-
 const props = defineProps({
   shop: Object,
   isOwner: Boolean
@@ -59,33 +56,36 @@ const handleNotificationClick = (chatRoomId) => {
 };
 const startChat = async () => {
   try {
-    // 從 localStorage 讀取 userId 和 shopId
-    const userId = localStorage.getItem('userId'); // 假設已經存放在 localStorage 中
-    const shopId = props.shop.shopId; // 假設 shopId 從 props 中傳遞
-    console.log('userId:', userId);
-    console.log('shopId:', shopId);
-    // 如果沒有找到 userId 或 shopId，顯示錯誤提示
+    const userId = localStorage.getItem("userId");
+    const shopId = props.shop.shopId;
+
+    console.log("userId:", userId);
+    console.log("shopId:", shopId);
+
     if (!userId || !shopId) {
-      alert("已有買家存在聊天室");
+      alert("無法獲取使用者或商店資訊");
       return;
     }
 
-    // 準備要發送的請求資料
+    // 準備請求資料
     const chatRequest = {
+      userId: userId,
       shopId: shopId,
-      userId: userId, // 從 localStorage 讀取的 userId
-      shopName: props.shop.shopName, // 可選：商店名稱
+      shopName: props.shop.shopName
     };
 
-    // 發送請求到後端
-
+    // 直接發送請求，後端會自行檢查聊天室是否已存在
     const response = await axios.post("http://localhost:8081/api/chat/create", chatRequest);
-    const data = response.data; // 即 ChatRoomResponseDTO 物件
+    const data = response.data;
 
     if (data.success) {
-      const chatRoomId = data.chatRoomId;
-      console.log("成功建立聊天室，ID:", chatRoomId);
-      router.push(`/chat/${chatRoomId}`)
+      if (data.alreadyExists) {
+        console.log("聊天室已存在，直接跳轉 ID:", data.chatRoomId);
+      } else {
+        console.log("成功建立新聊天室，ID:", data.chatRoomId);
+      }
+      // 不論是新建還是已存在，都直接跳轉
+      router.push(`/chat/${data.chatRoomId}`);
     } else {
       alert("建立聊天室失敗：" + data.message);
     }
@@ -93,7 +93,7 @@ const startChat = async () => {
     console.error("開啟聊天室失敗:", error);
     alert("聊天室開啟失敗，請稍後再試");
   }
-}
+};
 
 </script>
 

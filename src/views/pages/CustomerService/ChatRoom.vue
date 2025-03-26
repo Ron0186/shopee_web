@@ -1,56 +1,114 @@
 <template>
-    <div class="chat-room" v-if="activeChatRoom && activeChatRoom.seller">
-        <h2>{{ activeChatRoom.seller.username }} 的客服聊天室</h2>
+    <div class="chat-room" v-if="activeChatRoom.seller?.userId">
+        <!-- 優先顯示店鋪名，沒有則顯示賣家名 -->
+        <h2>{{ activeChatRoom.seller?.shopName || activeChatRoom.seller?.username }}的客服聊天室</h2>
+
         <div class="messages">
             <div v-for="msg in messages" :key="msg.id" class="message">
-                <strong>{{ msg.sender.username }}：</strong> {{ msg.content }}
+                <strong>{{ msg.sender?.username || '匿名' }}：</strong> {{ msg.content }}
             </div>
         </div>
-        <input v-model="newMessage" @keyup.enter="send" placeholder="輸入訊息..." />
-        <button @click="send">發送</button>
+
+        <div class="input-area">
+            <input v-model="newMessage" @keyup.enter="send" placeholder="輸入訊息..." />
+            <button @click="send">發送</button>
+        </div>
     </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from "vue";
-import { useRoute } from "vue-router";
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
 import axios from "@/plugins/axios";
 import { useChatStore } from '@/stores/chatStore';
-const chatStore = useChatStore();
+import Swal from 'sweetalert2';
 
+const chatStore = useChatStore();
 const route = useRoute();
+const router = useRouter();
 const newMessage = ref("");
+const messages = computed(() => chatStore.messages);
 let stompClient = null;
+const activeChatRoom = ref({
+    seller: {
+        username: "加载中...",
+        userId: null
+    },
+    shopDTO: {
+        shopName: "加载中...",
+        shopId: null
+    },
+    chatRoomId: null,
+    success: false
+});
+
+
 
 // 初始化聊天室
 onMounted(async () => {
-    const chatRoomId = route.params.chatRoomId;
+    try {
+        const chatRoomId = route.params.chatRoomId;
+        console.log("載入聊天室 ID:", chatRoomId);
 
-    // 1. 載入聊天室資訊
-    const chatRoomRes = await axios.get(`http://localhost:8081/api/chat/${chatRoomId}`);
-    chatStore.activeChatRoom = chatRoomRes.data;
+        // 1. 取得聊天室資訊
+        const chatRoomRes = await axios.get(`http://localhost:8081/api/chat/${chatRoomId}`);
 
-    // 2. 載入歷史訊息
-    await chatStore.loadMessages(chatRoomId);
+        console.log("後端返回數據:", chatRoomRes.data);
 
-    // 3. 初始化 WebSocket 連接
-    const socket = new SockJS('http://localhost:8081/ws');
-    stompClient = Stomp.over(socket);
+        // 更新數據，優先使用 seller 資訊
+        activeChatRoom.value = {
+            chatRoomId: chatRoomRes.data.chatRoomId,  // 使用 chatRoomRes 代替 response
+            seller: {
+                userId: chatRoomRes.data.seller.userId,
+                username: chatRoomRes.data.seller.username,
+                shopName: chatRoomRes.data.seller.shopName || '個人賣家'
+            },
+            shop: chatRoomRes.data.shop || null,
 
-    stompClient.connect({}, () => {
-        // 訂閱即時訊息
-        stompClient.subscribe(
-            `/topic/chat/${chatRoomId}`,
-            (message) => {
-                chatStore.messages.push(JSON.parse(message.body));
-            }
-        );
-    }, (error) => {
-        console.error('WebSocket 連接錯誤:', error);
-        alert('即時聊天連接失敗，請刷新頁面重試');
-    });
+        };
+
+        // 2. 確保數據完整性
+        if (!activeChatRoom.value.seller?.userId) {
+            throw new Error("聊天室賣家資訊不完整");
+        }
+
+        console.log("聊天室資訊:", activeChatRoom.value);
+
+        // 3. 載入歷史訊息
+        await chatStore.loadMessages(chatRoomId);
+        console.log("歷史訊息:", messages.value);
+
+        // 4. 初始化 WebSocket 連線
+        const socket = new SockJS('http://localhost:8081/ws');
+        stompClient = Stomp.over(socket);
+
+        stompClient.connect({}, () => {
+            console.log("WebSocket 連線成功");
+
+            stompClient.subscribe(
+                `/topic/chat/${chatRoomId}`,
+                (message) => {
+                    const receivedMessage = JSON.parse(message.body);
+                    console.log("收到訊息:", receivedMessage);
+                    chatStore.messages.push(receivedMessage);
+                }
+            );
+        }, (error) => {
+            console.error("WebSocket 連接失敗:", error);
+            Swal.fire("錯誤", "即時聊天連接失敗，請刷新頁面重試", "error");
+        });
+
+    } catch (error) {
+        console.error("載入聊天室時發生錯誤:", error);
+        Swal.fire({
+            title: "錯誤",
+            text: error.message || "聊天室加載失敗，請稍後重試",
+            icon: "error"
+        });
+        router.push('/'); // 返回首頁
+    }
 });
 
 // 組件卸載時斷開連接
@@ -61,14 +119,26 @@ onUnmounted(() => {
 });
 
 const send = () => {
-    if (newMessage.value.trim() && stompClient) {
+    if (!newMessage.value.trim()) return;
+
+    if (!chatStore.currentUser?.id) {
+        Swal.fire({
+            title: "提示",
+            text: "請先登入後再發送訊息",
+            icon: "warning"
+        }).then(() => {
+            router.push("/user/login");
+        });
+        return;
+    }
+
+    if (stompClient) {
         const message = {
             content: newMessage.value,
             chatRoomId: route.params.chatRoomId,
             senderId: chatStore.currentUser.id
         };
 
-        // 發送訊息到後端
         stompClient.send(
             "/app/chat/sendMessage",
             {},
