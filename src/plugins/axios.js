@@ -6,6 +6,7 @@ const instance = axios.create({
   headers: { "Content-Type": "application/json" },
 });
 
+<<<<<<< HEAD
 instance.interceptors.response.use(function (response) {
   return response;
 }, function (error) {
@@ -15,6 +16,8 @@ instance.interceptors.response.use(function (response) {
   return Promise.reject(error);
 });
 
+=======
+>>>>>>> b9553c7 (商品頁面CRUD)
 // 🔒 自動在請求中加入 Token
 instance.interceptors.request.use(
   (config) => {
