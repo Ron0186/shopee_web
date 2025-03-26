@@ -9,32 +9,37 @@ export const useChatStore = defineStore('chat', {
         messages: [],              // 當前聊天室訊息列表
         notifications: [],         // 未讀通知列表
         stompClient: null,
-        currentUser: {
-            id: localStorage.getItem("userId") || null,     // 從 localStorage 讀取
-            name: localStorage.getItem("username") || null
+        currentUser: { // ✅ 直接初始化
+            id: localStorage.getItem("userId") || null,
+            username: localStorage.getItem("username") || null, // 注意 key 名稱一致性
+            roles: JSON.parse(localStorage.getItem("roles") || "[]")
         }
     }),
     actions: {
-        setActiveChatRoom(chatRoomData) {
-            this.activeChatRoom = {
-                id: chatRoomData.chatRoomId,
-                seller: {
-                    id: chatRoomData.seller.userId,
-                    name: chatRoomData.seller.username,
-                    shopName: chatRoomData.seller.shopName || '個人賣家'
-                },
-                shop: chatRoomData.shop || null,
-                shopId: chatRoomData.shop?.shopId || null
-            };
-        },
+
+        // setActiveChatRoom(chatRoomData) {
+        //     this.activeChatRoom = {
+        //         id: chatRoomData.chatRoomId,
+        //         seller: {
+        //             id: chatRoomData.seller.userId,
+        //             name: chatRoomData.seller.username,
+        //             shopName: chatRoomData.seller.shopName || '個人賣家'
+        //         },
+        //         shop: chatRoomData.shop || null,
+        //         shopId: chatRoomData.shop?.shopId || null
+        //     };
+        // },
         setCurrentUser(userData) {
             this.currentUser = {
-                id: data?.id || localStorage.getItem("userId") || null,
-                name: data?.name || localStorage.getItem("username") || '未知使用者'
+                userId: userData.id,
+                username: userData.username, // 確保使用正確字段名稱
+                roles: userData.roles
             };
-            localStorage.setItem("userId", this.currentUser.id);
-            localStorage.setItem("userName", this.currentUser.name);
+            localStorage.setItem("userId", userData.id);
+            localStorage.setItem("userName", userData.username); // 修正 key 名稱
+            localStorage.setItem("roles", JSON.stringify(userData.roles));
         },
+
         // 初始化 WebSocket 連接
         async connectWebSocket(userId) {
             const socket = new SockJS('http://localhost:8081/ws');
@@ -58,16 +63,29 @@ export const useChatStore = defineStore('chat', {
             }
 
             const message = {
-                senderId: this.currentUser.id, // 當前用戶是買家
                 content: content,
+                sender: { // 發送完整用戶資訊
+                    userId: this.currentUser.userId,
+                    username: this.currentUser.username,
+                    role: this.currentUser.roles[0] // 假設第一個角色是主要身份
+                },
+                chatRoomId: this.activeChatRoom.id,
+                timestamp: new Date().toISOString()
             };
+
 
             this.stompClient.send(
                 `/app/chat/${this.activeChatRoom.id}/send`,
                 {},
                 JSON.stringify(message)
             );
+            // 本地預先添加訊息
+            this.messages.push({
+                ...message,
+                id: Date.now() // 臨時唯一ID
+            });
         },
+
 
         // 載入聊天室訊息
         async loadMessages(chatRoomId) {

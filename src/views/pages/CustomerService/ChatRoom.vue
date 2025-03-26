@@ -5,9 +5,17 @@
 
         <div class="messages">
             <div v-for="msg in messages" :key="msg.id" class="message">
-                <strong>{{ msg.sender?.username || '匿名' }}：</strong> {{ msg.content }}
+                <!-- 顯示實際發送者 -->
+                <div :class="['message-container', { 'my-message': msg.sender.userId === currentUser.userId }]">
+                    <div class="message-header">
+                        <small class="timestamp">{{ formatTime(msg.timestamp) }}</small>
+                        <strong class="username">{{ msg.sender.username }}</strong>
+                    </div>
+                    <div class="message-content">{{ msg.content }}</div>
+                </div>
             </div>
         </div>
+
 
         <div class="input-area">
             <input v-model="newMessage" @keyup.enter="send" placeholder="輸入訊息..." />
@@ -17,34 +25,44 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
 import axios from "@/plugins/axios";
 import { useChatStore } from '@/stores/chatStore';
 import Swal from 'sweetalert2';
+import { storeToRefs } from "pinia";
 
 const chatStore = useChatStore();
 const route = useRoute();
 const router = useRouter();
 const newMessage = ref("");
-const messages = computed(() => chatStore.messages);
-let stompClient = null;
+const { currentUser, messages } = storeToRefs(chatStore);
+let stompClient = null;// WebSocket 相關
 const activeChatRoom = ref({
+    id: null,
     seller: {
-        username: "加载中...",
-        userId: null
-    },
-    shopDTO: {
-        shopName: "加载中...",
-        shopId: null
-    },
-    chatRoomId: null,
-    success: false
+        userId: null,
+        username: null,
+        shopName: null
+    }
 });
 
-
+// 時間格式化函式
+const formatTime = (timestamp) => {
+    if (!timestamp) return null;
+    const date = new Date(timestamp);
+    return date.toLocaleString("zh-TW", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: false
+    });
+};
 
 // 初始化聊天室
 onMounted(async () => {
@@ -61,11 +79,10 @@ onMounted(async () => {
         activeChatRoom.value = {
             chatRoomId: chatRoomRes.data.chatRoomId,  // 使用 chatRoomRes 代替 response
             seller: {
-                userId: chatRoomRes.data.seller.userId,
-                username: chatRoomRes.data.seller.username,
-                shopName: chatRoomRes.data.seller.shopName || '個人賣家'
+                userId: chatRoomRes.data.seller?.userId,
+                username: chatRoomRes.data.seller?.username,
+                shopName: chatRoomRes.data.seller?.shopName || '個人賣家'
             },
-            shop: chatRoomRes.data.shop || null,
 
         };
 
@@ -115,8 +132,8 @@ onMounted(async () => {
 
 const send = () => {
     if (!newMessage.value.trim()) return;
-
-    if (!chatStore.currentUser?.id) {
+    console.log("currentUser =", chatStore.currentUser);
+    if (!currentUser.value?.id) {
         Swal.fire({
             title: "提示",
             text: "請先登入後再發送訊息",
@@ -127,31 +144,41 @@ const send = () => {
         return;
     }
 
+    const { userId, username } = currentUser.value;
+    const chatRoomId = route.params.chatRoomId;
+    const message = {
+        content: newMessage.value,
+        chatRoomId,
+        sender: { userId, username }, // 明確字段映射
+        timestamp: new Date().toISOString()
+    };
+    // 本地快取訊息使用深拷貝
+    chatStore.messages.push({
+        ...message,
+        id: Date.now(),
+    });
     if (stompClient) {
-        const message = {
-            content: newMessage.value,
-            chatRoomEntity: { chatRoomId: route.params.chatRoomId }, // 傳送聊天室 ID
-            sender: { id: chatStore.currentUser.id } // 傳送發送者 ID
-        };
-
-        // 將訊息先加入本地顯示，避免伺服器回傳有延遲
-        chatStore.messages.push({
-            id: Date.now(),  // 用 timestamp 作為暫時的 id
-            content: newMessage.value,
-            sender: {
-                username: chatStore.currentUser.name  // 假設 currentUser 有 name 欄位
-            }
-        });
-
-        stompClient.send(
-            "/app/chat/sendMessage",
-            {},
-            JSON.stringify(message)
-        );
-
-        newMessage.value = '';
+        stompClient.send("/app/chat/send", {}, JSON.stringify(message));
+        newMessage.value = "";
     }
+    // 格式化時間
+    function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleString();
+    }
+
+
+
+
+    if (!chatStore.currentUser?.id) {
+        Swal.fire("請先登入", "需要登入才能發送訊息", "warning");
+        return router.push("/login");
+    }
+
+
 };
+
+
 
 // 組件卸載時斷開連接
 onUnmounted(() => {
@@ -169,23 +196,6 @@ onUnmounted(() => {
     background: #f5f5f5;
     border-radius: 10px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-}
-
-.messages {
-    height: 400px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
-    border-radius: 8px;
-    padding: 15px;
-    margin: 20px 0;
-    background: white;
-}
-
-.message {
-    margin-bottom: 10px;
-    padding: 8px;
-    background: #e3f2fd;
-    border-radius: 5px;
 }
 
 input {
@@ -208,5 +218,58 @@ button {
 
 button:hover {
     background: #1976D2;
+}
+
+.message-container {
+    background: #e3f2fd;
+    border-radius: 8px;
+    padding: 10px;
+    margin-bottom: 10px;
+    max-width: 80%;
+}
+
+.my-message .message-container {
+    background: #dcf8c6;
+    margin-left: auto;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.username {
+    order: 2;
+    /* 用户名在右側 */
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.timestamp {
+    order: 1;
+    /* 時間在左側 */
+    font-size: 0.75rem;
+    color: #666;
+}
+
+.message-content {
+    color: #34495e;
+    word-break: break-word;
+    font-size: 0.9rem;
+}
+
+/* 自己訊息的特別樣式 */
+.my-message .message-header {
+    flex-direction: row-reverse;
+}
+
+.my-message .username {
+    color: #27ae60;
+}
+
+.my-message .timestamp {
+    color: #7f8c8d;
 }
 </style>
