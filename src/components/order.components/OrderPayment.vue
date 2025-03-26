@@ -36,11 +36,7 @@
           <div class="order-items">
             <h4>商品明細</h4>
             <div class="items-list">
-              <div
-                v-for="item in order.items"
-                :key="item.sku_id"
-                class="item-row"
-              >
+              <div v-for="item in order.items" :key="item.sku_id" class="item-row">
                 <div class="item-image">
                   <img :src="getItemImage(item)" :alt="item.productName" />
                 </div>
@@ -84,11 +80,9 @@
             <div class="summary-table">
               <div class="summary-row">
                 <span>商品小計:</span>
-                <span
-                  >NT${{
-                    formatPrice(order.subtotal || order.totalPrice)
-                  }}</span
-                >
+                <span>NT${{
+                  formatPrice(order.subtotal || order.totalPrice)
+                }}</span>
               </div>
               <div class="summary-row" v-if="order.shippingFee">
                 <span>運費:</span>
@@ -111,13 +105,8 @@
       <div class="payment-method-card">
         <h3>選擇付款方式</h3>
         <div class="payment-methods">
-          <div
-            v-for="method in paymentMethods"
-            :key="method.value"
-            class="payment-method-option"
-            :class="{ active: selectedPaymentMethod === method.value }"
-            @click="selectedPaymentMethod = method.value"
-          >
+          <div v-for="method in paymentMethods" :key="method.value" class="payment-method-option"
+            :class="{ active: selectedPaymentMethod === method.value }" @click="selectedPaymentMethod = method.value">
             <div class="method-icon">
               <i :class="method.icon"></i>
             </div>
@@ -126,13 +115,8 @@
               <span class="method-description">{{ method.description }}</span>
             </div>
             <div class="method-select">
-              <input
-                type="radio"
-                :id="method.value"
-                :value="method.value"
-                v-model="selectedPaymentMethod"
-                name="paymentMethod"
-              />
+              <input type="radio" :id="method.value" :value="method.value" v-model="selectedPaymentMethod"
+                name="paymentMethod" />
               <label :for="method.value"></label>
             </div>
           </div>
@@ -140,61 +124,32 @@
       </div>
 
       <!-- 信用卡表單 (僅在選擇信用卡時顯示) -->
-      <div
-        v-if="selectedPaymentMethod === 'CREDIT_CARD'"
-        class="credit-card-form"
-      >
+      <div v-if="selectedPaymentMethod === 'CREDIT_CARD'" class="credit-card-form">
         <h3>請輸入信用卡資料</h3>
         <div class="form-group">
           <label for="cardNumber">卡號</label>
-          <input
-            type="text"
-            id="cardNumber"
-            v-model="cardInfo.cardNumber"
-            placeholder="請輸入16位卡號"
-            maxlength="19"
-            @input="formatCardNumber"
-          />
+          <input type="text" id="cardNumber" v-model="cardInfo.cardNumber" placeholder="請輸入16位卡號" maxlength="19"
+            @input="formatCardNumber" />
         </div>
         <div class="form-row">
           <div class="form-group">
             <label for="cardExpiry">有效期限 (MM/YY)</label>
-            <input
-              type="text"
-              id="cardExpiry"
-              v-model="cardInfo.cardExpiry"
-              placeholder="MM/YY"
-              maxlength="5"
-              @input="formatCardExpiry"
-            />
+            <input type="text" id="cardExpiry" v-model="cardInfo.cardExpiry" placeholder="MM/YY" maxlength="5"
+              @input="formatCardExpiry" />
           </div>
           <div class="form-group">
             <label for="cardCVC">安全碼</label>
-            <input
-              type="text"
-              id="cardCVC"
-              v-model="cardInfo.cardCVC"
-              placeholder="CVC"
-              maxlength="3"
-            />
+            <input type="text" id="cardCVC" v-model="cardInfo.cardCVC" placeholder="CVC" maxlength="3" />
           </div>
         </div>
         <div class="form-group">
           <label for="cardHolder">持卡人姓名</label>
-          <input
-            type="text"
-            id="cardHolder"
-            v-model="cardInfo.cardHolder"
-            placeholder="請輸入持卡人姓名"
-          />
+          <input type="text" id="cardHolder" v-model="cardInfo.cardHolder" placeholder="請輸入持卡人姓名" />
         </div>
       </div>
 
       <!-- ATM 轉帳資訊 (僅在選擇 ATM 轉帳時顯示) -->
-      <div
-        v-if="selectedPaymentMethod === 'BANK_TRANSFER'"
-        class="bank-transfer-info"
-      >
+      <div v-if="selectedPaymentMethod === 'BANK_TRANSFER'" class="bank-transfer-info">
         <h3>ATM 轉帳資訊</h3>
         <div class="info-box">
           <p><strong>銀行名稱:</strong> 台灣第一銀行</p>
@@ -211,11 +166,7 @@
       <!-- 付款按鈕 -->
       <div class="payment-actions">
         <button @click="cancelPayment" class="cancel-btn">取消</button>
-        <button
-          @click="processPayment"
-          :disabled="isProcessing"
-          class="pay-btn"
-        >
+        <button @click="processPayment" :disabled="isProcessing" class="pay-btn">
           <span v-if="isProcessing">處理中...</span>
           <span v-else>確認付款 NT${{ formatPrice(order.totalPrice) }}</span>
         </button>
@@ -371,10 +322,6 @@ const formatCardExpiry = () => {
 };
 
 // 載入訂單資料
-// 在 OrderPayment.vue 中修改 loadOrderData 方法
-// 載入訂單資料
-// 載入訂單資料
-// 載入訂單資料
 const loadOrderData = async () => {
   loading.value = true;
   error.value = null;
@@ -410,10 +357,32 @@ const loadOrderData = async () => {
 
       console.log("檢查付款狀態回應:", checkResponse);
 
+      // 檢查API回應格式是否為字符串
+      if (typeof checkResponse.data === "string") {
+        try {
+          checkResponse.data = JSON.parse(checkResponse.data);
+        } catch (parseError) {
+          console.error("API回應不是有效的JSON:", parseError);
+        }
+      }
+
+      // 處理不同的API回應格式
+      let paymentCheckStatus = "error";
+      let paymentCheckMessage = "";
+
+      if (checkResponse.data) {
+        if (checkResponse.data.status) {
+          paymentCheckStatus = checkResponse.data.status;
+          paymentCheckMessage = checkResponse.data.message || "";
+        } else if (checkResponse.data.statusCode === 200) {
+          paymentCheckStatus = "success";
+          paymentCheckMessage = checkResponse.data.message || "";
+        }
+      }
+
       // 如果API返回訂單不可付款
-      if (checkResponse.data.status === "error") {
-        error.value =
-          checkResponse.data.message || "此訂單不需要付款或已付款完成";
+      if (paymentCheckStatus === "error") {
+        error.value = paymentCheckMessage || "此訂單不需要付款或已付款完成";
         loading.value = false;
         return;
       }
@@ -466,14 +435,22 @@ const loadOrderData = async () => {
     }
 
     // 處理API回應
+    let orderData = null;
     if (response.data) {
-      // 如果回應數據在data字段
-      if (response.data.data) {
-        order.value = response.data.data;
+      // 根據API回應格式處理
+      if (response.data.statusCode === 200 && response.data.data) {
+        // 新的API格式 {statusCode, status, message, data}
+        orderData = response.data.data;
+      } else if (response.data.data) {
+        // 回應數據在data字段
+        orderData = response.data.data;
       } else {
-        order.value = response.data;
+        // 直接使用回應數據
+        orderData = response.data;
       }
 
+      // 賦值給訂單ref
+      order.value = orderData;
       console.log("處理後的訂單數據:", order.value);
 
       // 確保訂單有必要的欄位
@@ -490,7 +467,7 @@ const loadOrderData = async () => {
         order.value.items = order.value.orderItem.map((item) => {
           return {
             productId: item.sku?.product?.productId || item.productId || 0,
-            productName: item.sku?.product?.name || "未知商品",
+            productName: item.sku?.product?.productName || item.sku?.product?.name || "未知商品",
             sku_id: item.sku?.skuId || item.skuId || 0,
             quantity: item.quantity || 1,
             unitPrice: item.unitPrice || item.price || 0,
@@ -657,7 +634,7 @@ const processPayment = async () => {
     console.error("付款處理錯誤:", err);
     alert(
       "付款處理失敗: " +
-        (err.response?.data?.message || err.message || "未知錯誤")
+      (err.response?.data?.message || err.message || "未知錯誤")
     );
     isProcessing.value = false;
   }
