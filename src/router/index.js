@@ -246,6 +246,16 @@ const router = createRouter({
           component: () => import("@/views/admin/Products.vue"),
           meta: { requiresAuth: true }, // 如果需要登入驗證
         },
+        // SKU 管理頁面
+        {
+          path: "/seller/shop/:shopId/product/:productId/sku",
+          name: "ProductSkuManagement",
+          component: () => import("@/views/admin/ProductSkuManagement.vue"),
+          meta: {
+            requiresAuth: true,
+            role: "seller",
+          },
+        },
         {
           // 商品分類頁面
           path: "product-category",

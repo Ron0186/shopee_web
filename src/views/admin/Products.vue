@@ -16,7 +16,7 @@
           <th style="width: 150px">上架/審核中</th>
           <th style="width: 150px">創建時間</th>
           <th style="width: 150px">更新時間</th>
-          <th style="width: 180px">操作</th>
+          <th style="width: 230px">操作</th>
         </tr>
       </thead>
       <tbody>
@@ -44,10 +44,17 @@
           <td>{{ formatDate(e.updatedAt) }}</td>
           <td>
             <button
-              class="btn btn-primary btn-sm me-2"
+              class="btn btn-primary btn-sm me-1"
               @click="openEditModal(e)"
             >
               編輯
+            </button>
+
+            <button
+              class="btn btn-info btn-sm me-1"
+              @click="goToSkuManagement(e.productId)"
+            >
+              SKU管理
             </button>
 
             <button
@@ -80,7 +87,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
@@ -89,6 +96,7 @@ import ProductEditModal from "@/components/product.components/ProductEditModal.v
 import defaultImage from "@/assets/default-image.png"; // 默认图片
 
 const route = useRoute();
+const router = useRouter();
 const shopId = parseInt(route.params.shopId) || null;
 
 const products = ref([]);
@@ -183,52 +191,9 @@ const openEditModal = (e) => {
   showEditModal.value = true;
 };
 
-// 更新「我的商品」
-const updateProduct = async (productId) => {
-  try {
-    const userStore = useUserStore();
-    const token = userStore.token; // 獲取 token
-
-    if (!productId) {
-      Swal.fire({ title: "商品 ID 不存在", icon: "warning" });
-      return;
-    }
-
-    let formData = new FormData();
-    formData.append(
-      "product",
-      new Blob([JSON.stringify(updatedProduct.value)], {
-        type: "application/json",
-      })
-    );
-
-    if (updatedProduct.value.image) {
-      formData.append("image", updatedProduct.value.image); // 上傳圖片
-    }
-
-    const response = await axios.put(`/api/product/${productId}`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (response.status >= 200 && response.status < 300) {
-      await Swal.fire({ title: "更新成功", icon: "success" });
-
-      emit("refresh"); // 通知父元件重新獲取商品列表
-      emit("close"); // 關閉 Modal
-    } else {
-      Swal.fire({ title: "錯誤:" + response.data.message, icon: "error" });
-    }
-  } catch (error) {
-    console.error(error);
-    Swal.fire({
-      title:
-        "錯誤:" + (error.response?.data?.message || "請求失敗，請稍後再試"),
-      icon: "error",
-    });
-  }
+// 跳轉到 SKU 管理頁面
+const goToSkuManagement = (productId) => {
+  router.push(`/seller/shop/${shopId}/product/${productId}/sku`);
 };
 
 // 刪除「我的商品」
