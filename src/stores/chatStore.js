@@ -123,7 +123,8 @@ export const useChatStore = defineStore('chat', {
                 sender: { // 發送完整用戶資訊
                     userId: this.currentUser.userId,
                     username: this.currentUser.username,
-                    role: this.currentUser.roles[0] // 假設第一個角色是主要身份
+                    role: this.currentUser.roles[0], // 假設第一個角色是主要身份
+                    senderName: this.currentUser.username // 這裡新增 senderName
                 },
                 chatRoomId: this.activeChatRoom.id,
                 timestamp: new Date().toISOString()

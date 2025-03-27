@@ -17,7 +17,7 @@
                 <div :class="['message-container', { 'my-message': msg.sender?.userId === currentUser?.userId }]">
                     <div class="message-header">
                         <small class="timestamp">{{ formatTime(msg.timestamp) }}</small>
-                        <strong class="username">{{ msg.sender?.username }}</strong>
+                        <strong class="username">{{ msg.senderName }}</strong>
                     </div>
                     <div class="message-content">{{ msg.content }}</div>
                 </div>
@@ -33,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, onUnmounted, computed } from "vue";
+import { ref, onMounted, watch, onUnmounted, computed, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
@@ -79,14 +79,11 @@ const formatTime = (timestamp) => {
 // 新增检查聊天室存在状态
 const checkingExisting = ref(false);
 
-const safeMessages = computed(() => {
-    return messages.value.map(msg => ({
-        ...msg,
-        sender: msg.sender || { userId: null, username: '未知用户' }
-    }));
-});
+const safeMessages = computed(() => messages.value);
+
 
 onMounted(async () => {
+
     // 情况1：直接通过 chatRoomId 访问
     if (route.params.chatRoomId) {
         await loadChatRoom(route.params.chatRoomId);
@@ -150,8 +147,8 @@ watch(
             // 重置 activeChatRoom 避免残留旧数据
             activeChatRoom.value = {
                 chatRoomId: null,
-                seller: { userId: null, username: null },
-                shop: { shopId: null, shopName: null }
+                seller: {},
+                shop: {}
             };
             // 加載新的聊天室
             await loadChatRoom(newChatRoomId);
@@ -252,20 +249,26 @@ const send = async () => {
             throw new Error("用户信息未加载完成");
         }
 
+
         // 构建消息对象（需匹配后端 ChatMessageDTO）
         const message = {
             chatRoomId: activeChatRoom.value.chatRoomId,
             content: newMessage.value.trim(),
+            senderName: currentUser.value.username, // 发送 senderName
             sender: {
                 userId: currentUser.value.userId,
-                username: currentUser.value.username
+
             },
             timestamp: new Date().toISOString() // 手動加上時間
         };
         console.log("Sending message:", message); // 用於除錯
         console.log("currentUser:", currentUser.value);
-        console.log("activeChatRoom:", activeChatRoom.value);
-        console.log("newMessage:", newMessage.value);
+        // 添加到本地消息列表
+        chatStore.addMessage({
+            ...message,
+            id: `temp-${Date.now()}`  // 添加临时唯一ID
+        });
+
         // 通过 STOMP 发送消息到后端（路径对应 @MessageMapping("/send"）
         if (stompClient && stompClient.connected) {
             stompClient.send(
