@@ -10,12 +10,41 @@ export const useChatStore = defineStore('chat', {
         notifications: [],         // 未讀通知列表
         stompClient: null,
         currentUser: { // ✅ 直接初始化
-            id: localStorage.getItem("userId") || null,
+            userId: localStorage.getItem("userId") || null,
             username: localStorage.getItem("username") || null, // 注意 key 名稱一致性
             roles: JSON.parse(localStorage.getItem("roles") || "[]")
-        }
+        },
+        reconnectAttempts: 0, // 新增重连计数器
+        maxReconnectAttempts: 5, // 最大重连次数
+        currentReject: null
+
     }),
     actions: {
+
+        async createOrGetChatRoom(shopId) {
+            try {
+                console.log('目前使用者:', this.currentUser);
+                console.log('即將傳遞的 buyerId:', this.currentUser.userId);
+                // 3. 创建新聊天室
+                const createResponse = await axios.post('http://localhost:8081/api/chat/create', {
+                    buyerId: this.currentUser.userId,
+                    shopId: shopId
+                });
+
+                return {
+                    success: true,
+                    chatRoomId: createResponse.data.chatRoomId,
+                    isNew: true
+                };
+            } catch (error) {
+                console.error('创建聊天室失败:', error.response?.data);
+                return {
+                    success: false,
+                    message: error.response?.data?.message || '创建聊天室失败，请稍后重试',
+                    error: error.response?.data
+                };
+            }
+        },
 
 
         setCurrentUser(userData) {
@@ -25,23 +54,61 @@ export const useChatStore = defineStore('chat', {
                 roles: userData.roles
             };
             localStorage.setItem("userId", userData.id);
-            localStorage.setItem("userName", userData.username); // 修正 key 名稱
+            localStorage.setItem("username", userData.username); // 修正 key 名稱
             localStorage.setItem("roles", JSON.stringify(userData.roles));
         },
 
         // 初始化 WebSocket 連接
         async connectWebSocket(userId) {
-            const socket = new SockJS('http://localhost:8081/ws');
-            this.stompClient = Stomp.over(socket);
+            return new Promise((resolve, reject) => {
+                // 存储reject引用
+                this.currentReject = reject;
+                const socket = new SockJS('http://localhost:8081/ws');
+                this.stompClient = Stomp.over(socket);
 
-            this.stompClient.connect({}, () => {
-                // 訂閱個人通知頻道
-                this.stompClient.subscribe(`/user/${userId}/queue/notifications`, (message) => {
-                    this.notifications.push(JSON.parse(message.body));
-                });
-            }, (error) => {
-                console.error('WebSocket 連接失敗:', error);
+                const headers = {
+                    'userId': userId,
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`
+                }; // 添加认证头
+                this.stompClient.connect(headers,
+                    () => {
+                        console.log('WebSocket 连接成功');
+                        this.reconnectAttempts = 0; // 重置重连计数器
+
+                        // 订阅通知频道
+                        this.stompClient.subscribe(
+                            `/user/${userId}/queue/notifications`,
+                            (message) => {
+                                this.notifications.push(JSON.parse(message.body));
+                            },
+                            { 'id': `sub-${userId}` } // 添加订阅ID便于管理
+                        );
+                        resolve();
+                    },
+                    (error) => {
+                        console.error('WebSocket 连接失败:', error);
+                        this.handleReconnect(userId);
+                        reject(error);
+                    }
+                );
             });
+        },
+
+
+        // 新增重连处理
+        handleReconnect(userId) {
+            if (this.reconnectAttempts < this.maxReconnectAttempts) {
+                this.reconnectAttempts++;
+                const delay = Math.min(1000 * this.reconnectAttempts, 5000); // 指数退避
+
+                console.log(`尝试第 ${this.reconnectAttempts} 次重连，等待 ${delay}ms`);
+
+                setTimeout(() => {
+                    this.connectWebSocket(userId);
+                }, delay);
+            } else {
+                console.error(`已达到最大重连次数 ${this.maxReconnectAttempts}`);
+            }
         },
 
         // 發送訊息
@@ -89,10 +156,19 @@ export const useChatStore = defineStore('chat', {
                 console.error("載入訊息失敗:", error);
             }
         },
+
+        addMessage(message) {
+            // 防止重复添加
+            if (!this.messages.some(m => m.timestamp === message.timestamp && m.content === message.content)) {
+                this.messages = [...this.messages, message];
+            }
+        },
+
         async disconnectWebSocket() {
             if (this.stompClient) {
-                this.stompClient.disconnect(() => {
-                    console.log("WebSocket 斷開連接");
+                return new Promise((resolve) => {
+                    this.stompClient.disconnect(resolve);
+                    this.stompClient = null;
                 });
             }
         }

@@ -29,7 +29,7 @@ const notifications = ref([]);
 // 取得未讀通知，請確保後端 API 能根據 userId 回傳資料
 const fetchUnreadNotifications = async () => {
     try {
-        const response = await axios.get(`/api/notifications/unread/${props.userId}`);
+        const response = await axios.get(`http://localhost:8081/api/notifications/unread/${props.userId}`);
         notifications.value = response.data;
     } catch (error) {
         console.error("載入通知失敗:", error);
@@ -54,7 +54,7 @@ const openChat = async (notice) => {
     console.log("點擊通知，資料：", notice);
     try {
         // 更新通知狀態為已讀（依後端 API 規範設計）
-        await axios.post(`http:localhost:8081/api/notifications/unread/${userId}`);
+        await axios.post(`http://localhost:8081/api/notifications/unread/${userId}`);
         // 更新前端通知狀態
         notice.isRead = true;
     } catch (error) {

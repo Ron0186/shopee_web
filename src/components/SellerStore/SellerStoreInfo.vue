@@ -8,7 +8,9 @@
           <span class="highlight">{{ shop.shopName }}</span>
         </h2>
         <div class="shop-actions">
-          <button class="btn btn-chat" v-if="!isOwner" @click="startChat">💬 聊聊</button>
+          <button class="btn btn-chat" v-if="!isOwner" @click="startChat" :disabled="isCreatingChat">
+            {{ isCreatingChat ? '創建中...' : '💬 聊聊' }}
+          </button>
         </div>
       </div>
     </div>
@@ -35,7 +37,9 @@ import { ref, computed } from 'vue';
 import defaultLogo from "@/assets/shop-logo.jpg";
 import { useRouter } from "vue-router";
 import axios from "@/plugins/axios";
+import Swal from 'sweetalert2';  // 引入更美觀的提示套件
 
+const isCreatingChat = ref(false); // 正確定義變量
 const props = defineProps({
   shop: Object,
   isOwner: Boolean
@@ -43,8 +47,7 @@ const props = defineProps({
 
 const router = useRouter();
 
-// 假設當前用戶 ID 存在於 localStorage 或 Pinia Store
-const currentUserId = ref(localStorage.getItem('userId'));
+
 
 const shopLogo = computed(() => {
   return props.shop.logo ? props.shop.logo : defaultLogo;
@@ -52,45 +55,82 @@ const shopLogo = computed(() => {
 
 const startChat = async () => {
   try {
-    const userId = localStorage.getItem("userId");
-    const shopId = props.shop.shopId;
+    // 驗證參數更嚴謹
+    const rawUserId = localStorage.getItem("userId");
+    if (!rawUserId) {
+      await Swal.fire("需要登入", "請先登入才能使用聊天功能", "warning");
+      return router.push('/user/login');
+    }
+    const buyerId = parseInt(rawUserId);
+    if (isNaN(buyerId)) {
+      throw new Error("使用者 ID 格式錯誤");
+    }
 
-    console.log("userId:", userId);
-    console.log("shopId:", shopId);
+    // 檢查 shopId 是否存在且有效
+    if (!props.shop?.shopId || isNaN(parseInt(props.shop.shopId))) {
+      throw new Error("商店資訊不完整");
+    }
 
-    if (!userId || !shopId) {
-      alert("無法獲取使用者或商店資訊");
+    const shopId = parseInt(props.shop.shopId);
+    if (isNaN(shopId)) {
+      Swal.fire('錯誤', '商店資訊取得失敗', 'error');
       return;
     }
+    console.log("發送請求參數：", {
+      buyerId: buyerId,
+      shopId: shopId
+    });
+    isCreatingChat.value = true;  // 開始載入
 
-    // 準備請求資料
-    const chatRequest = {
-      userId: userId,
-      shopId: shopId,
-      shopName: props.shop.shopName
-    };
-
-    // 直接發送請求，後端會自行檢查聊天室是否已存在
-    const response = await axios.post("http://localhost:8081/api/chat/create", chatRequest);
-    const data = response.data;
-
-    if (data.success) {
-      if (data.alreadyExists) {
-        console.log("聊天室已存在，直接跳轉 ID:", data.chatRoomId);
-      } else {
-        console.log("成功建立新聊天室，ID:", data.chatRoomId);
+    // 參數名稱修正為 buyerId
+    const response = await axios.post("http://localhost:8081/api/chat/create", {
+      buyerId: buyerId,
+      shopId: shopId
+    }, {
+      headers: {
+        'Content-Type': 'application/json'
       }
-      // 不論是新建還是已存在，都直接跳轉
-      router.push(`/chat/${data.chatRoomId}`);
+    });
+
+    // 強化回應處理
+    if (response.data?.chatRoomId) {
+      const action = response.data.alreadyExists ? '跳轉至現有' : '進入新';
+      Swal.fire({
+        icon: 'success',
+        title: `${action}聊天室`,
+        showConfirmButton: false,
+        timer: 1500
+      });
+
+      router.push(`/chat/${response.data.chatRoomId}`);
     } else {
-      alert("建立聊天室失敗：" + data.message);
+      throw new Error('後端未返回聊天室ID');
     }
   } catch (error) {
-    console.error("開啟聊天室失敗:", error);
-    alert("聊天室開啟失敗，請稍後再試");
-  }
-};
+    console.error('聊天室建立失敗:', error);
 
+    // 分類錯誤處理
+    const errorMessage = error.response?.data?.message
+      || error.message
+      || '未知錯誤';
+
+    Swal.fire({
+      icon: 'error',
+      title: '操作失敗',
+      text: errorMessage.includes('already exists')
+        ? '聊天室已存在，正在為您跳轉...'
+        : errorMessage,
+    });
+
+    // 若後端返回已存在ID但前端未處理
+    if (error.response?.status === 409 && error.response.data.chatRoomId) {
+      router.push(`/chat/${error.response.data.chatRoomId}`);
+      return; // 確保後續代碼不執行
+    }
+  } finally {
+    isCreatingChat.value = false;  // 結束載入
+  }
+}
 </script>
 
 <style scoped>
