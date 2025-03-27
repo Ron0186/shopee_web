@@ -126,12 +126,22 @@ const router = createRouter({
         //   component: () =>
         //     import("@/views/pages/CustomerService/CustomerService.vue"),
         // },
+
         //賣家商店頁
         {
           path: "/store/:shopId",
           name: "Store",
           component: () => import("@/views/front/SellerStore.vue"),
         },
+
+        //賣家數據分析頁
+        {
+          path: "/seller/analytics",
+          name: "SellerAnalytics",
+          component: () => import("@/views/front/SellerAnalytics.vue"),
+          meta: { role: "SELLER", requiresAuth: true }, // 只有 SELLER 角色的用戶可以訪問，並需要登入
+        },
+
         //google登入後回填頁
         {
           path: "/fill-phone",
