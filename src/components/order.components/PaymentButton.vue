@@ -35,9 +35,16 @@ export default {
   methods: {
     async checkOrderPayment() {
       try {
-        // 使用自定義的 axios 實例，會自動攜帶 token
+        const headers = {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        };
+
         const response = await axios.get(
-          `/api/payment/orders/check-payment/${this.orderId}`
+          `/api/payment/orders/check-payment/${this.orderId}`,
+          { headers }
         );
 
         if (response.data.status === "error") {
@@ -56,14 +63,66 @@ export default {
 
     async initiatePayment() {
       this.isLoading = true;
-
       try {
-        // 直接導向到後端的重定向端點
-        window.location.href = `/api/payment/redirect/${this.orderId}`;
+        const headers = {
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+          "Content-Type": "application/json",
+          "Cache-Control": "no-cache",
+          Pragma: "no-cache",
+        };
+
+        // 先檢查訂單是否可以付款
+        const canPay = await this.checkOrderPayment();
+        if (!canPay) {
+          this.isLoading = false;
+          return;
+        }
+
+        // 使用相對路徑
+        const response = await axios.get(
+          `/api/payment/redirect/${this.orderId}`,
+          {
+            headers,
+            // 明確指定響應類型
+            responseType: "json",
+          }
+        );
+
+        console.log("付款響應:", response.data); // 新增日誌
+
+        if (response.data && response.data.formHtml) {
+          // 創建一個臨時div來插入HTML
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = response.data.formHtml;
+
+          const form = tempDiv.querySelector("form");
+          if (form) {
+            document.body.appendChild(form);
+            form.submit();
+          } else {
+            throw new Error("未找到支付表單");
+          }
+        } else if (response.data && response.data.redirectUrl) {
+          // 如果有重定向URL，直接跳轉
+          window.location.href = response.data.redirectUrl;
+        } else {
+          throw new Error("未獲得付款重定向信息");
+        }
       } catch (error) {
         console.error("支付發起失敗:", error);
         this.isLoading = false;
-        alert("支付發起失敗: " + error.message);
+
+        // 更詳細的錯誤處理
+        if (error.response) {
+          // 伺服器返回了錯誤響應
+          alert(`支付發起失敗: ${error.response.data.error || error.message}`);
+        } else if (error.request) {
+          // 請求已發出，但沒有收到響應
+          alert("網絡錯誤：未收到伺服器響應");
+        } else {
+          // 在設置請求時發生了錯誤
+          alert("支付發起失敗: " + error.message);
+        }
       }
     },
   },

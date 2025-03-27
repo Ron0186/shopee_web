@@ -89,18 +89,31 @@ export default {
     },
 
     confirmPayment() {
+      const headers = {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+        "Content-Type": "application/json",
+        "Cache-Control": "no-cache",
+        Pragma: "no-cache",
+      };
+
       if (this.selectedMethod === "CREDIT_CARD") {
-        // 直接導向到綠界付款頁面，無需事先輸入資料
-        window.location.href = `/api/payment/redirect/${this.orderId}`;
+        // 使用 axios 發送請求而不是直接重定向
+        axios
+          .get(`/api/payment/redirect/${this.orderId}`, { headers })
+          .then((response) => {
+            if (response.data && response.data.redirectUrl) {
+              window.location.href = response.data.redirectUrl;
+            } else {
+              throw new Error("未獲得付款重定向網址");
+            }
+          })
+          .catch((error) => {
+            console.error("支付發起失敗:", error);
+            alert("支付發起失敗: " + error.message);
+          });
       } else if (this.selectedMethod === "MOBILE_TRANSFER") {
-        // 建立手機轉帳訂單，顯示轉帳資訊
         this.createMobileTransferOrder();
       }
-    },
-
-    confirmCashOnDelivery() {
-      // 建立貨到付款訂單，直接更新狀態為待發貨
-      this.createCashOnDeliveryOrder();
     },
 
     createMobileTransferOrder() {
