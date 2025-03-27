@@ -6,7 +6,8 @@
           <router-link to="/seller/dashboard">賣家中心</router-link>
         </li>
         <li class="breadcrumb-item">
-          <router-link :to="`/seller/shop/${shopId}/products`"
+          <router-link
+            :to="`/seller/shops/${shopId}/products/${productId}/skus`"
             >商品管理</router-link
           >
         </li>
@@ -20,7 +21,7 @@
       >
         <h3 class="mb-0">SKU 管理 - {{ productInfo.productName }}</h3>
         <router-link
-          :to="`/seller/shop/${shopId}/products`"
+          :to="`/seller/shops/${shopId}/products`"
           class="btn btn-outline-secondary"
         >
           返回商品列表
@@ -200,7 +201,7 @@ const fetchProductInfo = async () => {
       console.log("獲取到商品詳情:", productInfo.value);
     } else {
       console.error("獲取商品詳情格式錯誤:", response.data);
-      router.push(`/seller/shop/${shopId}/products`);
+      router.push(`/seller/shops/${shopId}/products/${productId}/skus`);
     }
   } catch (error) {
     console.error("獲取商品詳情錯誤:", error);
@@ -209,7 +210,7 @@ const fetchProductInfo = async () => {
       text: error.response?.data?.message || "無法獲取商品詳情",
       icon: "error",
     });
-    router.push(`/seller/shop/${shopId}/products`);
+    router.push(`/seller/shops/${shopId}/products/${productId}/skus`);
   }
 };
 

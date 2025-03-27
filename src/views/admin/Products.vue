@@ -193,7 +193,7 @@ const openEditModal = (e) => {
 
 // 跳轉到 SKU 管理頁面
 const goToSkuManagement = (productId) => {
-  router.push(`/seller/shop/${shopId}/product/${productId}/sku`);
+  router.push(`/seller/shops/${shopId}/products/${productId}/skus`);
 };
 
 // 刪除「我的商品」

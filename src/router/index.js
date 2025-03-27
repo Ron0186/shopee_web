@@ -241,14 +241,14 @@ const router = createRouter({
         },
         {
           // 「我的商品」頁面
-          path: "/my-products/:shopId",
+          path: "/seller/shops/:shopId/products",
           name: "Products",
           component: () => import("@/views/admin/Products.vue"),
           meta: { requiresAuth: true }, // 如果需要登入驗證
         },
         // SKU 管理頁面
         {
-          path: "/seller/shop/:shopId/product/:productId/sku",
+          path: "/seller/shops/:shopId/products/:productId/skus",
           name: "ProductSkuManagement",
           component: () => import("@/views/admin/ProductSkuManagement.vue"),
           meta: {
