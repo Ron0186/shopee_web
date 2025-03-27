@@ -36,7 +36,11 @@
           <div class="order-items">
             <h4>商品明細</h4>
             <div class="items-list">
-              <div v-for="item in order.items" :key="item.sku_id" class="item-row">
+              <div
+                v-for="item in order.items"
+                :key="item.sku_id"
+                class="item-row"
+              >
                 <div class="item-image">
                   <img :src="getItemImage(item)" :alt="item.productName" />
                 </div>
@@ -80,9 +84,11 @@
             <div class="summary-table">
               <div class="summary-row">
                 <span>商品小計:</span>
-                <span>NT${{
-                  formatPrice(order.subtotal || order.totalPrice)
-                }}</span>
+                <span
+                  >NT${{
+                    formatPrice(order.subtotal || order.totalPrice)
+                  }}</span
+                >
               </div>
               <div class="summary-row" v-if="order.shippingFee">
                 <span>運費:</span>
@@ -105,8 +111,13 @@
       <div class="payment-method-card">
         <h3>選擇付款方式</h3>
         <div class="payment-methods">
-          <div v-for="method in paymentMethods" :key="method.value" class="payment-method-option"
-            :class="{ active: selectedPaymentMethod === method.value }" @click="selectedPaymentMethod = method.value">
+          <div
+            v-for="method in paymentMethods"
+            :key="method.value"
+            class="payment-method-option"
+            :class="{ active: selectedPaymentMethod === method.value }"
+            @click="selectedPaymentMethod = method.value"
+          >
             <div class="method-icon">
               <i :class="method.icon"></i>
             </div>
@@ -115,42 +126,25 @@
               <span class="method-description">{{ method.description }}</span>
             </div>
             <div class="method-select">
-              <input type="radio" :id="method.value" :value="method.value" v-model="selectedPaymentMethod"
-                name="paymentMethod" />
+              <input
+                type="radio"
+                :id="method.value"
+                :value="method.value"
+                v-model="selectedPaymentMethod"
+                name="paymentMethod"
+              />
               <label :for="method.value"></label>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 信用卡表單 (僅在選擇信用卡時顯示) -->
-      <div v-if="selectedPaymentMethod === 'CREDIT_CARD'" class="credit-card-form">
-        <h3>請輸入信用卡資料</h3>
-        <div class="form-group">
-          <label for="cardNumber">卡號</label>
-          <input type="text" id="cardNumber" v-model="cardInfo.cardNumber" placeholder="請輸入16位卡號" maxlength="19"
-            @input="formatCardNumber" />
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label for="cardExpiry">有效期限 (MM/YY)</label>
-            <input type="text" id="cardExpiry" v-model="cardInfo.cardExpiry" placeholder="MM/YY" maxlength="5"
-              @input="formatCardExpiry" />
-          </div>
-          <div class="form-group">
-            <label for="cardCVC">安全碼</label>
-            <input type="text" id="cardCVC" v-model="cardInfo.cardCVC" placeholder="CVC" maxlength="3" />
-          </div>
-        </div>
-        <div class="form-group">
-          <label for="cardHolder">持卡人姓名</label>
-          <input type="text" id="cardHolder" v-model="cardInfo.cardHolder" placeholder="請輸入持卡人姓名" />
-        </div>
-      </div>
-
-      <!-- ATM 轉帳資訊 (僅在選擇 ATM 轉帳時顯示) -->
-      <div v-if="selectedPaymentMethod === 'BANK_TRANSFER'" class="bank-transfer-info">
-        <h3>ATM 轉帳資訊</h3>
+      <!-- 手機轉帳資訊 (僅在選擇手機轉帳時顯示) -->
+      <div
+        v-if="selectedPaymentMethod === 'MOBILE_TRANSFER'"
+        class="bank-transfer-info"
+      >
+        <h3>手機跨行轉帳資訊</h3>
         <div class="info-box">
           <p><strong>銀行名稱:</strong> 台灣第一銀行</p>
           <p><strong>銀行代碼:</strong> 007</p>
@@ -165,10 +159,35 @@
 
       <!-- 付款按鈕 -->
       <div class="payment-actions">
-        <button @click="cancelPayment" class="cancel-btn">取消</button>
-        <button @click="processPayment" :disabled="isProcessing" class="pay-btn">
+        <button @click="cancelPayment" class="cancel-btn">返回</button>
+        <button
+          v-if="selectedPaymentMethod === 'CREDIT_CARD'"
+          @click="processECPayPayment"
+          :disabled="isProcessing"
+          class="pay-btn"
+        >
+          <span v-if="isProcessing">處理中...</span>
+          <span v-else
+            >前往綠界付款 NT${{ formatPrice(order.totalPrice) }}</span
+          >
+        </button>
+        <button
+          v-else-if="selectedPaymentMethod === 'MOBILE_TRANSFER'"
+          @click="processMobileTransfer"
+          :disabled="isProcessing"
+          class="pay-btn"
+        >
           <span v-if="isProcessing">處理中...</span>
           <span v-else>確認付款 NT${{ formatPrice(order.totalPrice) }}</span>
+        </button>
+        <button
+          v-else
+          @click="processCashOnDelivery"
+          :disabled="isProcessing"
+          class="pay-btn"
+        >
+          <span v-if="isProcessing">處理中...</span>
+          <span v-else>確認訂單</span>
         </button>
       </div>
 
@@ -196,6 +215,8 @@ const userStore = useUserStore();
 // 狀態變數
 const loading = ref(true);
 const error = ref(null);
+const isProcessing = ref(false);
+const selectedPaymentMethod = ref("CREDIT_CARD");
 const order = ref({
   orderId: "",
   status: "",
@@ -208,16 +229,6 @@ const order = ref({
   discount: 0,
 });
 
-// 付款相關變數
-const selectedPaymentMethod = ref("CREDIT_CARD");
-const isProcessing = ref(false);
-const cardInfo = ref({
-  cardNumber: "",
-  cardExpiry: "",
-  cardCVC: "",
-  cardHolder: "",
-});
-
 // 付款方式選項
 const paymentMethods = [
   {
@@ -227,9 +238,9 @@ const paymentMethods = [
     description: "支援VISA、MasterCard、JCB",
   },
   {
-    name: "ATM轉帳",
-    value: "BANK_TRANSFER",
-    icon: "bi bi-bank",
+    name: "手機跨行轉帳",
+    value: "MOBILE_TRANSFER",
+    icon: "bi bi-phone",
     description: "請於3日內完成轉帳",
   },
   {
@@ -294,41 +305,15 @@ const getItemImage = (item) => {
   return "/assets/default-product.png";
 };
 
-// 格式化信用卡卡號
-const formatCardNumber = () => {
-  let value = cardInfo.value.cardNumber.replace(/\D/g, "");
-  let formattedValue = "";
-
-  for (let i = 0; i < value.length; i++) {
-    if (i > 0 && i % 4 === 0) {
-      formattedValue += " ";
-    }
-    formattedValue += value[i];
-  }
-
-  cardInfo.value.cardNumber = formattedValue;
-};
-
-// 格式化信用卡有效期限
-const formatCardExpiry = () => {
-  let value = cardInfo.value.cardExpiry.replace(/\D/g, "");
-
-  if (value.length > 2) {
-    cardInfo.value.cardExpiry =
-      value.substring(0, 2) + "/" + value.substring(2);
-  } else {
-    cardInfo.value.cardExpiry = value;
-  }
-};
-
 // 載入訂單資料
 const loadOrderData = async () => {
   loading.value = true;
   error.value = null;
 
   try {
-    // 從路由參數獲取訂單ID (檢查orderId或id)
+    // 從路由參數獲取訂單ID
     const orderId = route.params.orderId || route.params.id;
+    console.log("嘗試載入訂單ID:", orderId);
 
     if (!orderId) {
       error.value = "找不到訂單ID，請返回訂單列表重新選擇";
@@ -336,305 +321,179 @@ const loadOrderData = async () => {
       return;
     }
 
-    if (!userStore.token) {
-      error.value = "您尚未登入或登入已過期，請重新登入";
+    // 檢查訂單是否可以付款
+    const checkResponse = await axios.get(
+      `/api/payment/orders/check-payment/${orderId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${userStore.token}`,
+          Accept: "application/json",
+        },
+      }
+    );
+
+    console.log("檢查付款回應:", checkResponse.data);
+
+    // 如果不能付款，設置錯誤訊息並返回
+    if (checkResponse.data.status !== "success") {
+      error.value =
+        checkResponse.data.message || "此訂單不需要付款或已付款完成";
       loading.value = false;
       return;
     }
 
-    console.log("開始載入訂單ID:", orderId);
-
-    // 首先檢查訂單是否可以付款
-    try {
-      const checkResponse = await axios.get(
-        `/api/orders/check-payment/${orderId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${userStore.token}`,
-          },
-        }
-      );
-
-      console.log("檢查付款狀態回應:", checkResponse);
-
-      // 檢查API回應格式是否為字符串
-      if (typeof checkResponse.data === "string") {
-        try {
-          checkResponse.data = JSON.parse(checkResponse.data);
-        } catch (parseError) {
-          console.error("API回應不是有效的JSON:", parseError);
-        }
-      }
-
-      // 處理不同的API回應格式
-      let paymentCheckStatus = "error";
-      let paymentCheckMessage = "";
-
-      if (checkResponse.data) {
-        if (checkResponse.data.status) {
-          paymentCheckStatus = checkResponse.data.status;
-          paymentCheckMessage = checkResponse.data.message || "";
-        } else if (checkResponse.data.statusCode === 200) {
-          paymentCheckStatus = "success";
-          paymentCheckMessage = checkResponse.data.message || "";
-        }
-      }
-
-      // 如果API返回訂單不可付款
-      if (paymentCheckStatus === "error") {
-        error.value = paymentCheckMessage || "此訂單不需要付款或已付款完成";
-        loading.value = false;
-        return;
-      }
-    } catch (checkErr) {
-      console.error("檢查付款狀態錯誤:", checkErr);
-
-      // 如果API尚未實現，忽略此錯誤並繼續
-      if (checkErr.response && checkErr.response.status === 404) {
-        console.log("付款檢查API未實現，繼續處理");
-      } else {
-        error.value = "檢查付款狀態時出錯，請稍後再試";
-        loading.value = false;
-        return;
-      }
-    }
-
-    // 獲取訂單數據
-    const apiUrl = `/api/orders/${orderId}`;
-    console.log("獲取訂單數據:", apiUrl);
-
-    const response = await axios.get(apiUrl, {
+    // 能付款，繼續加載訂單數據
+    const response = await axios.get(`/api/orders/${orderId}`, {
       headers: {
         Authorization: `Bearer ${userStore.token}`,
-        Accept: "application/json",
       },
     });
 
-    console.log("訂單數據回應:", response);
+    console.log("訂單數據回應:", response.data);
 
-    // 檢查是否收到HTML而非JSON
-    if (typeof response.data === "string") {
-      if (response.data.includes("<!DOCTYPE html>")) {
-        console.error("API返回了HTML而非JSON");
-        error.value = "伺服器返回了無效的數據格式";
-        loading.value = false;
-        return;
-      }
-
-      // 嘗試解析字符串為JSON
-      try {
-        const jsonData = JSON.parse(response.data);
-        console.log("成功解析字符串為JSON:", jsonData);
-        response.data = jsonData;
-      } catch (parseError) {
-        console.error("解析字符串到JSON失敗:", parseError);
-        error.value = "服務器返回了無效的數據格式";
-        loading.value = false;
-        return;
-      }
-    }
-
-    // 處理API回應
-    let orderData = null;
+    // 處理API回應格式 - 這是關鍵修改
+    let orderData = {};
     if (response.data) {
-      // 根據API回應格式處理
-      if (response.data.statusCode === 200 && response.data.data) {
-        // 新的API格式 {statusCode, status, message, data}
+      if (response.data.hasOwnProperty("statusCode") && response.data.data) {
+        // 新格式API回應 {statusCode, status, message, data}
         orderData = response.data.data;
       } else if (response.data.data) {
-        // 回應數據在data字段
+        // 回應數據在data欄位
         orderData = response.data.data;
       } else {
         // 直接使用回應數據
         orderData = response.data;
       }
+    }
 
-      // 賦值給訂單ref
-      order.value = orderData;
-      console.log("處理後的訂單數據:", order.value);
+    console.log("處理後的訂單數據:", orderData);
 
-      // 確保訂單有必要的欄位
-      if (!order.value.items || !Array.isArray(order.value.items)) {
-        order.value.items = [];
-      }
-
-      // 如果有orderItem但沒有items，將orderItem轉換為items
-      if (
-        order.value.orderItem &&
-        Array.isArray(order.value.orderItem) &&
-        order.value.orderItem.length > 0
-      ) {
-        order.value.items = order.value.orderItem.map((item) => {
-          return {
-            productId: item.sku?.product?.productId || item.productId || 0,
-            productName: item.sku?.product?.productName || item.sku?.product?.name || "未知商品",
+    // 構建訂單對象，處理可能的數據缺失情況
+    order.value = {
+      orderId: orderData.orderId || orderId,
+      status: orderData.status || "未付款",
+      totalPrice: orderData.totalPrice || 0,
+      items: Array.isArray(orderData.items)
+        ? orderData.items
+        : Array.isArray(orderData.orderItem)
+        ? orderData.orderItem.map((item) => ({
             sku_id: item.sku?.skuId || item.skuId || 0,
+            productName:
+              item.sku?.product?.productName || item.productName || "未知商品",
             quantity: item.quantity || 1,
             unitPrice: item.unitPrice || item.price || 0,
-            price: item.unitPrice || item.price || 0,
-            // 嘗試獲取商品圖片
-            image: item.sku?.product?.image || item.image || "",
-            imageUrl: item.sku?.product?.imageUrl || item.imageUrl || "",
-            // 嘗試構建規格文本
-            specs: item.sku
-              ? `${item.sku.colorName || ""} ${item.sku.sizeName || ""}`.trim()
-              : item.specs || "",
-          };
-        });
-        console.log("從orderItem轉換的items:", order.value.items);
-      }
+            image: item.sku?.product?.image || item.image || null,
+            imageUrl: item.sku?.product?.image || item.imageUrl || null,
+            specs: item.specs || "",
+          }))
+        : [],
+      createdAt: orderData.createdAt || new Date().toISOString(),
+      shipping: {
+        recipientName:
+          orderData.shipping?.recipientName ||
+          orderData.userName ||
+          orderData.user?.userName ||
+          "",
+        recipientPhone:
+          orderData.shipping?.recipientPhone ||
+          orderData.userPhone ||
+          orderData.user?.phone ||
+          "",
+        address:
+          orderData.shipping?.address ||
+          orderData.shippingAddress ||
+          `${orderData.order?.shipping?.city || ""} ${
+            orderData.order?.shipping?.district || ""
+          } ${orderData.order?.shipping?.zipCode || ""} ${
+            orderData.order?.shipping?.streetEtc || ""
+          }`,
+      },
+      subtotal: orderData.subtotal || orderData.totalPrice || 0,
+      shippingFee: orderData.shippingFee || 0,
+      discount: orderData.discount || 0,
+    };
 
-      order.value.totalPrice = parseFloat(order.value.totalPrice) || 0;
-      order.value.subtotal =
-        parseFloat(order.value.subtotal) || order.value.totalPrice;
-
-      // 檢查訂單狀態和支付狀態
-      const orderStatus =
-        order.value.status || order.value.orderStatusCorrespond?.name || "";
-      const paymentStatus = order.value.paymentStatus || "";
-
-      console.log("訂單狀態:", orderStatus);
-      console.log("支付狀態:", paymentStatus);
-
-      // 只有當訂單狀態為待付款且支付狀態不是已付款時，才需要顯示付款頁面
-      const isPendingPayment =
-        orderStatus === "PENDING" ||
-        orderStatus === "待付款" ||
-        orderStatus === "pending";
-      const isUnpaid =
-        !paymentStatus ||
-        paymentStatus === "未付款" ||
-        paymentStatus === "UNPAID";
-
-      if (!isPendingPayment || !isUnpaid) {
-        error.value = "此訂單不需要付款或已經付款完成";
-        console.log(
-          `訂單狀態 "${orderStatus}" 或支付狀態 "${paymentStatus}" 表示不需付款`
-        );
-      }
-    } else {
-      error.value = "無法載入訂單資料";
-    }
+    console.log("最終處理的訂單數據:", order.value);
   } catch (err) {
     console.error("載入訂單錯誤:", err);
-
-    // 檢查錯誤是否包含回應數據
-    if (err.response) {
-      // 檢查是否收到HTML而非JSON
-      const responseData = err.response.data;
-      if (
-        typeof responseData === "string" &&
-        responseData.includes("<!DOCTYPE html>")
-      ) {
-        console.error("API錯誤回應是HTML");
-        error.value = "伺服器返回了無效的錯誤格式";
-      } else {
-        const statusCode = err.response.status;
-        if (statusCode === 401) {
-          error.value = "登入已過期，請重新登入";
-        } else if (statusCode === 403) {
-          error.value = "您沒有權限查看此訂單";
-        } else if (statusCode === 404) {
-          error.value = "找不到此訂單";
-        } else {
-          const errorMessage =
-            typeof responseData === "object" && responseData.message
-              ? responseData.message
-              : "未知錯誤";
-          error.value = `伺服器錯誤 (${statusCode}): ${errorMessage}`;
-        }
-      }
-    } else if (err.request) {
-      error.value = "無法連接到伺服器，請檢查網絡連接";
-    } else {
-      error.value = err.message || "發生未知錯誤";
-    }
+    error.value =
+      "載入訂單失敗: " + (err.response?.data?.message || err.message);
   } finally {
     loading.value = false;
   }
 };
-// 處理付款
-const processPayment = async () => {
-  // 驗證付款信息
-  if (selectedPaymentMethod.value === "CREDIT_CARD") {
-    if (
-      !cardInfo.value.cardNumber ||
-      cardInfo.value.cardNumber.replace(/\s/g, "").length !== 16
-    ) {
-      alert("請輸入有效的信用卡號碼");
-      return;
-    }
 
-    if (
-      !cardInfo.value.cardExpiry ||
-      !cardInfo.value.cardExpiry.includes("/")
-    ) {
-      alert("請輸入有效的到期日期");
-      return;
-    }
-
-    if (!cardInfo.value.cardCVC || cardInfo.value.cardCVC.length !== 3) {
-      alert("請輸入有效的安全碼");
-      return;
-    }
-
-    if (!cardInfo.value.cardHolder) {
-      alert("請輸入持卡人姓名");
-      return;
-    }
-  }
-
+// 處理綠界付款
+const processECPayPayment = async () => {
   isProcessing.value = true;
-
   try {
-    // 構建付款數據
-    const paymentData = {
-      orderId: order.value.orderId,
-      paymentMethod: selectedPaymentMethod.value,
-      amount: order.value.totalPrice,
-    };
-
-    // 如果是信用卡付款，添加卡信息
-    if (selectedPaymentMethod.value === "CREDIT_CARD") {
-      paymentData.cardInfo = {
-        cardNumber: cardInfo.value.cardNumber.replace(/\s/g, ""),
-        cardExpiry: cardInfo.value.cardExpiry,
-        cardCVC: cardInfo.value.cardCVC,
-        cardHolder: cardInfo.value.cardHolder,
-      };
-    }
-
-    // 發送付款請求
-    const response = await axios.post("/api/payments/process", paymentData, {
-      headers: {
-        Authorization: `Bearer ${userStore.token}`,
-      },
-    });
-
-    // 處理付款結果
-    if (
-      response.data &&
-      (response.data.success || response.data.status === "success")
-    ) {
-      // 跳轉到付款成功頁面
-      router.push({
-        name: "PaymentResult",
-        params: {
-          id: order.value.orderId,
-        },
-        query: {
-          status: "success",
-          method: selectedPaymentMethod.value,
-        },
-      });
-    } else {
-      throw new Error(response.data?.message || "付款處理失敗");
-    }
+    // 使用完整的 URL 跳轉到後端 API
+    const backendUrl = window.location.origin; // 例如 http://localhost:8081
+    window.location.href = `${backendUrl}/api/payment/redirect/${order.value.orderId}`;
   } catch (err) {
-    console.error("付款處理錯誤:", err);
+    console.error("處理綠界付款錯誤:", err);
+    alert("付款處理失敗: " + (err.message || "未知錯誤"));
+    isProcessing.value = false;
+  }
+};
+
+// 處理手機轉帳
+const processMobileTransfer = async () => {
+  isProcessing.value = true;
+  try {
+    const response = await axios.post(
+      `/api/payment/orders/${order.value.orderId}/payment`,
+      {
+        method: "MOBILE_TRANSFER",
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${userStore.token}`,
+        },
+      }
+    );
+
+    // 轉向到付款結果頁面
+    router.push({
+      path: `/payment/result/${order.value.orderId}`,
+      query: { status: "success", method: "MOBILE_TRANSFER" },
+    });
+  } catch (err) {
+    console.error("處理手機轉帳錯誤:", err);
     alert(
-      "付款處理失敗: " +
-      (err.response?.data?.message || err.message || "未知錯誤")
+      "處理失敗: " + (err.response?.data?.message || err.message || "未知錯誤")
+    );
+    isProcessing.value = false;
+  }
+};
+
+// 處理貨到付款
+const processCashOnDelivery = async () => {
+  isProcessing.value = true;
+  try {
+    const response = await axios.post(
+      `/api/payment/orders/${order.value.orderId}/payment`,
+      {
+        method: "CASH_ON_DELIVERY",
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${userStore.token}`,
+        },
+      }
+    );
+
+    console.log("貨到付款回應:", response.data);
+
+    // 轉向到付款結果頁面
+    router.push({
+      path: `/payment/result/${order.value.orderId}`,
+      query: { status: "success", method: "CASH_ON_DELIVERY" },
+    });
+  } catch (err) {
+    console.error("處理貨到付款錯誤:", err);
+    alert(
+      "處理失敗: " + (err.response?.data?.message || err.message || "未知錯誤")
     );
     isProcessing.value = false;
   }
@@ -709,7 +568,6 @@ onMounted(() => {
 /* 卡片樣式 */
 .order-summary-card,
 .payment-method-card,
-.credit-card-form,
 .bank-transfer-info {
   background-color: white;
   border-radius: 8px;
@@ -953,51 +811,7 @@ onMounted(() => {
   width: 20px;
 }
 
-/* 信用卡表單 */
-.credit-card-form {
-  padding: 20px;
-}
-
-.credit-card-form h3 {
-  margin-bottom: 20px;
-  font-size: 18px;
-}
-
-.form-group {
-  margin-bottom: 15px;
-}
-
-.form-row {
-  display: flex;
-  gap: 15px;
-}
-
-.form-row .form-group {
-  flex: 1;
-}
-
-label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: bold;
-  font-size: 14px;
-}
-
-input {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 5px;
-  font-size: 16px;
-}
-
-input:focus {
-  outline: none;
-  border-color: #80bdff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-}
-
-/* ATM 轉帳資訊 */
+/* 手機轉帳資訊 */
 .bank-transfer-info {
   padding: 20px;
 }
@@ -1127,10 +941,6 @@ input:focus {
     padding: 5px 0;
   }
 
-  .form-row {
-    flex-direction: column;
-  }
-
   .payment-actions {
     flex-direction: column;
   }
@@ -1141,4 +951,3 @@ input:focus {
   }
 }
 </style>
-```

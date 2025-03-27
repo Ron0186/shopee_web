@@ -225,6 +225,13 @@
               立即付款
             </button>
             <button
+              @click="directPayOrder(order.orderId)"
+              class="action-btn pay-btn"
+              v-if="order.status === '未付款'"
+            >
+              立即付款
+            </button>
+            <button
               v-if="canReview(order)"
               @click="reviewOrder(order.orderId)"
               class="action-btn review-btn"
@@ -289,6 +296,10 @@ import { useRouter } from "vue-router";
 
 // 在 setup 函數中定義
 const router = useRouter();
+
+const directPayOrder = (orderId) => {
+  router.push(`/checkout/pay/${orderId}`);
+};
 
 const userStore = useUserStore();
 const isSeller = computed(() => userStore.roles?.includes("SELLER"));
@@ -491,9 +502,13 @@ const canCancel = (order) => {
 };
 
 const canPayNow = (order) => {
-  // 檢查訂單狀態是否為「待付款」
+  console.log("檢查訂單:", order);
+
+  // 檢查訂單狀態是否為「未付款」或相關狀態
   const isPendingPayment =
-    order.status === "待付款" || order.status === "PENDING";
+    order.status === "待付款" ||
+    order.status === "PENDING" ||
+    order.status === "未付款";
 
   // 檢查支付狀態
   const isNotPaid =
@@ -507,7 +522,13 @@ const canPayNow = (order) => {
   // 檢查用戶是否已登入
   const isLoggedIn = Boolean(userStore.token);
 
-  // 返回所有條件都滿足的結果
+  console.log("訂單付款檢查:", {
+    isPendingPayment,
+    isNotPaid,
+    isValidOrder,
+    isLoggedIn,
+  });
+
   return isPendingPayment && isNotPaid && isValidOrder && isLoggedIn;
 };
 
@@ -573,12 +594,14 @@ const payOrder = async (orderId) => {
       }
     );
 
-    // 根據 API 回應處理
+    console.log("檢查付款回應:", checkResponse.data);
+
+    // 正確處理 API 響應
     if (checkResponse.data.status === "success") {
       // 可以付款，導向付款頁面
       router.push(`/checkout/pay/${orderId}`);
     } else {
-      // 顯示錯誤訊息
+      // 顯示 API 返回的錯誤訊息
       alert(checkResponse.data.message || "無法進行付款");
     }
   } catch (error) {
