@@ -62,20 +62,19 @@
 
 
 <script setup>
-import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useHelpStore } from "../stores/HelpStore";
-import { useUserStore } from '../stores/user'
-import { fetchStores, fetchUnreadCounts } from '../stores/chatApi'
-import axios from 'axios'
+import { useUserStore } from '../stores/user';
+import { fetchStores, fetchUnreadCounts } from '../stores/chatApi';
+import axios from 'axios';
 
-const route = useRoute()
-const router = useRouter()
-const helpStore = useHelpStore()
-const userStore = useUserStore()
-const showStoreList = ref(false)
-const stores = ref([])
-
+const route = useRoute();
+const router = useRouter();
+const helpStore = useHelpStore();
+const userStore = useUserStore();
+const showStoreList = ref(false);
+const stores = ref([]);
 const selectedArticle = computed(() =>
     helpStore.faqCategories.flatMap(category => category.items)
         .find(item => item.id === route.params.id)
@@ -84,155 +83,141 @@ const selectedArticle = computed(() =>
 watch(() => route.params.id, newId => {
     helpStore.setSelectedArticle(newId);
 }, { immediate: true });
+const isShopOwner = computed(() => userStore.isSeller);
 
-// 檢查使用者身份，若為 SELLER 則為商店持有者
-const isShopOwner = computed(() => userStore.isSeller)
-
-// 載入商店列表
 const loadStores = async () => {
     try {
-        const { data } = await fetchStores()
-        // 檢查 data 是否存在且是有效的響應
+        const { data } = await fetchStores();
         if (!data) {
-            console.error('API 返回空數據')
-            stores.value = []
-            return
+            console.error('API 返回空數據');
+            stores.value = [];
+            return;
         }
-
-        // 處理不同格式的 API 響應
-        let storesData = []
+        // 根據 API 回傳格式處理數據
+        let storesData = [];
         if (Array.isArray(data)) {
-            storesData = data
+            storesData = data;
         } else if (data.stores && Array.isArray(data.stores)) {
-            storesData = data.stores
+            storesData = data.stores;
         } else if (data.data && Array.isArray(data.data)) {
-            storesData = data.data
+            storesData = data.data;
         } else {
-            console.warn('無法識別的 API 響應格式:', data)
-            storesData = []
+            console.warn('無法識別的 API 響應格式:', data);
+            storesData = [];
         }
-
         stores.value = data.map(store => ({
             ...store,
             isSeller: store.sellerId === userStore.userId
-        }))
+        }));
     } catch (error) {
-        console.error('載入商店失敗:', error)
-        stores.value = []
+        console.error('載入商店失敗:', error);
+        stores.value = [];
     }
-}
+};
 
-// 開啟 Modal 並載入商店列表及未讀訊息計數
 const openModal = () => {
-    showStoreList.value = true
-    loadStores()
-    loadUnreadCounts()
-}
+    showStoreList.value = true;
+    loadStores();
+    loadUnreadCounts();
+};
 
-// 關閉 Modal，並返回幫助中心首頁
 const closeModal = () => {
-    showStoreList.value = false
-    router.push('/helpCenter')
-}
+    showStoreList.value = false;
+    router.push('/helpCenter');
+};
 
-// 共用：從 http://localhost:8081/api/shop/allShop 取得所有商店資料，並回傳對應的 shop 物件
 const getShopInfo = async (storeId, isSellerChat = false) => {
     try {
-        const response = await axios.get("http://localhost:8081/api/shop/allShop")
-        console.log("API 回傳的商店資料:", response.data)
-
-        // 處理 API 響應格式
-        const shops = response.data?.data || [] // 根據實際結構調整
-        console.log("要查找的 storeId:", storeId);
-
-
-        let shop = null
+        const response = await axios.get("http://localhost:8081/api/shop/allShop");
+        console.log("API 回傳的商店資料:", response.data);
+        const shops = response.data?.data || [];
+        let shop = null;
         if (isSellerChat) {
-            // 賣家聊天：找出 sellerId 等於當前使用者 ID 的商店
             shop = shops.find(s => parseInt(s.userId) === parseInt(userStore.userId));
         } else {
-            // 買家聊天：以傳入的 storeId 為依據
             shop = shops.find(s => parseInt(s.shopId) === parseInt(storeId));
         }
-        return shop
+        return shop;
     } catch (error) {
-        console.error('取得商店資訊失敗:', error)
-        return null
+        console.error('取得商店資訊失敗:', error);
+        return null;
     }
-}
+};
 
-// 建立聊天室及設置更新（共用邏輯）
 const setupChatUpdates = (chatRoomId) => {
-    const eventSource = new EventSource(`/api/chat/updates?roomId=${chatRoomId}`)
+    const eventSource = new EventSource(`http://localhost:8081/api/chat/updates?roomId=${chatRoomId}`);
     eventSource.onmessage = (event) => {
-        const newMessage = JSON.parse(event.data)
-        console.log('新訊息:', newMessage)
-        // 此處可整合至聊天訊息 store 更新畫面
-    }
+        const newMessage = JSON.parse(event.data);
+        console.log('新訊息:', newMessage);
+        // 可根據需求更新聊天 store（例如 chatStore.addMessage(newMessage)）
+    };
     eventSource.onerror = () => {
-        console.error('聊天室更新連線錯誤')
-    }
+        console.error('聊天室更新連線錯誤');
+    };
     onUnmounted(() => {
-        eventSource.close()
-    })
-}
+        eventSource.close();
+    });
+};
 
-// 賣家聊天：先取得商店資訊，再以 buyerId 與 shopId 建立聊天室
 const sellerChat = async () => {
-    const shop = await getShopInfo(null, true)
+    const shop = await getShopInfo(null, true);
     if (!shop) {
-        console.error('找不到符合的商店資訊')
-        return
+        console.error('找不到符合的商店資訊');
+        return;
     }
     try {
-        const response = await axios.post('/api/chat/create', {
-            buyerId: userStore.userId,
+        const response = await axios.post('http://localhost:8081/api/chat/create', {
+
             shopId: shop.shopId
-        })
+        },
+            {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } // <span style="color:red;">【修改處】帶上正確的 Authorization header】</span>
+            });
         if (response.data?.chatRoomId) {
-            router.push(`/chat/${response.data.chatRoomId}`)
-            setupChatUpdates(response.data.chatRoomId)
+            router.push(`/chat/${response.data.chatRoomId}`);
+            setupChatUpdates(response.data.chatRoomId);
         }
     } catch (error) {
-        console.error('賣家聊天室建立失敗:', error)
+        console.error('賣家聊天室建立失敗:', error);
     }
-}
+};
 
-// 買家聊天：先取得傳入 storeId 對應的商店資訊，再建立聊天室
 const buyerChat = async (storeId) => {
-    const shop = await getShopInfo(storeId, false)
+    const shop = await getShopInfo(storeId, false);
     if (!shop) {
-        console.error(`找不到 shopId 為 ${storeId} 的商店資訊`)
-        return
+        console.error(`找不到 shopId 為 ${storeId} 的商店資訊`);
+        return;
     }
     try {
-        const response = await axios.post('/api/chat/create', {
-            buyerId: userStore.userId,
+        const response = await axios.post('http://localhost:8081/api/chat/create', {
+
             shopId: shop.shopId
-        })
+        },
+            {
+                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } // <span style="color:red;">【修改處】帶上正確的 Authorization header】</span>
+            });
         if (response.data?.chatRoomId) {
-            router.push(`/chat/${response.data.chatRoomId}`)
-            setupChatUpdates(response.data.chatRoomId)
+            router.push(`/chat/${response.data.chatRoomId}`);
+            setupChatUpdates(response.data.chatRoomId);
         }
     } catch (error) {
-        console.error('買家聊天室建立失敗:', error)
+        console.error('買家聊天室建立失敗:', error);
     }
-}
+};
 
-// 載入未讀訊息計數（示範用，可依需求調整）
 const loadUnreadCounts = async () => {
-    if (!userStore.userId) return
+    if (!userStore.userId) return;
     try {
-        const response = await fetchUnreadCounts(userStore.userId)
-        console.log('未讀訊息計數:', response.data)
+        const response = await fetchUnreadCounts(userStore.userId);
+        console.log('未讀訊息計數:', response.data);
     } catch (error) {
-        console.error('載入未讀訊息計數失敗:', error)
+        console.error('載入未讀訊息計數失敗:', error);
     }
-}
+};
 
 onMounted(() => {
-    // 若直接進入幫助中心首頁，可視需求進行初始化設定
-})
+    // 可根據需求初始化設定
+});
 </script>
 
 <style scoped>

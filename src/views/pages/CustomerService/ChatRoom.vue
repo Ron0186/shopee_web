@@ -4,7 +4,7 @@
         <p>{{ loadingText }}</p>
     </div>
     <!-- 修改判断条件为 chatRoomId -->
-    <div class="chat-room" v-if="activeChatRoom.chatRoomId">
+    <div class="chat-room" v-else>
         <!-- 调整显示逻辑，优先显示店铺信息 -->
         <h2 v-if="activeChatRoom.shop">
             {{ activeChatRoom.shop.shopName || activeChatRoom.seller.username }}的客服聊天室
@@ -12,6 +12,7 @@
         <h2 v-else>
             {{ activeChatRoom.seller.username }}的個人聊天室
         </h2>
+
         <div class="messages">
             <div v-for="msg in safeMessages" :key="msg.id" class="message">
                 <div :class="['message-container', { 'my-message': msg.sender?.userId === currentUser?.userId }]">
@@ -23,7 +24,6 @@
                 </div>
             </div>
         </div>
-
 
         <div class="input-area">
             <input v-model="newMessage" @keyup.enter="send" placeholder="輸入訊息..." />
@@ -45,9 +45,20 @@ import { storeToRefs } from "pinia";
 const chatStore = useChatStore();
 const route = useRoute();
 const router = useRouter();
+
+// 🔴 <span style="color:red;">【修改處】用於顯示載入中文案</span>
+const loadingText = ref("載入中...");
+
+// 文字輸入框
 const newMessage = ref("");
+
+// 🔴 <span style="color:red;">【修改處】取得 localStorage 中的 token，供後續 Axios 與 WebSocket 使用</span>
+const token = localStorage.getItem('token');
+
+// 從 chatStore 取出當前使用者
 const { currentUser } = storeToRefs(chatStore);
-let stompClient = null;// WebSocket 相關
+
+// 聊天室基本資料
 const activeChatRoom = ref({
     chatRoomId: null,
     seller: {
@@ -59,10 +70,19 @@ const activeChatRoom = ref({
         shopName: null
     }
 });
+
+// 聊天訊息列表 (來自 store)
 const messages = computed(() => chatStore.messages);
+const safeMessages = computed(() => messages.value);
+
+// 是否在檢查聊天室狀態
+const checkingExisting = ref(false);
+
+// WebSocket 客戶端
+let stompClient = null;
 
 // 時間格式化函式
-const formatTime = (timestamp) => {
+function formatTime(timestamp) {
     if (!timestamp) return null;
     const date = new Date(timestamp);
     return date.toLocaleString("zh-TW", {
@@ -74,36 +94,35 @@ const formatTime = (timestamp) => {
         second: "2-digit",
         hour12: false
     });
-};
-
-// 新增检查聊天室存在状态
-const checkingExisting = ref(false);
-
-const safeMessages = computed(() => messages.value);
-
+}
 
 onMounted(async () => {
-
-    // 情况1：直接通过 chatRoomId 访问
+    // 情況1：直接透過路由參數 chatRoomId 進入
     if (route.params.chatRoomId) {
         await loadChatRoom(route.params.chatRoomId);
         return;
     }
 
-    // 情况2：通过 shopId 创建/获取聊天室
+    // 情況2：若 query 帶了 shopId，表示要建立或取得聊天室
     if (route.query.shopId) {
         checkingExisting.value = true;
         try {
-            const response = await axios.post('/api/chat/create', {
-                buyerId: currentUser.value?.userId,
-                shopId: route.query.shopId
-            });
-            // 根据已存在标识判断
+            // 🔴 <span style="color:red;">【修改處】只傳 { shopId } 作為 body，並在 headers 帶 token</span>
+            const response = await axios.post(
+                "http://localhost:8081/api/chat/create",
+                { shopId: route.query.shopId },
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                }
+            );
+
             if (response.data.alreadyExists) {
-                // 聊天室已存在，直接加载聊天室数据
+                // 聊天室已存在，直接載入
                 await loadChatRoom(response.data.chatRoomId);
             } else {
-                // 新创建的聊天室，进行路由替换
+                // 新建立的聊天室，改用 router.replace 進入
                 router.replace({
                     path: `/chat/${response.data.chatRoomId}`,
                     query: { from: 'new' }
@@ -120,179 +139,192 @@ onMounted(async () => {
             checkingExisting.value = false;
         }
     }
+
+    // 若 chatStore 尚未載入 currentUser，可嘗試抓取
     try {
         if (!chatStore.currentUser) {
             await chatStore.fetchCurrentUser();
         }
     } catch (error) {
-        console.error('用户数据加载失败:', error);
+        console.error('使用者資料載入失敗:', error);
         router.push('/user/login');
     }
 });
 
-// 新增路由监听
+// 監聽路由參數的變動（如切換聊天室）
 watch(
     () => route.params.chatRoomId,
     async (newChatRoomId, oldChatRoomId) => {
         if (newChatRoomId && newChatRoomId !== oldChatRoomId) {
-            // 清空舊訊息，避免前一個聊天室的訊息殘留
-            chatStore.messages = []; // 直接操作 store 的 messages
+            // 清空舊訊息
+            chatStore.messages = [];
 
-
-            // 取消舊的 WebSocket 訂閱
+            // 若已有 stompClient，取消訂閱舊聊天室
             if (stompClient && stompClient.connected) {
                 stompClient.unsubscribe(`sub-${oldChatRoomId}`);
             }
 
-            // 重置 activeChatRoom 避免残留旧数据
+            // 重置 activeChatRoom
             activeChatRoom.value = {
                 chatRoomId: null,
                 seller: {},
                 shop: {}
             };
-            // 加載新的聊天室
+
+            // 載入新聊天室
             await loadChatRoom(newChatRoomId);
         }
     },
-    { immediate: true } // 初始化时立即执行
+    { immediate: true }
 );
 
+// 監聽 store 中 messages 的變化
 watch(() => chatStore.messages, (newMessages) => {
-    messages.value = newMessages;
+    // 這裡可以做一些 UI 效果，例如自動捲動到底部
 }, { deep: true });
 
-
-// 封装加载聊天室逻辑
+/**
+ * 依 chatRoomId 取得聊天室詳情，並連線 WebSocket
+ */
 async function loadChatRoom(chatRoomId) {
     try {
-        const chatRoomRes = await axios.get(`/api/chat/${chatRoomId}`);
+        const response = await axios.get(
+            `http://localhost:8081/api/chat/${chatRoomId}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}` // 帶上 token
+                }
+            }
+        );
+        // 設定聊天室資訊
+        activeChatRoom.value = response.data;
 
-        // 验证响应数据格式
-        if (!chatRoomRes.data?.chatRoomId) {
-            throw new Error("无效的聊天室数据");
-        }
+        // 🔴 <span style="color:red;">【修改處】載入歷史訊息 (若需要)</span>
+        await loadMessages(chatRoomId);
 
-        activeChatRoom.value = {
-            chatRoomId: chatRoomRes.data.chatRoomId,
-            seller: {
-                userId: chatRoomRes.data.seller?.userId,
-                username: chatRoomRes.data.seller?.username
-            },
-            shop: chatRoomRes.data.shop ? {
-                shopId: chatRoomRes.data.shop.shopId,
-                shopName: chatRoomRes.data.shop.shopName
-            } : null
-        };
-
-        await chatStore.loadMessages(chatRoomId);
+        // 🔴 <span style="color:red;">【修改處】呼叫 connectWebSocket，建立訂閱</span>
         connectWebSocket(chatRoomId);
+
     } catch (error) {
-        Swal.fire("錯誤", "聊天室加載失敗", "error");
+        console.error('聊天室詳情載入失敗:', error);
+        Swal.fire("錯誤", error.response?.data?.message || '載入失敗', 'error');
         router.push('/user/login');
     }
 }
 
+/**
+ * 若需要歷史訊息，可從 /api/chat/{chatRoomId}/messages 取得
+ */
+async function loadMessages(chatRoomId) {
+    try {
+        const response = await axios.get(
+            `http://localhost:8081/api/chat/${chatRoomId}/messages`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            }
+        );
+        // 直接替換 store 中 messages
+        chatStore.messages = response.data;
+    } catch (error) {
+        console.error('歷史訊息載入失敗:', error);
+    }
+}
 
-// 增强版WebSocket连接
+/**
+ * 建立 WebSocket 連線並訂閱聊天室頻道
+ */
 function connectWebSocket(chatRoomId) {
     const socket = new SockJS('http://localhost:8081/ws');
     stompClient = Stomp.over(socket);
 
     const headers = {
-        Authorization: `Bearer ${localStorage.getItem('token')}`,
-        // 從 Session 屬性中獲取用戶 ID（需前端在連線時設置）
+        Authorization: `Bearer ${token}`,
         userId: localStorage.getItem('userId')
     };
-    stompClient.connect(headers, () => {
-        console.log('WebSocket连接成功');
 
-        const subscription = stompClient.subscribe(
+    stompClient.connect(headers, () => {
+        console.log('WebSocket 連線成功');
+
+        // 訂閱 /topic/chat/{chatRoomId} 頻道
+        stompClient.subscribe(
             `/topic/chat/${chatRoomId}`,
             (message) => {
                 const receivedMessage = JSON.parse(message.body);
-                console.log("收到訊息:", receivedMessage); // **除錯用，確認 WebSocket 有收到**
-                // chatStore.messages.push(receivedMessage);
-                chatStore.messages = [...chatStore.messages]; // **強制 Vue 更新**
+                console.log("收到訊息:", receivedMessage);
 
-                // 防止重复添加
+                // 防止重複
                 if (!chatStore.messages.some(msg => msg.id === receivedMessage.id)) {
-                    // 使用函數式更新確保響應性
                     chatStore.messages.push(receivedMessage);
                 }
-
             },
-            { id: `sub-${chatRoomId}` } // 指定订阅ID
+            { id: `sub-${chatRoomId}` }
         );
 
-        // 组件卸载时取消订阅
+        // 組件卸載時斷線
         onUnmounted(() => {
             if (stompClient && stompClient.connected) {
                 stompClient.disconnect(() => {
-                    console.log('WebSocket 已断开');
+                    console.log('WebSocket 已斷線');
                 });
             }
         });
-
     }, (error) => {
-        console.error("WebSocket连接失败:", error);
-        // 5秒后尝试重连
+        console.error("WebSocket 連線失敗:", error);
+        // 失敗後嘗試重新連線
         setTimeout(() => connectWebSocket(chatRoomId), 5000);
     });
 }
 
-const send = async () => {
+/**
+ * 發送訊息
+ */
+async function send() {
     if (!newMessage.value.trim() || !activeChatRoom.value.chatRoomId) return;
-
     try {
-        // 确保用户已加载且数据完整
         if (!currentUser.value?.userId) {
             Swal.fire("錯誤", "請先登入", "error");
             return router.push('/user/login');
         }
-
-
-        // 构建消息对象（需匹配后端 ChatMessageDTO）
         const message = {
             chatRoomId: activeChatRoom.value.chatRoomId,
             content: newMessage.value.trim(),
-            senderName: currentUser.value.username, // 发送 senderName
+            senderName: currentUser.value.username,
             sender: {
                 userId: currentUser.value.userId,
-
             },
-            timestamp: new Date().toISOString() // 手動加上時間
+            timestamp: new Date().toISOString()
         };
-        console.log("Sending message:", message); // 用於除錯
-        console.log("currentUser:", currentUser.value);
-        // 添加到本地消息列表
+        console.log("Sending message:", message);
+
+        // 先加到 store，讓畫面即時更新
         chatStore.addMessage({
             ...message,
-            id: `temp-${Date.now()}`  // 添加临时唯一ID
+            id: `temp-${Date.now()}`
         });
 
-        // 通过 STOMP 发送消息到后端（路径对应 @MessageMapping("/send"）
         if (stompClient && stompClient.connected) {
             stompClient.send(
-                "/app/send", // 目标路径（Spring 的 MessageMapping 前缀为 /app）
+                "/app/send",
                 {},
                 JSON.stringify(message)
             );
-            // ✅ **手動將訊息推入 `messages`，確保畫面即時更新**
+            // 再次推入，或直接依照後端回傳更新
             chatStore.addMessage(message);
-            // 清空输入框
             newMessage.value = "";
         } else {
-            throw new Error("WebSocket 未连接");
+            throw new Error("WebSocket 未連線");
         }
     } catch (error) {
-        console.error("消息发送失败:", error);
+        console.error("消息發送失敗:", error);
         Swal.fire({
             title: "錯誤",
-            text: "訊息發送失敗，請檢查網路連接",
+            text: "訊息發送失敗，請檢查網路連線",
             icon: "error"
         });
     }
-};
+}
 </script>
 
 <style scoped>
@@ -339,28 +371,23 @@ button:hover {
     background: #dcf8c6;
     margin-left: auto;
     max-width: 75%;
-    /* 调整最大宽度 */
-
 }
 
 .message-header {
     display: flex;
     justify-content: space-between;
     align-items: baseline;
-    /* 调整对齐方式 */
     margin-bottom: 4px;
 }
 
 .username {
     order: 2;
-    /* 用户名在右側 */
     color: #2c3e50;
     font-weight: 600;
 }
 
 .timestamp {
     order: 1;
-    /* 時間在左側 */
     font-size: 0.75rem;
     color: #666;
 }
@@ -371,7 +398,6 @@ button:hover {
     font-size: 0.9rem;
 }
 
-/* 自己訊息的特別樣式 */
 .my-message .message-header {
     flex-direction: row-reverse;
 }
@@ -384,7 +410,6 @@ button:hover {
     color: #7f8c8d;
 }
 
-/* 新增加载动画样式 */
 .loading-container {
     text-align: center;
     padding: 2rem;
