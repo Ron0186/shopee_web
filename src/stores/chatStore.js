@@ -1,178 +1,135 @@
 // stores/chatStore.js
 import { defineStore } from 'pinia';
-import axios from "@/plugins/axios";
-import SockJS from "sockjs-client/dist/sockjs";
-import Stomp from "stompjs";
-export const useChatStore = defineStore('chat', {
-    state: () => ({
-        activeChatRoom: null,      // 當前聊天室 { id, buyer, seller }
-        messages: [],              // 當前聊天室訊息列表
-        notifications: [],         // 未讀通知列表
-        stompClient: null,
-        currentUser: { // ✅ 直接初始化
-            userId: localStorage.getItem("userId") || null,
-            username: localStorage.getItem("username") || null, // 注意 key 名稱一致性
-            roles: JSON.parse(localStorage.getItem("roles") || "[]")
-        },
-        reconnectAttempts: 0, // 新增重连计数器
-        maxReconnectAttempts: 5, // 最大重连次数
-        currentReject: null
-
-    }),
-    actions: {
-
-        async createOrGetChatRoom(shopId) {
-            try {
-                console.log('目前使用者:', this.currentUser);
-                console.log('即將傳遞的 buyerId:', this.currentUser.userId);
-                // 3. 创建新聊天室
-                const createResponse = await axios.post('http://localhost:8081/api/chat/create', {
-                    buyerId: this.currentUser.userId,
-                    shopId: shopId
-                });
-
-                return {
-                    success: true,
-                    chatRoomId: createResponse.data.chatRoomId,
-                    isNew: true
-                };
-            } catch (error) {
-                console.error('创建聊天室失败:', error.response?.data);
-                return {
-                    success: false,
-                    message: error.response?.data?.message || '创建聊天室失败，请稍后重试',
-                    error: error.response?.data
-                };
-            }
-        },
+import { ref } from 'vue';
+import axios from 'axios';
+import SockJS from 'sockjs-client/dist/sockjs';
+import Stomp from 'stompjs';
 
 
-        setCurrentUser(userData) {
-            this.currentUser = {
-                userId: userData.id,
-                username: userData.username, // 確保使用正確字段名稱
-                roles: userData.roles
-            };
-            localStorage.setItem("userId", userData.id);
-            localStorage.setItem("username", userData.username); // 修正 key 名稱
-            localStorage.setItem("roles", JSON.stringify(userData.roles));
-        },
 
-        // 初始化 WebSocket 連接
-        async connectWebSocket(userId) {
-            return new Promise((resolve, reject) => {
-                // 存储reject引用
-                this.currentReject = reject;
-                const socket = new SockJS('http://localhost:8081/ws');
-                this.stompClient = Stomp.over(socket);
+class SocketManager {
+    constructor() {
+        this.stompClient = null;
+        this.subscriptions = new Map();
+    }
 
-                const headers = {
-                    'userId': userId,
-                    'Authorization': `Bearer ${localStorage.getItem('token')}`
-                }; // 添加认证头
-                this.stompClient.connect(headers,
-                    () => {
-                        console.log('WebSocket 连接成功');
-                        this.reconnectAttempts = 0; // 重置重连计数器
+    connect(chatRoomId, userId, messageHandler) {
+        const socket = new SockJS('http://localhost:8081/ws');
+        this.stompClient = Stomp.over(socket);
 
-                        // 订阅通知频道
-                        this.stompClient.subscribe(
-                            `/user/${userId}/queue/notifications`,
-                            (message) => {
-                                this.notifications.push(JSON.parse(message.body));
-                            },
-                            { 'id': `sub-${userId}` } // 添加订阅ID便于管理
-                        );
-                        resolve();
-                    },
-                    (error) => {
-                        console.error('WebSocket 连接失败:', error);
-                        this.handleReconnect(userId);
-                        reject(error);
+        this.stompClient.connect({}, () => {
+            this.subscribe(`/topic/chat/${chatRoomId}`, messageHandler);
+            this.subscribe(`/user/${userId}/queue/notifications`, this.handleNotification);
+        });
+    }
+
+    subscribe(destination, callback) {
+        const sub = this.stompClient.subscribe(destination, (message) => {
+            callback(JSON.parse(message.body));
+        });
+        this.subscriptions.set(destination, sub);
+    }
+
+    disconnect() {
+        this.subscriptions.forEach(sub => sub.unsubscribe());
+        this.stompClient?.disconnect();
+    }
+}
+export const useChatStore = defineStore('chat', () => {
+    const currentUser = ref(null);
+    const activeChatRoom = ref(null);
+    const messages = ref([]);
+    const unreadCounts = ref({});
+    const Stomp = ref(null);
+    const socketManager = ref(new SocketManager());
+
+    // 初始化WebSocket连接
+    const connectWebSocket = (userId) => {
+        const socket = new SockJS('http://localhost:8081/ws');
+        Stomp.value = new Client({
+            webSocketFactory: () => socket,
+            connectHeaders: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            onConnect: () => {
+                // 订阅聊天室消息
+                Stomp.value.subscribe(
+                    `/topic/chat/${activeChatRoom.value.chatRoomId}`,
+                    (message) => {
+                        const newMessage = JSON.parse(message.body);
+                        messages.value.push(newMessage);
                     }
                 );
-            });
-        },
 
+                // 订阅卖家通知频道
+                Stomp.value.subscribe(
+                    `/user/${userId}/queue/notifications`,
+                    (notification) => {
+                        const data = JSON.parse(notification.body);
+                        unreadCounts.value[data.chatRoomId] = data.unreadCount;
+                    }
+                );
+            },
+        });
+        Stomp.value.activate();
+    };
 
-        // 新增重连处理
-        handleReconnect(userId) {
-            if (this.reconnectAttempts < this.maxReconnectAttempts) {
-                this.reconnectAttempts++;
-                const delay = Math.min(1000 * this.reconnectAttempts, 5000); // 指数退避
-
-                console.log(`尝试第 ${this.reconnectAttempts} 次重连，等待 ${delay}ms`);
-
-                setTimeout(() => {
-                    this.connectWebSocket(userId);
-                }, delay);
-            } else {
-                console.error(`已达到最大重连次数 ${this.maxReconnectAttempts}`);
-            }
-        },
-
-        // 發送訊息
-        async sendMessage(content) {
-            if (!this.activeChatRoom || !this.currentUser) {
-                console.error("無法發送訊息，聊天室或用戶未初始化");
-                return;
-            }
-
-            const message = {
-                content: content,
-                sender: { // 發送完整用戶資訊
-                    userId: this.currentUser.userId,
-                    username: this.currentUser.username,
-                    role: this.currentUser.roles[0], // 假設第一個角色是主要身份
-                    senderName: this.currentUser.username // 這裡新增 senderName
-                },
-                chatRoomId: this.activeChatRoom.id,
-                timestamp: new Date().toISOString()
-            };
-
-
-            this.stompClient.send(
-                `/app/chat/${this.activeChatRoom.id}/send`,
-                {},
-                JSON.stringify(message)
+    // 创建或进入聊天室
+    const createOrJoinChatRoom = async (shopId) => {
+        try {
+            const response = await axios.post(
+                '/api/chat/create',
+                { shopId },
+                { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
             );
-            // 本地預先添加訊息
-            this.messages.push({
-                ...message,
-                id: Date.now() // 臨時唯一ID
-            });
-        },
-
-
-        // 載入聊天室訊息
-        async loadMessages(chatRoomId) {
-            try {
-                const response = await axios.get(`/api/chat/${chatRoomId}/messages`);
-                if (Array.isArray(response.data)) {
-                    this.messages = response.data;
-                } else {
-                    console.error("後端返回的訊息格式錯誤:", response.data);
-                }
-            } catch (error) {
-                console.error("載入訊息失敗:", error);
-            }
-        },
-
-        addMessage(message) {
-            // 防止重复添加
-            if (!this.messages.some(m => m.timestamp === message.timestamp && m.content === message.content)) {
-                this.messages = [...this.messages, message];
-            }
-        },
-
-        async disconnectWebSocket() {
-            if (this.stompClient) {
-                return new Promise((resolve) => {
-                    this.stompClient.disconnect(resolve);
-                    this.stompClient = null;
-                });
-            }
+            activeChatRoom.value = response.data;
+            connectWebSocket(currentUser.value.userId);
+        } catch (error) {
+            console.error('创建聊天室失败:', error.response?.data?.error || error.message);
         }
+    };
 
-    },
+    // 发送消息
+    const sendMessage = (content) => {
+        if (!Stomp.value?.connected) return;
+        Stomp.value.publish({
+            destination: '/app/send',
+            body: JSON.stringify({
+                chatRoomId: activeChatRoom.value.chatRoomId,
+                content,
+            }),
+        });
+    };
+
+    // 获取未读消息数
+    const fetchUnreadCounts = async (sellerId) => {
+        const response = await axios.get(`/api/chat/unread?sellerId=${sellerId}`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        });
+        unreadCounts.value = response.data;
+    };
+
+
+    // 🔴 修改訊息處理邏輯
+    const handleIncomingMessage = (message) => {
+        if (!messages.value.some(m => m.messageId === message.messageId)) {
+            messages.value.push(message);
+        }
+    };
+    const connectChatRoom = (chatRoomId) => {
+        socketManager.value.connect(
+            chatRoomId,
+            userStore.userId,
+            handleIncomingMessage
+        );
+    };
+    return {
+        currentUser,
+        activeChatRoom,
+        messages,
+        unreadCounts,
+        createOrJoinChatRoom,
+        sendMessage,
+        fetchUnreadCounts,
+        connectChatRoom,
+        socketManager
+    };
 });
