@@ -179,6 +179,16 @@
           </button>
         </div>
         
+        <!-- 添加分隔線 -->
+        <div class="divider">
+          <span>或</span>
+        </div>
+
+        <!-- 添加 Google 登入按鈕 -->
+        <div class="social-login">
+          <GoogleLoginButton />
+        </div>
+        
         <div class="form-links">
           <router-link to="/user/login" class="login-link">
             <i class="bi bi-box-arrow-in-right"></i> 已有帳戶？立即登入
@@ -194,6 +204,7 @@ import axios from "@/plugins/axios";
 import { ref, onMounted, nextTick, watch, computed } from "vue";
 import Swal from "sweetalert2";
 import { useRouter, useRoute } from "vue-router";
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
 
 const router = useRouter();
 const route = useRoute();
@@ -463,6 +474,11 @@ watch(
     });
   }
 );
+
+watch(phone, (newValue) => {
+  // 只保留數字，並限制最大長度為10
+  phone.value = newValue.replace(/\D/g, '').slice(0, 10);
+});
 
 // 組件掛載後
 onMounted(async () => {
@@ -809,7 +825,6 @@ async function register() {
   width: 20px;
   height: 20px;
   margin-right: 8px;
-  font-size: 16px;
 }
 
 .check-icon i {
@@ -895,6 +910,38 @@ async function register() {
   color: var(--error-color);
   font-size: 13px;
   margin-top: 5px;
+}
+
+/* 分隔線 */
+.divider {
+  position: relative;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.divider::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background-color: var(--border-color);
+}
+
+.divider span {
+  position: relative;
+  background-color: var(--card-bg);
+  padding: 0 10px;
+  color: var(--text-light);
+  font-size: 14px;
+}
+
+/* 社交登入按鈕 */
+.social-login {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 10px;
 }
 
 /* 響應式設計 */
