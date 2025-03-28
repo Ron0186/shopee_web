@@ -37,7 +37,7 @@ export const useChatStore = defineStore('chat', () => {
     const stompClient = ref(null);
     const socketManager = ref(new SocketManager());
 
-    const connectWebSocket = (userId) => {
+    const connectWebSocket = () => {
         const socket = new SockJS('http://localhost:8081/ws');
         stompClient.value = new Stomp.Client({
             webSocketFactory: () => socket,
@@ -53,7 +53,7 @@ export const useChatStore = defineStore('chat', () => {
                 );
                 // 订阅賣家通知頻道
                 stompClient.value.subscribe(
-                    `/user/${userId}/queue/notifications`,
+                    `/user/${currentUser.value.userId}/queue/notifications`,
                     (notification) => {
                         const data = JSON.parse(notification.body);
                         unreadCounts.value[data.chatRoomId] = data.unreadCount;
@@ -66,8 +66,11 @@ export const useChatStore = defineStore('chat', () => {
 
     const createOrJoinChatRoom = async (shopId) => {
         try {
+            if (!currentUser.value) {
+                await fetchCurrentUser(); // 確保用戶已載入
+            }
             const response = await axios.post(
-                '/api/chat/create',
+                'http://localhost:8081/api/chat/create',
                 { shopId },
                 { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
             );
@@ -112,6 +115,22 @@ export const useChatStore = defineStore('chat', () => {
         );
     };
 
+    const fetchCurrentUser = async (userId) => {
+        try {
+
+            const response = await axios.get(`/api/user/check/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            currentUser.value = response.data;
+        } catch (error) {
+            console.error('獲取用戶失敗', error);
+            clearUserData();
+        }
+    };
+
+
     return {
         currentUser,
         activeChatRoom,
@@ -121,6 +140,7 @@ export const useChatStore = defineStore('chat', () => {
         sendMessage,
         fetchUnreadCounts,
         connectChatRoom,
-        socketManager
+        socketManager,
+        fetchCurrentUser
     };
 });

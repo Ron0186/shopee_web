@@ -52,8 +52,9 @@ const loadingText = ref("載入中...");
 // 文字輸入框
 const newMessage = ref("");
 
-// 🔴 <span style="color:red;">【修改處】取得 localStorage 中的 token，供後續 Axios 與 WebSocket 使用</span>
-const token = localStorage.getItem('token');
+// 🔴 修改1：直接从 localStorage 获取 userId
+const userId = ref(localStorage.getItem('userId'));
+const token = ref(localStorage.getItem('token'));
 
 // 從 chatStore 取出當前使用者
 const { currentUser } = storeToRefs(chatStore);
@@ -97,6 +98,17 @@ function formatTime(timestamp) {
 }
 
 onMounted(async () => {
+
+    // 🔴 確保 token 存在且有效
+    if (!token.value || !userId.value) {
+        router.push('/user/login');
+        return;
+    }
+
+    // 🔴 先載入當前用戶資料
+
+    await chatStore.fetchCurrentUser(userId.value);
+
     // 情況1：直接透過路由參數 chatRoomId 進入
     if (route.params.chatRoomId) {
         await loadChatRoom(route.params.chatRoomId);
@@ -237,11 +249,12 @@ async function loadMessages(chatRoomId) {
  */
 function connectWebSocket(chatRoomId) {
     const socket = new SockJS('http://localhost:8081/ws');
+
     stompClient = Stomp.over(socket);
 
     const headers = {
-        Authorization: `Bearer ${token}`,
-        userId: localStorage.getItem('userId')
+        Authorization: `Bearer ${token.value}`,
+        userId: userId.value
     };
 
     stompClient.connect(headers, () => {
@@ -253,7 +266,10 @@ function connectWebSocket(chatRoomId) {
             (message) => {
                 const receivedMessage = JSON.parse(message.body);
                 console.log("收到訊息:", receivedMessage);
-
+                stompClient.subscribe(`/user/${userId.value}/queue/notifications`, (message) => {
+                    const notification = JSON.parse(message.body);
+                    console.log('收到通知:', notification);
+                });
                 // 防止重複
                 if (!chatStore.messages.some(msg => msg.id === receivedMessage.id)) {
                     chatStore.messages.push(receivedMessage);
@@ -281,48 +297,35 @@ function connectWebSocket(chatRoomId) {
  * 發送訊息
  */
 async function send() {
-    if (!newMessage.value.trim() || !activeChatRoom.value.chatRoomId) return;
+    if (!newMessage.value.trim()) return;
+
+    // 🔴 修改5：直接使用 localStorage 的值进行验证
+    if (!userId.value || !token.value) {
+        Swal.fire("错误", "请重新登录", "error");
+        return router.push('/user/login');
+    }
+
     try {
-        if (!currentUser.value?.userId) {
-            Swal.fire("錯誤", "請先登入", "error");
-            return router.push('/user/login');
-        }
         const message = {
             chatRoomId: activeChatRoom.value.chatRoomId,
             content: newMessage.value.trim(),
-            senderName: currentUser.value.username,
-            sender: {
-                userId: currentUser.value.userId,
-            },
+            senderName: chatStore.currentUser.username,
+            sender: { userId: userId.value },
             timestamp: new Date().toISOString()
         };
-        console.log("Sending message:", message);
 
-        // 先加到 store，讓畫面即時更新
+        // 添加到本地消息列表
         chatStore.addMessage({
             ...message,
             id: `temp-${Date.now()}`
         });
 
-        if (stompClient && stompClient.connected) {
-            stompClient.send(
-                "/app/send",
-                {},
-                JSON.stringify(message)
-            );
-            // 再次推入，或直接依照後端回傳更新
-            chatStore.addMessage(message);
+        if (stompClient?.connected) {
+            stompClient.send("api/chat/app/send", {}, JSON.stringify(message));
             newMessage.value = "";
-        } else {
-            throw new Error("WebSocket 未連線");
         }
     } catch (error) {
-        console.error("消息發送失敗:", error);
-        Swal.fire({
-            title: "錯誤",
-            text: "訊息發送失敗，請檢查網路連線",
-            icon: "error"
-        });
+        Swal.fire("错误", "消息发送失败", "error");
     }
 }
 </script>
