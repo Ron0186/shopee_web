@@ -2,6 +2,10 @@ import SearchResult from "@/components/SearchResult.vue";
 import HelpCenter from "@/views/pages/HelpCenter.vue";
 import UpdateHomeAddress from '@/views/member/UpdateHomeAddress.vue';
 import UpdateCVSAddress from '@/views/member/UpdateCVSAddress.vue';
+import ProductDetails from '@/views/seller/ProductDetails.vue';
+import OrderDetails from '@/views/seller/OrderDetails.vue'
+import SkuDetails from '@/views/seller/SkuDetails.vue'
+import ReviewDetails from '@/views/seller/ReviewDetails.vue'
 
 
 import { createRouter, createWebHistory } from "vue-router";
@@ -168,6 +172,30 @@ const router = createRouter({
           name: 'revenue',
           component: () => import('@/views/seller/RevenueDetails.vue')
         },
+        {
+          path: '/product-details',
+          name: 'product-details',
+          component: ProductDetails,
+          props: true
+        },
+        {
+          path: '/order-details',
+          name: 'order-details',
+          component: OrderDetails,
+          props: true
+        },
+        {
+          path: '/sku-details',
+          name: 'sku-details',
+          component: SkuDetails,
+          props: true
+        },
+        {
+          path: '/review-details',
+          name: 'review-details',
+          component: ReviewDetails,
+          props: true
+        },
       ],
     },
 
@@ -307,6 +335,13 @@ const router = createRouter({
           component: () => import("@/components/admin/Coupon.components/AdminCouponManager.vue"),
           props: true
         },
+        // {
+        //   //test add selector 
+        //   path: '/add/test',
+        //   name: 'add-test',
+        //   component: () => import("@/views/member/test.vue"),
+
+        // },
       ],
 
     },

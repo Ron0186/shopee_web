@@ -1,6 +1,6 @@
 <template>
     <div>
-        <label>宅配地址：</label>
+
         <div class="dropdown">
             <select v-model="selectedCounty" @change="updateDistricts" required>
                 <option value="">選擇縣市</option>

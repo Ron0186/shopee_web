@@ -33,14 +33,14 @@
                 </div>
             </div>
 
-            <!-- <div class="mb-4 flex items-center">
-                <label class="font-semibold">訂單管理</label>
+            <div class="mb-4 flex items-center">
+                <label class="font-semibold">購買清單</label>
                 <div class="icon-group">
                     <img src="@/assets/angle-small-right.png"
                         class="icon ml-auto"
-                        @click="goToPage('/MemberOrders')" />
+                        @click="goToPage('/user/orders')" />
                 </div>
-            </div> -->
+            </div>
 
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">我的優惠券</label>
@@ -69,6 +69,7 @@
 import { ref, onMounted } from 'vue';
 import axios from 'axios';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/user'
 import Swal from 'sweetalert2';
 import { jwtDecode } from 'jwt-decode';  // ✅ 確保已安裝 jwt-decode
 
@@ -76,6 +77,7 @@ const user = ref(null);
 const loading = ref(true);
 const error = ref(null);
 const router = useRouter();
+const userStore = useUserStore()
 
 const fetchUserData = async () => {
     try {
@@ -115,11 +117,35 @@ const fetchUserData = async () => {
     }
 };
 
-const logout = () => {
-    sessionStorage.removeItem('username');
-    sessionStorage.removeItem('token');
-    router.push('/user/login');
-};
+async function logout() {
+    try {
+        // 清除 localStorage & sessionStorage
+        localStorage.removeItem('username')
+        localStorage.removeItem('token')
+        sessionStorage.clear()
+
+        // 清除 Pinia 或 Vuex 的用戶資料
+        userStore.clearUserData()
+
+        // 使用 SweetAlert 提示登出成功
+        const response = await Swal.fire({
+            title: '您已成功登出',
+            icon: 'success',
+            confirmButtonText: 'OK',
+        })
+
+        // 跳轉回首頁或登入頁面
+        if (response.isConfirmed) {
+            router.push('/shop')
+        }
+    } catch (error) {
+        console.error('登出失敗', error)
+        Swal.fire({
+            title: '登出失敗，請稍後再試！',
+            icon: 'error',
+        })
+    }
+}
 
 const goToPage = (path) => {
     router.push(path);

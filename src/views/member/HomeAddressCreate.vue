@@ -1,6 +1,7 @@
 <template>
     <div class="container">
         <h2>新增收件資訊</h2>
+        <label>宅配地址：</label>
         <form @submit.prevent="createAddress">
             <AddressSelector v-model="user.addressInfo" />
 

@@ -8,72 +8,23 @@
         <div v-else>
             <!-- 每個區塊都分頁 -->
             <div class="section">
-                <h2>🛍 商品數量：{{ shopData.length }}</h2>
-                <!-- 搜尋功能未實作完成 -->
-                <!-- <input v-model="shopSearch" placeholder="搜尋商品名稱..." /> -->
-                <ul>
-                    <li v-for="product in paginated(shopData, productPage)"
-                        :key="product.productId">
-                        {{ product.productName }}
-                    </li>
-                </ul>
-                <div class="pagination">
-                    <button @click="productPage--"
-                        :disabled="productPage === 1">上一頁</button>
-                    <span>第 {{ productPage }} 頁</span>
-                    <button @click="productPage++"
-                        :disabled="productPage * pageSize >= shopData.length">下一頁</button>
+                <div class="section detail"
+                    @click="navigateTo('/product-details')">
+                    <h2>🛍 我的商品：{{ shopData.length }}</h2>
                 </div>
-            </div>
 
-            <div class="section">
-                <h2>📦 訂單數量：{{ orderData.length }}</h2>
-                <ul>
-                    <li v-for="order in paginated(orderData, orderPage)"
-                        :key="order.orderId">
-                        訂單編號：{{ order.orderId }}
-                    </li>
-                </ul>
-                <div class="pagination">
-                    <button @click="orderPage--"
-                        :disabled="orderPage === 1">上一頁</button>
-                    <span>第 {{ orderPage }} 頁</span>
-                    <button @click="orderPage++"
-                        :disabled="orderPage * pageSize >= orderData.length">下一頁</button>
+                <div class="section detail"
+                    @click="navigateTo('/order-details')">
+                    <h2>🧾 訂單數量：{{ orderData.length }}</h2>
                 </div>
-            </div>
 
-            <!-- <div class="section">
-                <h2>🧾 SKU 數量：{{ skuData.length }}</h2>
-                <ul>
-                    <li v-for="sku in paginated(skuData, skuPage)"
-                        :key="sku.id">
-                        SKU：{{ sku.code }}
-                    </li>
-                </ul>
-                <div class="pagination">
-                    <button @click="skuPage--"
-                        :disabled="skuPage === 1">上一頁</button>
-                    <span>第 {{ skuPage }} 頁</span>
-                    <button @click="skuPage++"
-                        :disabled="skuPage * pageSize >= skuData.length">下一頁</button>
+                <div class="section detail" @click="navigateTo('/sku-details')">
+                    <h2>📦 庫存管理：{{ skuData.length }}</h2>
                 </div>
-            </div> -->
 
-            <div class="section">
-                <h2>🌟 評論數量：{{ reviewData.length }}</h2>
-                <ul>
-                    <li v-for="review in paginated(reviewData, reviewPage)"
-                        :key="review.reviewId">
-                        評論：{{ review.reviewContent }}
-                    </li>
-                </ul>
-                <div class="pagination">
-                    <button @click="reviewPage--"
-                        :disabled="reviewPage === 1">上一頁</button>
-                    <span>第 {{ reviewPage }} 頁</span>
-                    <button @click="reviewPage++"
-                        :disabled="reviewPage * pageSize >= reviewData.length">下一頁</button>
+                <div class="section detail"
+                    @click="navigateTo('/review-details')">
+                    <h2>🌟 收到評論：{{ reviewData.length }}</h2>
                 </div>
             </div>
         </div>
@@ -83,6 +34,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 import { jwtDecode } from 'jwt-decode'
 
 interface JwtPayload {
@@ -93,16 +45,22 @@ interface JwtPayload {
 const userId = ref<number | null>(null)
 const shopId = ref<number | null>(null)
 
+const router = useRouter()
+
 const shopData = ref<any[]>([])
 const orderData = ref<any[]>([])
-// const skuData = ref<any[]>([])
+const skuData = ref<any[]>([])
 const reviewData = ref<any[]>([])
 const errorMessage = ref('')
+
+const navigateTo = (path: string) => {
+    router.push(path)
+}
 
 const pageSize = 5
 const productPage = ref(1)
 const orderPage = ref(1)
-// const skuPage = ref(1)
+const skuPage = ref(1)
 const reviewPage = ref(1)
 const shopSearch = ref('')
 
@@ -131,22 +89,23 @@ onMounted(async () => {
         shopId.value = decoded.shopId || 1
 
         const [shopRes, orderRes, reviewRes
-            // , skuRes 
+            , skuRes
         ] = await Promise.all([
             axios.get(`http://localhost:8081/api/product/byShop?shopId=${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
             axios.get(`http://localhost:8081/api/orders/seller/orders?seller=${userId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
             axios.get(`http://localhost:8081/api/review/shop/${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
-            // axios.get(`http://localhost:8081/api/sku/all`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`http://localhost:8081/api/sku/shop/${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
         ])
 
         shopData.value = shopRes.data
         orderData.value = orderRes.data.data || []
         reviewData.value = reviewRes.data
-        // skuData.value = skuRes.data
+        skuData.value = skuRes.data
 
         console.log("📦 shopData", shopRes.data)
         console.log("📦 orderData", orderRes.data)
         console.log("📦 reviewData", reviewRes.data)
+        console.log("📦 skuData", skuRes.data)
 
 
     } catch (error: any) {
@@ -172,6 +131,17 @@ onMounted(async () => {
     margin-bottom: 15px;
     border-radius: 6px;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.detail:hover {
+    background-color: #f0f0f0;
+    cursor: pointer;
+}
+
+h2 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
 }
 
 .error {

@@ -30,6 +30,7 @@ import { ref, watch } from 'vue';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import { useRouter } from 'vue-router';
+import { useUserStore } from '@/stores/user'
 
 const currentPassword = ref('');
 const newPassword = ref('');
@@ -39,6 +40,7 @@ const passwordError = ref('');
 const token = localStorage.getItem('token');
 const userId = jwtDecode(token).userId;
 const router = useRouter();
+const userStore = useUserStore()
 
 // ✅ 密碼格式驗證（即時觸發）
 watch(newPassword, (val) => {
@@ -73,7 +75,15 @@ async function handleChangePassword() {
             }
         );
         message.value = '✅ 密碼變更成功，將自動登出...';
-        localStorage.removeItem('token'); // 清除 JWT
+
+        // 清除 localStorage & sessionStorage
+        localStorage.removeItem('username')
+        localStorage.removeItem('token')
+        sessionStorage.clear()
+
+        // 清除 Pinia 或 Vuex 的用戶資料
+        userStore.clearUserData()
+
         setTimeout(() => {
             router.push('/user/login');
         }, 3000);
