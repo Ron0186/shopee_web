@@ -7,7 +7,6 @@ import { onMounted } from "vue";
 import { useUserStore } from "@/stores/user";
 import { decodeToken } from "@/utils/jwtHelper";
 
-const userStore = useUserStore();
 
 onMounted(() => {
   const token = localStorage.getItem("token");

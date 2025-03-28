@@ -33,7 +33,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, onUnmounted, computed, nextTick } from "vue";
+import { ref, onMounted, watch, onUnmounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import SockJS from "sockjs-client/dist/sockjs";
 import Stomp from "stompjs";
@@ -245,8 +245,9 @@ const send = async () => {
 
     try {
         // 确保用户已加载且数据完整
-        if (!currentUser.value || !currentUser.value.userId) {
-            throw new Error("用户信息未加载完成");
+        if (!currentUser.value?.userId) {
+            Swal.fire("錯誤", "請先登入", "error");
+            return router.push('/user/login');
         }
 
 
