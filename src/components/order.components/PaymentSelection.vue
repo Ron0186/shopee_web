@@ -46,12 +46,25 @@
         v-if="selectedMethod !== 'CASH_ON_DELIVERY'"
         class="confirm-btn"
         @click="confirmPayment"
+        :disabled="loading"
       >
-        確認付款 NT${{ totalAmount }}
+        <span v-if="loading">處理中...</span>
+        <span v-else>確認付款 NT${{ totalAmount }}</span>
       </button>
-      <button v-else class="confirm-btn" @click="confirmCashOnDelivery">
-        確認訂單
+      <button
+        v-else
+        class="confirm-btn"
+        @click="confirmCashOnDelivery"
+        :disabled="loading"
+      >
+        <span v-if="loading">處理中...</span>
+        <span v-else>確認訂單</span>
       </button>
+    </div>
+
+    <!-- 錯誤訊息顯示 -->
+    <div v-if="errorMessage" class="error-message">
+      <p>{{ errorMessage }}</p>
     </div>
   </div>
 </template>
@@ -73,9 +86,15 @@ export default {
   data() {
     return {
       selectedMethod: "CREDIT_CARD",
-      totalAmount: 12000, // 從訂單數據中獲取
+      totalAmount: 0, // 動態獲取
       orderId: this.$route.params.id || "",
+      loading: false, // loading 狀態
+      errorMessage: "", // 錯誤訊息
     };
+  },
+
+  mounted() {
+    this.loadOrderData(); // 加載訂單數據
   },
 
   methods: {
@@ -88,7 +107,25 @@ export default {
       this.$router.push("/checkout/review");
     },
 
+    loadOrderData() {
+      this.loading = true;
+      axios
+        .get(`/api/orders/${this.orderId}`)
+        .then((response) => {
+          if (response.data && response.data.totalPrice) {
+            this.totalAmount = response.data.totalPrice;
+          }
+        })
+        .catch((error) => {
+          this.errorMessage = "加載訂單失敗: " + error.message;
+        })
+        .finally(() => {
+          this.loading = false;
+        });
+    },
+
     confirmPayment() {
+      this.loading = true;
       const headers = {
         Authorization: `Bearer ${localStorage.getItem("token")}`,
         "Content-Type": "application/json",
@@ -109,7 +146,10 @@ export default {
           })
           .catch((error) => {
             console.error("支付發起失敗:", error);
-            alert("支付發起失敗: " + error.message);
+            this.errorMessage = "支付發起失敗: " + error.message;
+          })
+          .finally(() => {
+            this.loading = false;
           });
       } else if (this.selectedMethod === "MOBILE_TRANSFER") {
         this.createMobileTransferOrder();
@@ -122,7 +162,6 @@ export default {
           method: "MOBILE_TRANSFER",
         })
         .then((response) => {
-          // 導向到成功頁面，顯示轉帳資訊
           this.$router.push({
             path: `/payment/result/${this.orderId}`,
             query: { status: "success", method: "MOBILE_TRANSFER" },
@@ -130,6 +169,7 @@ export default {
         })
         .catch((error) => {
           console.error("建立轉帳訂單失敗:", error);
+          this.errorMessage = "建立轉帳訂單失敗: " + error.message;
         });
     },
 
@@ -139,7 +179,6 @@ export default {
           method: "CASH_ON_DELIVERY",
         })
         .then((response) => {
-          // 導向到成功頁面
           this.$router.push({
             path: `/payment/result/${this.orderId}`,
             query: { status: "success", method: "CASH_ON_DELIVERY" },
@@ -147,6 +186,7 @@ export default {
         })
         .catch((error) => {
           console.error("建立貨到付款訂單失敗:", error);
+          this.errorMessage = "建立貨到付款訂單失敗: " + error.message;
         });
     },
   },
@@ -216,5 +256,12 @@ export default {
   border-radius: 4px;
   cursor: pointer;
   font-weight: bold;
+  min-width: 150px;
+}
+
+.error-message {
+  color: red;
+  font-size: 16px;
+  margin-top: 20px;
 }
 </style>

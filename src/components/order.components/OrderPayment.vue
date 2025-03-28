@@ -203,6 +203,7 @@
 </template>
 
 <script setup>
+// 引入模組
 import { ref, computed, onMounted } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import axios from "axios";
@@ -259,11 +260,6 @@ const statusClass = computed(() => {
     已出貨: "status-shipped",
     已完成: "status-completed",
     已取消: "status-canceled",
-    PENDING: "status-pending",
-    PROCESSING: "status-processing",
-    SHIPPED: "status-shipped",
-    COMPLETED: "status-completed",
-    CANCELLED: "status-canceled",
   };
   return statusMap[order.value.status] || "status-default";
 });
@@ -327,11 +323,11 @@ const loadOrderData = async () => {
       return;
     }
 
+    // 檢查是否需要付款
     const checkResponse = await axios.get(
       `/api/payment/orders/check-payment/${orderId}`,
       { headers }
     );
-
     console.log("檢查付款回應:", checkResponse.data);
 
     if (checkResponse.data.status !== "success") {
@@ -341,8 +337,8 @@ const loadOrderData = async () => {
       return;
     }
 
+    // 獲取訂單數據
     const response = await axios.get(`/api/orders/${orderId}`, { headers });
-
     console.log("訂單數據回應:", response.data);
 
     let orderData = {};
@@ -413,8 +409,13 @@ const loadOrderData = async () => {
 };
 
 // 處理綠界付款
-// 改進版的 processECPayPayment 函數
 const processECPayPayment = async () => {
+  // 確保資料載入完成後才觸發付款流程
+  if (loading.value) {
+    alert("訂單資料尚未載入完成，請稍候...");
+    return;
+  }
+
   isProcessing.value = true;
   try {
     const headers = {
@@ -428,54 +429,19 @@ const processECPayPayment = async () => {
     );
 
     if (response.data && response.data.formHtml) {
-      // 創建臨時容器並放入表單
       const container = document.createElement("div");
       container.innerHTML = response.data.formHtml;
-
-      // 獲取表單
       const form = container.querySelector("form");
       if (form) {
-        // 檢查必要欄位
-        const requiredFields = [
-          "MerchantID",
-          "MerchantTradeNo",
-          "MerchantTradeDate",
-          "PaymentType",
-          "TotalAmount",
-          "TradeDesc",
-          "ItemName",
-          "ReturnURL",
-          "ChoosePayment",
-          "CheckMacValue",
-        ];
-
-        const missingFields = [];
-        requiredFields.forEach((field) => {
-          const input = form.querySelector(`input[name="${field}"]`);
-          if (!input || !input.value) {
-            missingFields.push(field);
-            console.error(`表單缺少必要欄位: ${field}`);
-          } else {
-            console.log(`找到欄位 ${field}: ${input.value}`);
-          }
-        });
-
-        if (missingFields.length > 0) {
-          throw new Error(`表單缺少必要欄位: ${missingFields.join(", ")}`);
-        }
-
-        // 強制設置表單方法
         form.setAttribute("method", "POST");
-
-        // 添加到文檔並提交
         document.body.appendChild(form);
         form.submit();
       } else {
+        console.error("表單未找到");
         throw new Error("表單未找到");
       }
-    } else if (response.data && response.data.redirectUrl) {
-      window.location.href = response.data.redirectUrl;
     } else {
+      console.error("未獲得有效的付款表單");
       throw new Error("未獲得有效的付款信息");
     }
   } catch (err) {
