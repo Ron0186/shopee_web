@@ -15,6 +15,12 @@
         <input type="password" id="password" v-model="password" placeholder="請輸入密碼">
       </div>
 
+      <!-- reCAPTCHA v2 勾選框 -->
+      <div class="form-group recaptcha-container">
+        <div ref="recaptchaContainer" class="g-recaptcha" :data-sitekey="recaptchaSiteKey"></div>
+        <div v-if="captchaError" class="captcha-error">請勾選「我不是機器人」</div>
+      </div>
+
       <!-- 登入按鈕 -->
       <button class="login-btn" @click="login">登入</button>
 
@@ -29,17 +35,115 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, nextTick, watch } from 'vue';
 import axios from '@/plugins/axios';
 import Swal from 'sweetalert2';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 import { useUserStore } from '@/stores/user';
 const userStore = useUserStore();
 
 const router = useRouter();
+const route = useRoute();
 const username = ref("");
 const password = ref("");
+const captchaError = ref(false);
+const recaptchaContainer = ref(null);
+const recaptchaLoaded = ref(false);
+
+// reCAPTCHA 網站金鑰 - 替換成你的 Site Key
+const recaptchaSiteKey = "6LdxawIrAAAAAHO4ioKiJ8BM20rteeaTjuLylhmT";
+
+// 載入 reCAPTCHA 腳本
+function loadRecaptchaScript() {
+  return new Promise((resolve) => {
+    // 如果已經載入過，直接返回
+    if (window.grecaptcha) {
+      recaptchaLoaded.value = true;
+      return resolve();
+    }
+    
+    // 載入 reCAPTCHA 腳本
+    const recaptchaScript = document.createElement('script');
+    recaptchaScript.src = "https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoaded&render=explicit";
+    recaptchaScript.async = true;
+    recaptchaScript.defer = true;
+    
+    // 定義全局回調函數
+    window.onRecaptchaLoaded = () => {
+      recaptchaLoaded.value = true;
+      resolve();
+    };
+    
+    document.head.appendChild(recaptchaScript);
+  });
+}
+
+// 初始化 reCAPTCHA
+async function initializeRecaptcha() {
+  // 確保腳本已載入
+  if (!recaptchaLoaded.value) {
+    await loadRecaptchaScript();
+  }
+  
+  // 確保 DOM 已更新
+  await nextTick();
+  
+  // 確保容器元素存在且 grecaptcha 已載入
+  if (recaptchaContainer.value && window.grecaptcha && window.grecaptcha.render) {
+    try {
+      // 嘗試渲染 reCAPTCHA
+      // 可能需要檢查元素是否已經包含 reCAPTCHA 以避免重複渲染
+      if (!recaptchaContainer.value.querySelector('iframe')) {
+        window.grecaptcha.render(recaptchaContainer.value, {
+          'sitekey': recaptchaSiteKey
+        });
+      }
+    } catch (error) {
+      console.error("reCAPTCHA 初始化失敗:", error);
+    }
+  }
+}
+
+// 監聽路由變化
+watch(
+  () => route.fullPath,
+  () => {
+    // 路由變化後，確保 reCAPTCHA 重新初始化
+    nextTick(() => {
+      initializeRecaptcha();
+    });
+  }
+);
+
+// 組件掛載後
+onMounted(async () => {
+  await initializeRecaptcha();
+});
+
+// 驗證 reCAPTCHA 是否已勾選
+function validateRecaptcha() {
+  if (window.grecaptcha) {
+    const response = window.grecaptcha.getResponse();
+    if (response.length === 0) {
+      captchaError.value = true;
+      return false;
+    } else {
+      captchaError.value = false;
+      return response;
+    }
+  }
+  captchaError.value = true;
+  return false;
+}
+
+// 重設 reCAPTCHA
+function resetRecaptcha() {
+  if (window.grecaptcha) {
+    window.grecaptcha.reset();
+  }
+  captchaError.value = false;
+}
 
 async function login() {
   if (!username.value || !password.value) {
@@ -50,10 +154,17 @@ async function login() {
     return;
   }
 
+  // 驗證 reCAPTCHA
+  const recaptchaResponse = validateRecaptcha();
+  if (!recaptchaResponse) {
+    return; // 如果 reCAPTCHA 未通過，不繼續登入流程
+  }
+
   try {
     const response = await axios.post("/api/auth/admin/login", {
       "username": username.value,
-      "password": password.value
+      "password": password.value,
+      "recaptchaResponse": recaptchaResponse // 將 reCAPTCHA 回應傳送到後端
     });
 
     if (response.data.success) {
@@ -78,6 +189,9 @@ async function login() {
       title: "錯誤: " + errorMessage,
       icon: "error",
     });
+    
+    // 登入失敗時重設 reCAPTCHA
+    resetRecaptcha();
   }
 }
 
@@ -191,5 +305,19 @@ input {
 
 .quick-btn.admin:hover {
   background-color: #c82333;
+}
+
+/* reCAPTCHA 相關樣式 */
+.recaptcha-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.captcha-error {
+  color: #dc3545;
+  font-size: 14px;
+  margin-top: 5px;
 }
 </style>
