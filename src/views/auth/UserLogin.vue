@@ -38,13 +38,24 @@ import Swal from "sweetalert2";
 import { useRouter } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 import { useUserStore } from "@/stores/user";
-import { useChatStore } from '@/stores/chatStore';
+
 const userStore = useUserStore();
-const chatStore = useChatStore();
 const router = useRouter();
 
 const username = ref("");
 const password = ref("");
+
+// 新增存储管理方法
+const syncStorage = {
+  setToken(token) {
+    localStorage.setItem('authToken', token);       // 长期存储
+    sessionStorage.setItem('sessionToken', token);  // 会话存储
+  },
+  clearTokens() {
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('sessionToken');
+  }
+};
 
 async function login() {
   if (username.value === "") {
@@ -66,12 +77,23 @@ async function login() {
     const response = await axios.post("/api/auth/login", data);
 
     if (response.data.success) {
+      const decodedToken = jwtDecode(response.data.token);
+      // 設定 token
+      syncStorage.setToken(response.data.token);
+
+      // 同步儲存使用者資訊到 localStorage
+      localStorage.setItem('userId', decodedToken.userId);
+      localStorage.setItem('username', decodedToken.sub);
+
+      // 僅將 token 存入 sessionStorage（每個標籤頁獨立）
+      sessionStorage.setItem("sessionToken", response.data.token);
 
       const result = await Swal.fire({
         title: response.data.message,
         icon: "success",
       });
-      const decodedToken = jwtDecode(response.data.token);
+
+
       axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
 
       //設定userStore
@@ -130,6 +152,21 @@ async function quickLogin(user) {
   password.value = userData.password;    // 自動填入密碼
   await login(); // 呼叫 login 函數
 }
+
+window.addEventListener('storage', (event) => {
+  if (event.key === 'authToken') {
+    // 當其他分頁更新 localStorage 時，同步到 sessionStorage
+    sessionStorage.setItem('tempAuthToken', event.newValue);
+  }
+});
+
+// 跨标签页同步监听
+window.addEventListener('storage', (event) => {
+  if (event.key === 'authToken') {
+    sessionStorage.setItem('sessionToken', event.newValue);
+    if (!event.newValue) router.push('/user/login');
+  }
+});
 </script>
 
 <style scoped>

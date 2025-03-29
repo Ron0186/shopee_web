@@ -98,15 +98,20 @@ function formatTime(timestamp) {
 }
 
 onMounted(async () => {
-
+    const token = sessionStorage.getItem('tempAuthToken');
     // 🔴 確保 token 存在且有效
-    if (!token.value || !userId.value) {
-        router.push('/user/login');
-        return;
+    if (!token) {
+        // 如果沒有臨時 Token，嘗試從 localStorage 恢復
+        const fallbackToken = localStorage.getItem('authToken');
+        if (fallbackToken) {
+            sessionStorage.setItem('tempAuthToken', fallbackToken);
+        } else {
+            router.push('/user/login'); // 無效 Token 則跳回登入頁
+        }
     }
-
+    // 後續聊天室操作使用 sessionStorage 的 Token
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
     // 🔴 先載入當前用戶資料
-
     await chatStore.fetchCurrentUser(userId.value);
 
     // 情況1：直接透過路由參數 chatRoomId 進入

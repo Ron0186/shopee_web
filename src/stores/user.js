@@ -63,7 +63,10 @@ export const useUserStore = defineStore('user', () => {
         token.value = newToken;
         roles.value = newRoles;
 
-        saveUserData();
+        // 同步存储
+        localStorage.setItem('userData', JSON.stringify({ username, userId, roles }));
+        sessionStorage.setItem('sessionToken', token);
+
 
         console.log("🚀 設定用戶角色:", roles.value);
 
@@ -88,7 +91,11 @@ export const useUserStore = defineStore('user', () => {
         localStorage.removeItem('token');
         localStorage.removeItem('roles');
 
+        // 清除所有存储
+        localStorage.removeItem('userData');
+        sessionStorage.removeItem('sessionToken');
         console.log("🗑️ 清除用戶數據");
+
     }
 
     // ✅ 監聽角色變更，確保 UI 更新

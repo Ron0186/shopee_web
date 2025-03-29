@@ -85,7 +85,17 @@ const selectedArticle = computed(() =>
 watch(() => route.params.id, newId => {
     helpStore.setSelectedArticle(newId);
 }, { immediate: true });
+
 const isShopOwner = computed(() => userStore.isSeller);
+
+// 同步 localStorage 中的 userId 與 userName 至 sessionStorage
+const syncUserInfoToSession = () => {
+    const storedUserId = localStorage.getItem('userId');
+    const storedUserName = localStorage.getItem('username');
+    if (storedUserId) sessionStorage.setItem('userId', storedUserId);
+    if (storedUserName) sessionStorage.setItem('username', storedUserName);
+};
+
 
 const loadStores = async () => {
     try {
@@ -151,10 +161,12 @@ const subscribeSellerNotifications = (userId) => {
 const buyerChat = async (shopId) => {
     try {
         // 通用创建/进入逻辑
+        const token = sessionStorage.getItem('sessionToken');
+        console.log('Current Token:', token); // 添加這行檢查實際 token 值
         const response = await axios.post(
             'http://localhost:8081/api/chat/create',
             { shopId, buyerId: userStore.userId },
-            { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+            { headers: { Authorization: `Bearer ${token}` } }
         );
 
         if (response.data.chatRoomId) {
@@ -170,42 +182,78 @@ const buyerChat = async (shopId) => {
 };
 
 
-// 前端 sellerChat 方法修改
+// 修改後的 sellerChat 方法
 const sellerChat = async (shopId) => {
     try {
-        // 1. 验证店铺归属
+        // 🌟 檢查 sessionStorage 中的 token 是否存在
+        const token = sessionStorage.getItem('sessionToken');
+        if (!token) {
+            Swal.fire("錯誤", "登入狀態已過期，請重新登入", "error");
+            return router.push('/login'); // 導向登入頁
+        }
+
+        // 🌟 新增 token 有效性驗證
+        const isTokenValid = await validateToken(token); // 需實作驗證方法
+        if (!isTokenValid) {
+            sessionStorage.removeItem('sessionToken'); // 移除無效 token
+            Swal.fire("錯誤", "登入狀態已過期，請重新登入", "error");
+            return router.push('/login');
+        }
+
+        // 驗證店鋪歸屬
         const isOwner = await verifyShopOwnership(shopId);
         if (!isOwner) {
             Swal.fire("錯誤", "您無權訪問此商店的聊天室", "error");
             return;
         }
 
-        // 2. 获取最新聊天室
+        // 🌟 確保 headers 正確攜帶 token
         const response = await axios.get(
             `http://localhost:8081/api/chat/seller/enter/${shopId}`,
-            { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+            {
+                headers: {
+                    Authorization: `Bearer ${token.trim()}` // 確保格式正確
+                }
+            }
         );
 
-        // 3. 处理响应
         if (response.data.chatRoomId) {
             router.push(`/chat/${response.data.chatRoomId}`);
         } else {
             Swal.fire("提示", "目前沒有進行中的對話", "info");
         }
     } catch (error) {
-        if (error.response?.status === 404) {
-            Swal.fire("提示", "尚未有買家發起對話", "info");
+        // 🌟 精確處理 401/403 狀態碼
+        if (error.response?.status === 401 || error.response?.status === 403) {
+            sessionStorage.removeItem('sessionToken'); // 僅移除 token
+            Swal.fire("授權過期", "請重新登入", "error");
+            router.push('/login');
         } else {
-            handleChatError(error);
+            handleChatError(error); // 其他錯誤用統一處理
         }
+    }
+};
+
+// 🌟 新增 token 驗證方法
+const validateToken = async (token) => {
+    try {
+        const response = await axios.post(
+            'http://localhost:8081/api/validate-token',
+            { token },
+            { headers: { Authorization: `Bearer ${token}` } }
+        );
+        return response.data.isValid;
+    } catch (error) {
+        return false;
     }
 };
 // 新增验证商店归属方法
 const verifyShopOwnership = async (shopId) => {
     try {
+        const token = sessionStorage.getItem('sessionToken');
         const response = await axios.get(
             `http://localhost:8081/api/shop/${shopId}/check-ownership`,
-            { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+            { headers: { Authorization: `Bearer ${token}` } }
         );
         return response.data.isOwner;
     } catch (error) {
@@ -238,8 +286,11 @@ const loadUnreadCounts = async () => {
 };
 
 onMounted(() => {
+    // 同步 userId 與 userName 至 sessionStorage
+    syncUserInfoToSession();
     if (userStore.isSeller) {
         subscribeSellerNotifications(userStore.userId);
+
     }
 });
 </script>

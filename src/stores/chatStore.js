@@ -3,6 +3,8 @@ import { computed, ref } from 'vue';
 import axios from 'axios';
 import SockJS from 'sockjs-client/dist/sockjs';
 import Stomp from 'stompjs';
+import { useUserStore } from './user'
+import { useRouter } from 'vue-router';
 
 class SocketManager {
     constructor() {
@@ -36,12 +38,15 @@ export const useChatStore = defineStore('chat', () => {
     const unreadCounts = ref({});
     const stompClient = ref(null);
     const socketManager = ref(new SocketManager());
+    const authToken = ref(sessionStorage.getItem('tempAuthToken'));
+    const userStore = useUserStore();
+    const router = useRouter();
 
     const connectWebSocket = () => {
         const socket = new SockJS('http://localhost:8081/ws');
         stompClient.value = new Stomp.Client({
             webSocketFactory: () => socket,
-            connectHeaders: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            connectHeaders: { Authorization: `Bearer ${authToken.value}` },
             onConnect: () => {
                 // 订阅聊天室訊息
                 stompClient.value.subscribe(
@@ -64,6 +69,23 @@ export const useChatStore = defineStore('chat', () => {
         stompClient.value.activate();
     };
 
+    const fetchCurrentUser = async (userId) => {
+        try {
+
+            const response = await axios.get(`/api/user/check/${userId}`, {
+                headers: {
+                    Authorization: `Bearer ${authToken.value}`
+                }
+            });
+            currentUser.value = response.data;
+        } catch (error) {
+            console.error('獲取用戶失敗', error);
+            userStore.clearUserData();
+            router.push('/user/login');
+        }
+
+    };
+
     const createOrJoinChatRoom = async (shopId) => {
         try {
             if (!currentUser.value) {
@@ -72,7 +94,7 @@ export const useChatStore = defineStore('chat', () => {
             const response = await axios.post(
                 'http://localhost:8081/api/chat/create',
                 { shopId },
-                { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+                { headers: { Authorization: `Bearer ${authToken.value}` } }
             );
             activeChatRoom.value = response.data;
             connectWebSocket(currentUser.value.userId);
@@ -94,7 +116,7 @@ export const useChatStore = defineStore('chat', () => {
 
     const fetchUnreadCounts = async (sellerId) => {
         const response = await axios.get(`/api/chat/unread?sellerId=${sellerId}`, {
-            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+            headers: { Authorization: `Bearer ${authToken.value}` },
         });
         unreadCounts.value = response.data;
     };
@@ -115,21 +137,9 @@ export const useChatStore = defineStore('chat', () => {
         );
     };
 
-    const fetchCurrentUser = async (userId) => {
-        try {
 
-            const response = await axios.get(`/api/user/check/${userId}`, {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            currentUser.value = response.data;
-        } catch (error) {
-            console.error('獲取用戶失敗', error);
-            clearUserData();
-        }
 
-    };
+
 
     const tempMessages = ref([]);
     // 使用 Set 数据结构存储消息ID避免重复
