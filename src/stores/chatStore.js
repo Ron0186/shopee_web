@@ -73,10 +73,17 @@ export const useChatStore = defineStore('chat', () => {
     // 修改 fetchCurrentUser：當 userId 未傳入時，從 localStorage 取得 userId
     const fetchCurrentUser = async (userId) => {
         try {
-            const uid = userId || localStorage.getItem('userId');
-            const response = await axios.get(`/api/user/check/${uid}`, {
+            // 檢查 Token 是否存在且有效
+            const currentToken = sessionStorage.getItem('authToken');
+            if (!currentToken) {
+                // 跳轉到登入頁面
+                router.push('/login');
+            }
+
+            const uid = userId || sessionStorage.getItem('userId');
+            const response = await axios.get(`http://localhost:8081/api/user/check/${uid}`, {
                 headers: {
-                    Authorization: `Bearer ${authToken.value}`
+                    Authorization: `Bearer ${currentToken}`
                 }
             });
             currentUser.value = response.data;
@@ -116,7 +123,7 @@ export const useChatStore = defineStore('chat', () => {
     };
 
     const fetchUnreadCounts = async (sellerId) => {
-        const response = await axios.get(`/api/chat/unread?sellerId=${sellerId}`, {
+        const response = await axios.get(`http://localhost:8081/api/chat/unread?sellerId=${sellerId}`, {
             headers: { Authorization: `Bearer ${authToken.value}` },
         });
         unreadCounts.value = response.data;

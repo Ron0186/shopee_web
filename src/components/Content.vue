@@ -40,13 +40,21 @@
                                                 <i class="bi bi-star-fill text-warning"></i> 評價: {{ store.rating }}/5
                                             </p>
                                         </div>
-                                        <!-- 根據登入者身份決定顯示哪個聊天按鈕 -->
-                                        <button v-if="store.isCurrentUserStore" class="btn btn-primary"
-                                            @click.stop="sellerChat(store.shopId)">
-                                            賣家聊天
-                                        </button>
-                                        <button v-else class="btn btn-primary" @click.stop="buyerChat(store.shopId)">
+                                        <!-- 買家按鈕：僅非當前店鋪所有者顯示 -->
+                                        <button v-if="!store.isCurrentUserStore" class="btn btn-primary"
+                                            @click.stop="buyerChat(store.shopId)">
                                             買家聊天
+                                        </button>
+
+                                        <!-- 賣家按鈕：僅當前店鋪所有者顯示 -->
+                                        <button v-else-if="isShopOwner" class="btn btn-primary"
+                                            :disabled="!store.hasActiveChat" @click.stop="sellerChat(store.shopId)">
+                                            <template v-if="store.hasActiveChat">
+                                                賣家聊天 ({{ store.unreadCount }}未讀)
+                                            </template>
+                                            <template v-else>
+                                                暫無對話 🔒
+                                            </template>
                                         </button>
                                     </div>
                                 </div>
@@ -102,14 +110,34 @@ const loadStores = async () => {
         const { data } = await fetchStores();
         const storesData = data.data || data.stores || data || [];
 
-        stores.value = storesData.map(store => ({
-            ...store,
-            // 添加店铺归属标识
-            isCurrentUserStore: store.sellerId === userStore.userId
-        }));
+        // ✅ 为每个店铺加载聊天室状态
+        const enrichedStores = await Promise.all(
+            storesData.map(async store => ({
+                ...store,
+                // 強制轉換 sellerId 和 shopId 為數字
+                sellerId: Number(store.sellerId),
+                shopId: Number(store.shopId),
+                // 使用轉換後的 sellerId 進行比較
+                isCurrentUserStore: Number(store.sellerId) === Number(userStore.userId)
+            }))
+        );
+
+        stores.value = enrichedStores;
     } catch (error) {
         console.error('載入商店失敗:', error);
         stores.value = [];
+    }
+};
+
+// ✅ 新增：检查店铺聊天室状态
+const checkStoreChatStatus = async (shopId) => {
+    try {
+        const res = await axios.get(`/api/chat/seller/check/${shopId}`, {
+            headers: { Authorization: `Bearer ${sessionStorage.getItem('authToken')}` }
+        });
+        return res.data.hasActiveChat;
+    } catch {
+        return false;
     }
 };
 
@@ -196,35 +224,34 @@ const sellerChat = async (shopId) => {
             headers: { Authorization: `Bearer ${token}` }
         });
 
-        if (!isOwner) throw new Error('无权限');
+        if (!ownershipRes.data.isOwner) {
+            throw new Error('您不是此店铺的管理员');
+        }
 
-        // 🌟 確保 headers 正確攜帶 token
-        const response = await axios.get(
-            `http://localhost:8081/api/chat/seller/enter/${shopId}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${token.trim()}` // 確保格式正確
-                }
-            }
+        // ✅ 新增：检查是否存在有效聊天室
+        const checkChatRes = await axios.get(
+            `http://localhost:8081/api/chat/seller/check/${shopId}`,
+            { headers: { Authorization: `Bearer ${token}` } }
         );
+        // 如果存在未读消息的聊天室则进入
+        if (checkChatRes.data.hasActiveChat) {
+            router.push(`/chat/${checkChatRes.data.chatRoomId}`);
+        } else {
+            Swal.fire("提示", "当前没有买家发起对话", "info");
+        }
 
-        if (response.data.chatRoomId) {
-            router.push(`/chat/${response.data.chatRoomId}`);
-        } else {
-            Swal.fire("提示", "目前沒有進行中的對話", "info");
-        }
+
     } catch (error) {
-        // 🌟 精確處理 401/403 狀態碼
-        if (error.response?.status === 401 || error.response?.status === 403) {
-            sessionStorage.removeItem('authToken'); // 僅移除 token
-            Swal.fire("授權過期", "請重新登入", "error");
-            router.push('/login');
+        if (error.response?.status === 404) {
+            Swal.fire("提示", "尚未有买家发起对话", "info");
+        } else if (error.response?.status === 403) {
+            Swal.fire("权限不足", "您无法访问此聊天室", "error");
         } else {
-            handleChatError(error); // 其他錯誤用統一處理
+            handleChatError(error);
         }
+
     }
 };
-
 
 
 // 统一错误处理
