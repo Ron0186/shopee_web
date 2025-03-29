@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import router from '@/router';
+import { useChatStore } from './chatStore';  // 引入 chatStore 获取 stompClient
 
 export const useUserStore = defineStore('user', () => {
     const username = ref('');
@@ -15,6 +16,35 @@ export const useUserStore = defineStore('user', () => {
     const isUser = computed(() => roles.value.includes("USER"));
     console.log(isSeller.value)
 
+    const logout = async () => {
+        // 🔴 强制断开所有 WebSocket 连接
+        const chatStore = useChatStore();
+        if (chatStore.stompClient) {
+            chatStore.stompClient.disconnect(() => {
+                console.log('旧用户 WebSocket 已断开');
+            });
+            chatStore.stompClient = null; // 重要！重置为 null
+        }
+
+        // 🔴 清除所有存储中的用户数据
+        sessionStorage.removeItem('tempAuthToken'); // 仅清除 sessionStorage 的 Token
+        localStorage.removeItem('authToken');       // 清除长效 Token（如果存在）
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userId');
+        localStorage.removeItem('username');
+        localStorage.removeItem('roles');
+
+        // 🔴 重置 Pinia 状态
+        this.username = '';
+        this.userId = '';
+        this.token = '';
+        this.roles = [];
+
+        console.log("✅ 用户状态已完全重置");
+
+        // 4. 跳转登录页
+        await router.push('/user/login');
+    };
 
     function loadUserData() {
         username.value = localStorage.getItem('username') || '';
@@ -78,6 +108,8 @@ export const useUserStore = defineStore('user', () => {
             console.log("✅ 使用者是 USER，導向 /user/orders");
             router.push("/user/orders");
         }
+
+
     }
 
     function clearUserData() {
@@ -107,6 +139,6 @@ export const useUserStore = defineStore('user', () => {
 
     return {
         username, userId, token, roles, isSeller, isAdmin, isUser, isSuperAdmin,
-        setUserData, clearUserData, saveUserData, reloadUserData
+        setUserData, clearUserData, saveUserData, reloadUserData, logout
     };
 });
