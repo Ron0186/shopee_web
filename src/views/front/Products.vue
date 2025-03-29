@@ -130,34 +130,30 @@ const fetchProducts = async () => {
       return;
     }
 
-    console.log("正在請求的 shopId:", shopId.value);
+    console.log("正在請求的 shopId:", shopId);
     console.log("當前 userId:", userId);
     console.log("當前 token:", token);
 
-    const response = await axios.get(`/api/product/byShop`, {
+    // 修正 API 路徑從 /api/product/byShop 到 /api/products
+    const response = await axios.get(`/api/products`, {
       params: {
         shopId: shopId,
+        page: 0,
+        size: 100, // 設定適當的分頁大小
       },
       headers: { Authorization: `Bearer ${token}` },
     });
 
     console.log("API 回傳原始數據:", response);
-    console.log("API 回傳的「我的商品」資料:", response.data);
 
-    if (response.data.length > 0) {
-      console.log("商品數據詳細檢查:");
-      response.data.forEach((item, index) => {
-        console.log(`商品 ${index + 1}:`, {
-          productId: item.productId,
-          image: item.image, // 檢查這個值是否存在
-          imageUrl: item.imageUrl, // 檢查這個值是否存在
-          productName: item.productName,
-        });
-      });
+    // 檢查是否為分頁格式的回傳結果
+    if (response.data && response.data.content) {
+      console.log("API 回傳的「我的商品」資料:", response.data.content);
+      products.value = response.data.content;
     }
-
-    // 檢查 response.data 是否為數組
-    if (Array.isArray(response.data)) {
+    // 保留原有的處理邏輯，以防 API 回傳格式不變
+    else if (Array.isArray(response.data)) {
+      console.log("API 回傳的「我的商品」資料:", response.data);
       products.value = response.data;
     } else if (response.data && Array.isArray(response.data.products)) {
       // 如果数据是嵌套在 products 字段中
@@ -165,6 +161,18 @@ const fetchProducts = async () => {
     } else {
       console.error("回傳的數據格式不正確:", response.data);
       products.value = [];
+    }
+
+    if (products.value.length > 0) {
+      console.log("商品數據詳細檢查:");
+      products.value.forEach((item, index) => {
+        console.log(`商品 ${index + 1}:`, {
+          productId: item.productId,
+          image: item.image, // 檢查這個值是否存在
+          imageUrl: item.imageUrl, // 檢查這個值是否存在
+          productName: item.productName,
+        });
+      });
     }
 
     // 打印最終賦值結果
@@ -210,7 +218,8 @@ const deleteProduct = async (id) => {
     });
 
     if (result.isConfirmed) {
-      const response = await axios.delete(`/api/product/${id}`, {
+      // 修正 API 路徑從 /api/product/${id} 到 /api/products/${id}
+      const response = await axios.delete(`/api/products/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

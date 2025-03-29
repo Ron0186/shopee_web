@@ -225,30 +225,18 @@ const updateProduct = async () => {
 
     // 創建 FormData 對象
     const formData = new FormData();
-
-    // 添加商品資料 - 保留原有的分類ID
-    const productJson = {
-      productName: productData.productName,
-      description: productData.description || "",
-      // 不修改分類關聯
-      active: productData.active,
-    };
-
-    formData.append(
-      "product",
-      new Blob([JSON.stringify(productJson)], {
-        type: "application/json",
-      })
-    );
+    formData.append("productName", productData.productName);
+    formData.append("description", productData.description || "");
+    formData.append("active", productData.active);
 
     // 如果有選擇新圖片，則添加到 FormData
     if (productImage.value) {
-      formData.append("image", productImage.value);
+      formData.append("newImages", productImage.value);
     }
 
-    // 發送請求到後端 API
+    // 發送請求到後端 API - 使用新的API路徑
     const response = await axios.put(
-      `/api/product/${productData.productId}`,
+      `/api/products/${productData.productId}`,
       formData,
       {
         headers: {

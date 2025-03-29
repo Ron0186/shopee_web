@@ -255,21 +255,19 @@ const submitProduct = async () => {
 
     // 創建 FormData 對象
     const formData = new FormData();
-    formData.append("userId", userId);
-    formData.append("shopId", props.shopId);
-    formData.append("category1Id", productData.category1Id);
-    formData.append("category2Id", productData.category2Id);
     formData.append("productName", productData.productName);
     formData.append("description", productData.description || "");
+    formData.append("category1Id", productData.category1Id);
+    formData.append("category2Id", productData.category2Id);
     formData.append("active", productData.active);
 
     // 如果有選擇圖片，則添加到 FormData
     if (productImage.value) {
-      formData.append("image", productImage.value);
+      formData.append("images", productImage.value);
     }
 
-    // 發送請求到後端 API
-    const response = await axios.post("/api/product", formData, {
+    // 發送請求到後端 API - 使用新的API路徑
+    const response = await axios.post("/api/products", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
         Authorization: `Bearer ${token}`,
