@@ -252,40 +252,101 @@ async function loadMessages(chatRoomId) {
 /**
  * 建立 WebSocket 連線並訂閱聊天室頻道
  */
-function connectWebSocket(chatRoomId) {
-    const socket = new SockJS('http://localhost:8081/ws');
+const connectionStatus = ref('disconnected') // 添加连接状态跟踪
 
-    stompClient = Stomp.over(socket);
+async function connectWebSocket(chatRoomId) {
+    try {
+        // 如果正在连接中或已连接，直接返回
+        if (connectionStatus.value === 'connecting' || connectionStatus.value === 'connected') {
+            return;
+        }
 
+        connectionStatus.value = 'connecting';
 
+        // 🌟 使用 Promise.race 添加超时机制
+        await Promise.race([
+            new Promise((resolve, reject) => {
+                // 创建 SockJS 连接
+                const socket = new SockJS('http://localhost:8081/ws');
 
-    stompClient.connect({}, () => {
-        console.log('WebSocket 連線成功');
+                // 创建 STOMP 客户端
+                stompClient = Stomp.over(socket);
 
-        // 主消息订阅
-        const mainSub = stompClient.subscribe(
-            `/topic/chat/${chatRoomId}`,
-            (message) => {
-                const receivedMessage = JSON.parse(message.body);
-                chatStore.removeTempMessage(receivedMessage.id); // 移除对应临时消息
-                chatStore.addMessage(receivedMessage);
-            }
-        );
+                // 🌟 配置心跳检测
+                stompClient.heartbeat.outgoing = 10000; // 每10秒发送心跳
+                stompClient.over = (ws) => {
+                    ws.onclose = () => {
+                        connectionStatus.value = 'disconnected';
+                        console.log('WebSocket 连接关闭');
+                    };
+                };
 
-        // 新增错误处理订阅
-        const errorSub = stompClient.subscribe(
-            `/user/${userId.value}/errors`,
-            (error) => {
-                const errData = JSON.parse(error.body);
-                chatStore.updateMessageStatus(errData.messageId, 'failed');
-            }
-        );
+                // 发起连接
+                stompClient.connect(
+                    { 'Authorization': `Bearer ${token.value}` }, // 携带 Token
+                    () => {
+                        console.log('STOMP 连接成功');
+                        connectionStatus.value = 'connected';
+                        resolve();
+                    },
+                    (error) => {
+                        console.error('STOMP 连接失败', error);
+                        connectionStatus.value = 'disconnected';
+                        reject(error);
+                    }
+                );
+            }),
+            // 超时设置（5秒）
+            new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('连接超时')), 5000)
+            )
+        ]);
 
-        // 组件卸载时取消订阅
-        onUnmounted(() => {
-            mainSub.unsubscribe();
-            errorSub.unsubscribe();
-        });
+        // 连接成功后订阅消息
+        setupSubscriptions(chatRoomId);
+
+    } catch (error) {
+        console.error('WebSocket 连接异常:', error);
+        connectionStatus.value = 'disconnected';
+        // 🌟 自动重连（最多尝试3次）
+        if (reconnectAttempts < 3) {
+            reconnectAttempts++;
+            setTimeout(() => connectWebSocket(chatRoomId), 2000);
+        } else {
+            Swal.fire('连接失败', '无法连接到服务器，请检查网络', 'error');
+        }
+        throw error;
+    }
+}
+
+// 订阅消息的逻辑
+function setupSubscriptions(chatRoomId) {
+    // 主消息订阅
+    const mainSub = stompClient.subscribe(
+        `/topic/chat/${chatRoomId}`,
+        (message) => {
+            const receivedMessage = JSON.parse(message.body);
+            chatStore.removeTempMessage(receivedMessage.id);
+            chatStore.addMessage(receivedMessage);
+        }
+    );
+
+    // 错误订阅
+    const errorSub = stompClient.subscribe(
+        `/user/${userId.value}/errors`,
+        (error) => {
+            const errData = JSON.parse(error.body);
+            chatStore.updateMessageStatus(errData.messageId, 'failed');
+        }
+    );
+
+    // 组件卸载时取消订阅
+    onUnmounted(() => {
+        mainSub.unsubscribe();
+        errorSub.unsubscribe();
+        if (stompClient) {
+            stompClient.disconnect();
+        }
     });
 }
 
@@ -318,11 +379,11 @@ async function send() {
             }
         });
         // 处理响应
-        if (response.data.messageId) {
+        if (response.data) {
             // 更新消息状态
             chatStore.updateMessageStatus(messageId, 'sent', {
-                id: response.data.messageId,
-                timestamp: response.data.timestamp
+                id: response.data.id, // 假設後端回傳 id
+                timestamp: response.data.createdAt
             });
             newMessage.value = "";
         }

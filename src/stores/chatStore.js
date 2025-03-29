@@ -166,15 +166,15 @@ export const useChatStore = defineStore('chat', () => {
     };
 
     // 新增消息状态更新方法
-    const updateMessageStatus = (tempId, newStatus, serverMessage) => {
+    const updateMessageStatus = (tempId, newStatus, serverMessage = {}) => {
         const index = tempMessages.value.findIndex(msg => msg.id === tempId);
         if (index !== -1) {
             // 合併伺服器返回的正式消息資料
             tempMessages.value[index] = {
                 ...tempMessages.value[index],
                 _status: newStatus,
-                id: serverMessage.messageId, // 替換為正式 ID
-                timestamp: serverMessage.timestamp
+                id: serverMessage?.id || serverMessage?.messageId || tempId,
+                timestamp: serverMessage?.timestamp || serverMessage?.createdAt || new Date().toISOString()
             };
         }
     };
