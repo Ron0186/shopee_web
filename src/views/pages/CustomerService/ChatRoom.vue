@@ -252,80 +252,84 @@ function connectWebSocket(chatRoomId) {
 
     stompClient = Stomp.over(socket);
 
-    const headers = {
-        Authorization: `Bearer ${token.value}`,
-        userId: userId.value
-    };
 
-    stompClient.connect(headers, () => {
+
+    stompClient.connect({}, () => {
         console.log('WebSocket 連線成功');
 
-        // 訂閱 /topic/chat/{chatRoomId} 頻道
-        stompClient.subscribe(
+        // 主消息订阅
+        const mainSub = stompClient.subscribe(
             `/topic/chat/${chatRoomId}`,
             (message) => {
                 const receivedMessage = JSON.parse(message.body);
-                console.log("收到訊息:", receivedMessage);
-                stompClient.subscribe(`/user/${userId.value}/queue/notifications`, (message) => {
-                    const notification = JSON.parse(message.body);
-                    console.log('收到通知:', notification);
-                });
-                // 防止重複
-                if (!chatStore.messages.some(msg => msg.id === receivedMessage.id)) {
-                    chatStore.messages.push(receivedMessage);
-                }
-            },
-            { id: `sub-${chatRoomId}` }
+                chatStore.removeTempMessage(receivedMessage.id); // 移除对应临时消息
+                chatStore.addMessage(receivedMessage);
+            }
         );
 
-        // 組件卸載時斷線
-        onUnmounted(() => {
-            if (stompClient && stompClient.connected) {
-                stompClient.disconnect(() => {
-                    console.log('WebSocket 已斷線');
-                });
+        // 新增错误处理订阅
+        const errorSub = stompClient.subscribe(
+            `/user/${userId.value}/errors`,
+            (error) => {
+                const errData = JSON.parse(error.body);
+                chatStore.updateMessageStatus(errData.messageId, 'failed');
             }
+        );
+
+        // 组件卸载时取消订阅
+        onUnmounted(() => {
+            mainSub.unsubscribe();
+            errorSub.unsubscribe();
         });
-    }, (error) => {
-        console.error("WebSocket 連線失敗:", error);
-        // 失敗後嘗試重新連線
-        setTimeout(() => connectWebSocket(chatRoomId), 5000);
     });
 }
+
 
 /**
  * 發送訊息
  */
 async function send() {
     if (!newMessage.value.trim()) return;
-
-    // 🔴 修改5：直接使用 localStorage 的值进行验证
-    if (!userId.value || !token.value) {
-        Swal.fire("错误", "请重新登录", "error");
-        return router.push('/user/login');
-    }
-
+    const messageId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     try {
-        const message = {
-            chatRoomId: activeChatRoom.value.chatRoomId,
+        // 生成唯一訊息ID
+        const tempMessage = {
+            id: messageId,
             content: newMessage.value.trim(),
-            senderName: chatStore.currentUser.username,
             sender: { userId: userId.value },
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            _status: 'sending'
         };
+        chatStore.addTempMessage(tempMessage);
 
-        // 添加到本地消息列表
-        chatStore.addMessage({
-            ...message,
-            id: `temp-${Date.now()}`
+        // 发送请求
+        const response = await axios.post(`/api/chat/${activeChatRoom.value.chatRoomId}/send`, {
+            content: newMessage.value.trim(),
+            tempId: messageId // 携带临时ID
+        }, {
+            headers: {
+                Authorization: `Bearer ${token.value}`,
+                'Content-Type': 'application/json'
+            }
         });
-
-        if (stompClient?.connected) {
-            stompClient.send("api/chat/app/send", {}, JSON.stringify(message));
+        // 处理响应
+        if (response.data.messageId) {
+            // 更新消息状态
+            chatStore.updateMessageStatus(messageId, 'sent', {
+                id: response.data.messageId,
+                timestamp: response.data.timestamp
+            });
             newMessage.value = "";
         }
     } catch (error) {
-        Swal.fire("错误", "消息发送失败", "error");
+        // 失敗時移除臨時訊息
+        chatStore.updateMessageStatus(messageId, 'failed');
+
+        Swal.fire({
+            title: '發送失敗',
+            text: '訊息無法送達，請檢查網路連線',
+            icon: 'error'
+        });
     }
 }
 </script>

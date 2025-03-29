@@ -41,8 +41,8 @@
                                             </p>
                                         </div>
                                         <!-- 根據登入者身份決定顯示哪個聊天按鈕 -->
-                                        <button v-if="isShopOwner" class="btn btn-primary"
-                                            @click.stop="sellerChat(store.id)">
+                                        <button v-if="store.isCurrentUserStore" class="btn btn-primary"
+                                            @click.stop="sellerChat(store.shopId)">
                                             賣家聊天
                                         </button>
                                         <button v-else class="btn btn-primary" @click.stop="buyerChat(store.shopId)">
@@ -68,6 +68,8 @@ import { useHelpStore } from "../stores/HelpStore";
 import { useUserStore } from '../stores/user';
 import { fetchStores, fetchUnreadCounts } from '../stores/chatApi';
 import axios from 'axios';
+import Swal from "sweetalert2";
+import SockJS from "sockjs-client/dist/sockjs";
 
 const route = useRoute();
 const router = useRouter();
@@ -88,26 +90,12 @@ const isShopOwner = computed(() => userStore.isSeller);
 const loadStores = async () => {
     try {
         const { data } = await fetchStores();
-        if (!data) {
-            console.error('API 返回空數據');
-            stores.value = [];
-            return;
-        }
-        // 根據 API 回傳格式處理數據
-        let storesData = [];
-        if (Array.isArray(data)) {
-            storesData = data;
-        } else if (data.stores && Array.isArray(data.stores)) {
-            storesData = data.stores;
-        } else if (data.data && Array.isArray(data.data)) {
-            storesData = data.data;
-        } else {
-            console.warn('無法識別的 API 響應格式:', data);
-            storesData = [];
-        }
-        stores.value = data.map(store => ({
+        const storesData = data.data || data.stores || data || [];
+
+        stores.value = storesData.map(store => ({
             ...store,
-            isSeller: store.sellerId === userStore.userId
+            // 添加店铺归属标识
+            isCurrentUserStore: store.sellerId === userStore.userId
         }));
     } catch (error) {
         console.error('載入商店失敗:', error);
@@ -144,67 +132,101 @@ const getShopInfo = async (storeId, isSellerChat = false) => {
     }
 };
 
-const setupChatUpdates = (chatRoomId) => {
-    const eventSource = new EventSource(`http://localhost:8081/api/chat/updates?roomId=${chatRoomId}`);
-    eventSource.onmessage = (event) => {
-        const newMessage = JSON.parse(event.data);
-        console.log('新訊息:', newMessage);
-        // 可根據需求更新聊天 store（例如 chatStore.addMessage(newMessage)）
-    };
-    eventSource.onerror = () => {
-        console.error('聊天室更新連線錯誤');
-    };
-    onUnmounted(() => {
-        eventSource.close();
+const subscribeSellerNotifications = (userId) => {
+    const sock = new SockJS('http://localhost:8081/ws');
+    const stompClient = Stomp.over(sock);
+
+    stompClient.connect({}, () => {
+        stompClient.subscribe(`/user/${userId}/queue/new-chat`, (notification) => {
+            const data = JSON.parse(notification.body);
+            Swal.fire({
+                title: '新对话建立',
+                text: `店铺 ${data.shopId} 有新的买家对话`,
+                icon: 'info'
+            });
+        });
     });
 };
 
-const sellerChat = async () => {
-    const shop = await getShopInfo(null, true);
-    if (!shop) {
-        console.error('找不到符合的商店資訊');
-        return;
-    }
+const buyerChat = async (shopId) => {
     try {
-        const response = await axios.post('http://localhost:8081/api/chat/create', {
+        // 通用创建/进入逻辑
+        const response = await axios.post(
+            'http://localhost:8081/api/chat/create',
+            { shopId, buyerId: userStore.userId },
+            { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
 
-            shopId: shop.shopId
-        },
-            {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } // <span style="color:red;">【修改處】帶上正確的 Authorization header】</span>
-            });
-        if (response.data?.chatRoomId) {
+        if (response.data.chatRoomId) {
             router.push(`/chat/${response.data.chatRoomId}`);
-            setupChatUpdates(response.data.chatRoomId);
         }
     } catch (error) {
-        console.error('賣家聊天室建立失敗:', error);
+        if (error.response?.status === 403) {
+            Swal.fire("錯誤", "您無法在自己的商店建立聊天室", "error");
+        } else {
+            handleChatError(error);
+        }
     }
 };
 
-const buyerChat = async (storeId) => {
-    const shop = await getShopInfo(storeId, false);
-    if (!shop) {
-        console.error(`找不到 shopId 為 ${storeId} 的商店資訊`);
-        return;
-    }
-    try {
-        const response = await axios.post('http://localhost:8081/api/chat/create', {
 
-            shopId: shop.shopId
-        },
-            {
-                headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } // <span style="color:red;">【修改處】帶上正確的 Authorization header】</span>
-            });
-        if (response.data?.chatRoomId) {
+// 前端 sellerChat 方法修改
+const sellerChat = async (shopId) => {
+    try {
+        // 1. 验证店铺归属
+        const isOwner = await verifyShopOwnership(shopId);
+        if (!isOwner) {
+            Swal.fire("錯誤", "您無權訪問此商店的聊天室", "error");
+            return;
+        }
+
+        // 2. 获取最新聊天室
+        const response = await axios.get(
+            `http://localhost:8081/api/chat/seller/enter/${shopId}`,
+            { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+
+        // 3. 处理响应
+        if (response.data.chatRoomId) {
             router.push(`/chat/${response.data.chatRoomId}`);
-            setupChatUpdates(response.data.chatRoomId);
+        } else {
+            Swal.fire("提示", "目前沒有進行中的對話", "info");
         }
     } catch (error) {
-        console.error('買家聊天室建立失敗:', error);
+        if (error.response?.status === 404) {
+            Swal.fire("提示", "尚未有買家發起對話", "info");
+        } else {
+            handleChatError(error);
+        }
+    }
+};
+// 新增验证商店归属方法
+const verifyShopOwnership = async (shopId) => {
+    try {
+        const response = await axios.get(
+            `http://localhost:8081/api/shop/${shopId}/check-ownership`,
+            { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+        );
+        return response.data.isOwner;
+    } catch (error) {
+        console.error('商店归属验证失败:', error);
+        return false;
     }
 };
 
+// 统一错误处理
+const handleChatError = (error) => {
+    const status = error.response?.status;
+    const msg = error.response?.data?.message || '操作失败，请稍后重试';
+
+    if (status === 403) {
+        Swal.fire("權限不足", "您無法訪問此聊天室", "error");
+    } else if (status === 404) {
+        Swal.fire("提示", "尚未建立聊天室", "info");
+    } else {
+        Swal.fire("錯誤", msg, "error");
+    }
+};
 const loadUnreadCounts = async () => {
     if (!userStore.userId) return;
     try {
@@ -216,7 +238,9 @@ const loadUnreadCounts = async () => {
 };
 
 onMounted(() => {
-    // 可根據需求初始化設定
+    if (userStore.isSeller) {
+        subscribeSellerNotifications(userStore.userId);
+    }
 });
 </script>
 

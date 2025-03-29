@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import axios from 'axios';
 import SockJS from 'sockjs-client/dist/sockjs';
 import Stomp from 'stompjs';
@@ -128,9 +128,72 @@ export const useChatStore = defineStore('chat', () => {
             console.error('獲取用戶失敗', error);
             clearUserData();
         }
+
+    };
+
+    const tempMessages = ref([]);
+    // 使用 Set 数据结构存储消息ID避免重复
+    const messageIds = ref(new Set());
+
+    const addMessage = (message) => {
+        if (!messageIds.value.has(message.id)) {
+            messages.value.push(message);
+            messageIds.value.add(message.id);
+        }
     };
 
 
+    const addTempMessage = (message) => {
+        if (!messageIds.value.has(message.id)) {
+            tempMessages.value.push({ ...message, _status: 'sending' });
+            messageIds.value.add(message.id);
+        }
+    };
+
+    const removeTempMessage = (messageId) => {
+        tempMessages.value = tempMessages.value.filter(msg => msg.id !== messageId);
+        messageIds.value.delete(messageId);
+    };
+
+    // 新增消息状态更新方法
+    const updateMessageStatus = (tempId, newStatus, serverMessage) => {
+        const index = tempMessages.value.findIndex(msg => msg.id === tempId);
+        if (index !== -1) {
+            // 合併伺服器返回的正式消息資料
+            tempMessages.value[index] = {
+                ...tempMessages.value[index],
+                _status: newStatus,
+                id: serverMessage.messageId, // 替換為正式 ID
+                timestamp: serverMessage.timestamp
+            };
+        }
+    };
+
+    // 合併正式訊息與臨時訊息
+    const displayMessages = computed(() => {
+        const finalMessages = [...messages.value];
+
+        tempMessages.value.forEach(temp => {
+            if (!finalMessages.some(m => m.id === temp.id)) {
+                finalMessages.push(temp);
+            }
+        });
+
+        return finalMessages.sort((a, b) =>
+            new Date(a.timestamp) - new Date(b.timestamp)
+        );
+    });
+
+    const messageState = ref({
+        pending: new Map(),
+        sent: new Map(),
+        failed: new Map()
+    });
+
+    const updateMessageState = (tempId, status, payload) => {
+        messageState.value[status].set(tempId, payload);
+        messageState.value.pending.delete(tempId);
+    };
     return {
         currentUser,
         activeChatRoom,
@@ -141,6 +204,13 @@ export const useChatStore = defineStore('chat', () => {
         fetchUnreadCounts,
         connectChatRoom,
         socketManager,
-        fetchCurrentUser
+        fetchCurrentUser,
+        addTempMessage,
+        removeTempMessage,
+        displayMessages,
+        addMessage,
+        updateMessageStatus,
+        messageState,
+        updateMessageState
     };
 });
