@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import axios from 'axios';
 import SockJS from 'sockjs-client/dist/sockjs';
 import Stomp from 'stompjs';
-import { useUserStore } from './user'
+import { useUserStore } from './user';
 import { useRouter } from 'vue-router';
 
 class SocketManager {
@@ -38,7 +38,8 @@ export const useChatStore = defineStore('chat', () => {
     const unreadCounts = ref({});
     const stompClient = ref(null);
     const socketManager = ref(new SocketManager());
-    const authToken = ref(sessionStorage.getItem('tempAuthToken'));
+    // 修改：統一從 sessionStorage 讀取 'authToken'
+    const authToken = ref(sessionStorage.getItem('authToken'));
     const userStore = useUserStore();
     const router = useRouter();
 
@@ -69,10 +70,11 @@ export const useChatStore = defineStore('chat', () => {
         stompClient.value.activate();
     };
 
+    // 修改 fetchCurrentUser：當 userId 未傳入時，從 localStorage 取得 userId
     const fetchCurrentUser = async (userId) => {
         try {
-
-            const response = await axios.get(`/api/user/check/${userId}`, {
+            const uid = userId || localStorage.getItem('userId');
+            const response = await axios.get(`/api/user/check/${uid}`, {
                 headers: {
                     Authorization: `Bearer ${authToken.value}`
                 }
@@ -83,7 +85,6 @@ export const useChatStore = defineStore('chat', () => {
             userStore.clearUserData();
             router.push('/user/login');
         }
-
     };
 
     const createOrJoinChatRoom = async (shopId) => {
@@ -137,10 +138,6 @@ export const useChatStore = defineStore('chat', () => {
         );
     };
 
-
-
-
-
     const tempMessages = ref([]);
     // 使用 Set 数据结构存储消息ID避免重复
     const messageIds = ref(new Set());
@@ -151,7 +148,6 @@ export const useChatStore = defineStore('chat', () => {
             messageIds.value.add(message.id);
         }
     };
-
 
     const addTempMessage = (message) => {
         if (!messageIds.value.has(message.id)) {
@@ -204,6 +200,7 @@ export const useChatStore = defineStore('chat', () => {
         messageState.value[status].set(tempId, payload);
         messageState.value.pending.delete(tempId);
     };
+
     return {
         currentUser,
         activeChatRoom,

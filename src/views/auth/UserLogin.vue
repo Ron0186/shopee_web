@@ -49,11 +49,11 @@ const password = ref("");
 const syncStorage = {
   setToken(token) {
     localStorage.setItem('authToken', token);       // 长期存储
-    sessionStorage.setItem('sessionToken', token);  // 会话存储
+    sessionStorage.setItem('authToken', token);  // 会话存储
   },
   clearTokens() {
     localStorage.removeItem('authToken');
-    sessionStorage.removeItem('sessionToken');
+    sessionStorage.removeItem('authToken');
   }
 };
 
@@ -84,9 +84,6 @@ async function login() {
       // 同步儲存使用者資訊到 localStorage
       localStorage.setItem('userId', decodedToken.userId);
       localStorage.setItem('username', decodedToken.sub);
-
-      // 僅將 token 存入 sessionStorage（每個標籤頁獨立）
-      sessionStorage.setItem("sessionToken", response.data.token);
 
       const result = await Swal.fire({
         title: response.data.message,
@@ -160,10 +157,11 @@ window.addEventListener('storage', (event) => {
   }
 });
 
-// 跨标签页同步监听
+// 修改跨标签页事件監聽，統一使用 authToken 鍵
 window.addEventListener('storage', (event) => {
   if (event.key === 'authToken') {
-    sessionStorage.setItem('sessionToken', event.newValue);
+    // 當其他分頁更新 localStorage 時，同步到 sessionStorage
+    sessionStorage.setItem('authToken', event.newValue);
     if (!event.newValue) router.push('/user/login');
   }
 });

@@ -161,11 +161,13 @@ const subscribeSellerNotifications = (userId) => {
 const buyerChat = async (shopId) => {
     try {
         // 通用创建/进入逻辑
-        const token = sessionStorage.getItem('sessionToken');
+        const token = sessionStorage.getItem('authToken');
         console.log('Current Token:', token); // 添加這行檢查實際 token 值
+        if (!token) throw new Error('未登录');
+
         const response = await axios.post(
             'http://localhost:8081/api/chat/create',
-            { shopId, buyerId: userStore.userId },
+            { shopId },
             { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -186,26 +188,15 @@ const buyerChat = async (shopId) => {
 const sellerChat = async (shopId) => {
     try {
         // 🌟 檢查 sessionStorage 中的 token 是否存在
-        const token = sessionStorage.getItem('sessionToken');
-        if (!token) {
-            Swal.fire("錯誤", "登入狀態已過期，請重新登入", "error");
-            return router.push('/login'); // 導向登入頁
-        }
+        const token = sessionStorage.getItem('authToken');
+        if (!token) throw new Error('未登录');
 
-        // 🌟 新增 token 有效性驗證
-        const isTokenValid = await validateToken(token); // 需實作驗證方法
-        if (!isTokenValid) {
-            sessionStorage.removeItem('sessionToken'); // 移除無效 token
-            Swal.fire("錯誤", "登入狀態已過期，請重新登入", "error");
-            return router.push('/login');
-        }
+        // ✅ 验证店铺归属时携带 Token
+        const isOwner = await axios.get(`/api/shop/${shopId}/check-ownership`, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
 
-        // 驗證店鋪歸屬
-        const isOwner = await verifyShopOwnership(shopId);
-        if (!isOwner) {
-            Swal.fire("錯誤", "您無權訪問此商店的聊天室", "error");
-            return;
-        }
+        if (!isOwner) throw new Error('无权限');
 
         // 🌟 確保 headers 正確攜帶 token
         const response = await axios.get(
@@ -225,7 +216,7 @@ const sellerChat = async (shopId) => {
     } catch (error) {
         // 🌟 精確處理 401/403 狀態碼
         if (error.response?.status === 401 || error.response?.status === 403) {
-            sessionStorage.removeItem('sessionToken'); // 僅移除 token
+            sessionStorage.removeItem('authToken'); // 僅移除 token
             Swal.fire("授權過期", "請重新登入", "error");
             router.push('/login');
         } else {
@@ -234,33 +225,7 @@ const sellerChat = async (shopId) => {
     }
 };
 
-// 🌟 新增 token 驗證方法
-const validateToken = async (token) => {
-    try {
-        const response = await axios.post(
-            'http://localhost:8081/api/validate-token',
-            { token },
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        return response.data.isValid;
-    } catch (error) {
-        return false;
-    }
-};
-// 新增验证商店归属方法
-const verifyShopOwnership = async (shopId) => {
-    try {
-        const token = sessionStorage.getItem('sessionToken');
-        const response = await axios.get(
-            `http://localhost:8081/api/shop/${shopId}/check-ownership`,
-            { headers: { Authorization: `Bearer ${token}` } }
-        );
-        return response.data.isOwner;
-    } catch (error) {
-        console.error('商店归属验证失败:', error);
-        return false;
-    }
-};
+
 
 // 统一错误处理
 const handleChatError = (error) => {

@@ -42,6 +42,7 @@ import { useChatStore } from '@/stores/chatStore';
 import Swal from 'sweetalert2';
 import { storeToRefs } from "pinia";
 
+
 const chatStore = useChatStore();
 const route = useRoute();
 const router = useRouter();
@@ -54,7 +55,7 @@ const newMessage = ref("");
 
 // 🔴 修改1：直接从 localStorage 获取 userId
 const userId = ref(localStorage.getItem('userId'));
-const token = ref(localStorage.getItem('token'));
+
 
 // 從 chatStore 取出當前使用者
 const { currentUser } = storeToRefs(chatStore);
@@ -98,33 +99,25 @@ function formatTime(timestamp) {
 }
 
 onMounted(async () => {
-    // 🔴 统一使用函数获取最新 Token
-    const getValidToken = () => {
-        const token = sessionStorage.getItem('tempAuthToken') || localStorage.getItem('authToken');
-        if (!token) {
-            router.push('/user/login');
-            throw new Error('未找到有效 Token');
-        }
-        return token;
-    };
-
-    // 🌟 确保 token 存在
-    const token = getValidToken();
-    if (!token) {
-        router.push('/user/login');
-        return;
-    }
-
     try {
-        const token = getValidToken();
+        // 🔴 统一使用函数获取最新 Token
+        const currentToken = sessionStorage.getItem('authToken');
+
+        if (!currentToken) {
+            Swal.fire('错误', '登录状态已过期', 'error');
+            router.push('/user/login');
+            return;
+        }
+
         // 後續聊天室操作使用 sessionStorage 的 Token
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        axios.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
+
         // 🔴 确保先获取用户数据再加载聊天室
-        await chatStore.fetchCurrentUser(localStorage.getItem('userId'));
+        await chatStore.fetchCurrentUser();
 
         // 情況1：直接透過路由參數 chatRoomId 進入
         if (route.params.chatRoomId) {
-            await loadChatRoom(route.params.chatRoomId);
+            await loadChatRoom(route.params.chatRoomId, currentToken);
 
         } else if (route.query.shopId) {
             checkingExisting.value = true;
@@ -134,7 +127,7 @@ onMounted(async () => {
                 { shopId: route.query.shopId },
                 {
                     headers: {
-                        Authorization: `Bearer ${token}`
+                        Authorization: `Bearer ${currentToken}`
                     }
                 }
             );
@@ -208,11 +201,14 @@ async function loadChatRoom(chatRoomId) {
             stompClient.disconnect();
             stompClient = null;
         }
+        // ✅ 动态获取 Token
+        const currentToken = sessionStorage.getItem('authToken');
+
         const response = await axios.get(
             `http://localhost:8081/api/chat/${chatRoomId}`,
             {
                 headers: {
-                    Authorization: `Bearer ${token}` // 帶上 token
+                    Authorization: `Bearer ${currentToken}` // 帶上 token
                 }
             }
         );
@@ -237,11 +233,12 @@ async function loadChatRoom(chatRoomId) {
  */
 async function loadMessages(chatRoomId) {
     try {
+        const currentToken = sessionStorage.getItem('authToken');
         const response = await axios.get(
             `http://localhost:8081/api/chat/${chatRoomId}/messages`,
             {
                 headers: {
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${currentToken}`
                 }
             }
         );
@@ -260,30 +257,39 @@ const connectionStatus = ref('disconnected') // 添加连接状态跟踪
 // ChatRoom.vue - 修改 connectWebSocket
 async function connectWebSocket(chatRoomId) {
     try {
-        // 🔴 断开旧连接
-        if (stompClient && stompClient.connected) {
+        if (stompClient?.connected) {
             stompClient.disconnect();
             stompClient = null;
-            console.log('旧连接已断开');
+            console.log('旧 WebSocket 连接已断开');
         }
 
-        // 🔴 动态获取最新 Token
-        const token = sessionStorage.getItem('tempAuthToken') || localStorage.getItem('authToken');
-        if (!token) throw new Error('Token 不存在');
+        // 动态获取最新 Token
+        const currentToken = sessionStorage.getItem('authToken');
+        if (!currentToken) {
+            throw new Error('无法获取有效 Token');
+        }
 
         const socket = new SockJS('http://localhost:8081/ws');
         stompClient = Stomp.over(socket);
 
-        // 🔴 添加连接状态追踪
-        connectionStatus.value = 'connecting';
+        // 添加心跳检测
+        stompClient.heartbeat.outgoing = 10000;
+        stompClient.heartbeat.incoming = 10000;
 
+        // 加入延遲，確保連線完全建立後再訂閱
         await new Promise((resolve, reject) => {
             stompClient.connect(
-                { Authorization: `Bearer ${token}` },
+                {
+                    Authorization: `Bearer ${currentToken}`,
+                    'X-User-Id': localStorage.getItem('userId') // 携带用户ID
+                },
                 () => {
-                    console.log('STOMP 连接成功');
-                    connectionStatus.value = 'connected';
-                    resolve();
+                    console.log('🔗 WebSocket 连接成功');
+                    // 延遲 100 毫秒後再進行訂閱
+                    setTimeout(() => {
+                        setupSubscriptions(chatRoomId);
+                        resolve();
+                    }, 100);
                 },
                 (error) => {
                     console.error('STOMP 连接失败', error);
@@ -293,7 +299,6 @@ async function connectWebSocket(chatRoomId) {
             );
         });
 
-        setupSubscriptions(chatRoomId);
     } catch (error) {
         console.error('WebSocket 连接异常:', error);
         connectionStatus.value = 'disconnected';
@@ -301,6 +306,8 @@ async function connectWebSocket(chatRoomId) {
         throw error;
     }
 }
+
+
 
 // 订阅消息的逻辑
 function setupSubscriptions(chatRoomId) {
@@ -342,7 +349,7 @@ async function send() {
     if (!newMessage.value.trim()) return;
 
     // 🌟 实时获取最新 token
-    const currentToken = sessionStorage.getItem('tempAuthToken') || localStorage.getItem('authToken');
+    const currentToken = sessionStorage.getItem('authToken');
 
     const messageId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     try {
@@ -371,7 +378,7 @@ async function send() {
             tempId: messageId // 携带临时ID
         }, {
             headers: {
-                Authorization: `Bearer ${token}`,
+                Authorization: `Bearer ${currentToken}`,
                 'Content-Type': 'application/json'
             }
         });

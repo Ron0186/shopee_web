@@ -26,5 +26,4 @@ if (chatStore.currentUser) {
     chatStore.connectWebSocket(chatStore.currentUser.id);
 }
 
-
 app.mount("#app");

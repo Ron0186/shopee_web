@@ -17,33 +17,27 @@ export const useUserStore = defineStore('user', () => {
     console.log(isSeller.value)
 
     const logout = async () => {
-        // 🔴 强制断开所有 WebSocket 连接
-        const chatStore = useChatStore();
-        if (chatStore.stompClient) {
-            chatStore.stompClient.disconnect(() => {
-                console.log('旧用户 WebSocket 已断开');
-            });
-            chatStore.stompClient = null; // 重要！重置为 null
+        try {
+            // ✅ 清理所有认证相关数据
+            sessionStorage.removeItem('sessionToken');
+            localStorage.removeItem('authToken');
+
+            // ✅ 强制断开 WebSocket
+            const chatStore = useChatStore();
+            if (chatStore.stompClient) {
+                chatStore.stompClient.disconnect();
+                chatStore.stompClient = null;
+            }
+
+            // ✅ 重置用户状态
+            this.clearUserData();
+
+            console.log("✅ 用户登出完成");
+            router.push('/user/login');
+        } catch (error) {
+            console.error('登出错误:', error);
+            Swal.fire('错误', '登出过程中发生异常', 'error');
         }
-
-        // 🔴 清除所有存储中的用户数据
-        sessionStorage.removeItem('tempAuthToken'); // 仅清除 sessionStorage 的 Token
-        localStorage.removeItem('authToken');       // 清除长效 Token（如果存在）
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('userId');
-        localStorage.removeItem('username');
-        localStorage.removeItem('roles');
-
-        // 🔴 重置 Pinia 状态
-        this.username = '';
-        this.userId = '';
-        this.token = '';
-        this.roles = [];
-
-        console.log("✅ 用户状态已完全重置");
-
-        // 4. 跳转登录页
-        await router.push('/user/login');
     };
 
     function loadUserData() {
