@@ -15,7 +15,9 @@
           :showPending="showPending" 
           :showApproved="showApproved"
           :showRejected="showRejected"
-          @updateView="updateView" 
+          @updateView="updateView"
+          @requestCounts="provideCounts"
+          ref="appControls"
         />
         
         <!-- 表格容器 -->
@@ -48,9 +50,11 @@
                   <ApplicationItem 
                     v-for="app in pendingApplications"
                     :key="app.applicationId" 
-                    :app="app" 
+                    :app="app"
+                    :countManager="countManager" 
                     @approve="approveApplication"
-                    @reject="rejectApplication" 
+                    @reject="rejectApplication"
+                    @update-counts="updateApplicationCounts"
                   />
                 </template>
                 <tr v-else>
@@ -125,7 +129,9 @@
                     v-for="app in rejectedApplications"
                     :key="app.applicationId" 
                     :app="app"
-                    @approve="approveApplication" 
+                    :countManager="countManager"
+                    @approve="approveApplication"
+                    @update-counts="updateApplicationCounts"
                   />
                 </template>
                 <tr v-else>
@@ -177,10 +183,33 @@ export default {
       showApproved: false,
       showRejected: false,
       isLoading: false,
-      globalLoading: false
+      globalLoading: false,
+      // 計數管理對象
+      countManager: null
     };
   },
   methods: {
+      
+  updateNavBadgeCount() {
+    // 更新頂部導航欄的徽章
+    const navBadgeElement = document.querySelector('.badge.bg-danger');
+    if (navBadgeElement) {
+      if (this.pendingApplications.length > 0) {
+        navBadgeElement.textContent = this.pendingApplications.length;
+        navBadgeElement.style.display = '';
+      } else {
+        navBadgeElement.style.display = 'none';
+      }
+    }
+    
+    // 同時更新整個應用中的其他地方
+    if (window.$shopApp) {
+      window.$shopApp.pendingCount = this.pendingApplications.length;
+    }
+    
+    // 也可以使用事件通知其他元件
+    this.$root.$emit('update-shop-badge', this.pendingApplications.length);
+  },
     getAdminId() {
       const adminIdStr = localStorage.getItem("userId");
       if (!adminIdStr) {
@@ -201,6 +230,9 @@ export default {
       try {
         const response = await axios.get("/api/shop/application/pending");
         this.pendingApplications = response.data;
+        
+        // 更新待審核計數
+        this.updateCountsFromData();
       } catch (error) {
         this.showError("載入待審核申請失敗：" + (error.response?.data.message || error.message));
       } finally {
@@ -216,6 +248,9 @@ export default {
       try {
         const response = await axios.get("/api/shop/application/approved");
         this.approvedApplications = response.data;
+        
+        // 更新已核准計數
+        this.updateCountsFromData();
       } catch (error) {
         this.showError("載入已核准申請失敗：" + (error.response?.data.message || error.message));
       } finally {
@@ -231,6 +266,9 @@ export default {
       try {
         const response = await axios.get("/api/shop/application/rejected");
         this.rejectedApplications = response.data;
+        
+        // 更新已拒絕計數
+        this.updateCountsFromData();
       } catch (error) {
         this.showError("載入已拒絕申請失敗：" + (error.response?.data.message || error.message));
       } finally {
@@ -242,7 +280,7 @@ export default {
     async approveApplication(applicationId) {
       if (this.adminId === null) {
         this.showError("未找到管理員 ID，請重新登入");
-        return;
+        return Promise.reject("未找到管理員 ID");
       }
 
       const {
@@ -258,28 +296,58 @@ export default {
         cancelButtonText: "取消",
       });
 
-      if (isConfirmed) {
-        this.globalLoading = true;
-        try {
-          const response = await axios.post(
-            `/api/shop/application/approve/${applicationId}?adminId=${this.adminId}`
-          );
-          
-          this.showSuccess("核准成功", response.data.message || "申請已成功核准!");
-          
-          // 刷新所有列表
-          await this.refreshAllLists();
-        } catch (error) {
-          this.showError("操作失敗：" + (error.response?.data.message || error.message));
-        } finally {
-          this.globalLoading = false;
+      if (!isConfirmed) {
+        return Promise.reject("使用者取消操作");
+      }
+
+      this.globalLoading = true;
+      try {
+        const response = await axios.post(
+          `/api/shop/application/approve/${applicationId}?adminId=${this.adminId}`
+        );
+        
+        this.showSuccess("核准成功", response.data.message || "申請已成功核准!");
+        
+        // 如果當前是從待審核列表操作
+        if (this.showPending) {
+          // 從待審核列表中移除該項
+          const index = this.pendingApplications.findIndex(app => app.applicationId === applicationId);
+          if (index !== -1) {
+            this.pendingApplications.splice(index, 1);
+          }
+          this.updateNavBadgeCount();
+
+        } 
+        
+        // 如果是從已拒絕列表重新核准
+        else if (this.showRejected) {
+          // 從已拒絕列表中移除該項
+          const index = this.rejectedApplications.findIndex(app => app.applicationId === applicationId);
+          if (index !== -1) {
+            this.rejectedApplications.splice(index, 1);
+          }
+          this.updateNavBadgeCount();
+
         }
+        
+        // 重新獲取已核准列表（如果當前顯示的是已核准列表）
+        if (this.showApproved) {
+          await this.fetchApprovedApplications();
+        }
+        
+        
+        return Promise.resolve(true);
+      } catch (error) {
+        this.showError("操作失敗：" + (error.response?.data.message || error.message));
+        return Promise.reject(error);
+      } finally {
+        this.globalLoading = false;
       }
     },
     async rejectApplication(applicationId) {
       if (this.adminId === null) {
         this.showError("未找到管理員 ID，請重新登入");
-        return;
+        return Promise.reject("未找到管理員 ID");
       }
 
       const {
@@ -301,53 +369,78 @@ export default {
         }
       });
 
-      if (text) {
-        const { isConfirmed } = await Swal.fire({
-          title: '確認拒絕？',
-          html: `<div class="text-start">
-                  <p><strong>拒絕原因:</strong></p>
-                  <p class="bg-light p-2 rounded">${text}</p>
-                  <p class="text-danger">此操作將拒絕此商店申請，確認繼續？</p>
-                </div>`,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonColor: '#d33',
-          cancelButtonColor: '#6c757d',
-          confirmButtonText: '確認拒絕',
-          cancelButtonText: '返回修改'
-        });
+      if (!text) {
+        return Promise.reject("未輸入拒絕原因");
+      }
 
-        if (isConfirmed) {
-          this.globalLoading = true;
-          try {
-            const response = await axios.post(
-              `/api/shop/application/reject/${applicationId}?adminId=${this.adminId}&comment=${encodeURIComponent(text)}`
-            );
-            
-            this.showSuccess("已拒絕", response.data.message || "申請已被拒絕");
-            
-            // 刷新所有列表
-            await this.refreshAllLists();
-          } catch (error) {
-            this.showError("操作失敗：" + (error.response?.data.message || error.message));
-          } finally {
-            this.globalLoading = false;
-          }
+      const { isConfirmed } = await Swal.fire({
+        title: '確認拒絕？',
+        html: `<div class="text-start">
+                <p><strong>拒絕原因:</strong></p>
+                <p class="bg-light p-2 rounded">${text}</p>
+                <p class="text-danger">此操作將拒絕此商店申請，確認繼續？</p>
+              </div>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '確認拒絕',
+        cancelButtonText: '返回修改'
+      });
+
+      if (!isConfirmed) {
+        return Promise.reject("使用者取消操作");
+      }
+
+      this.globalLoading = true;
+      try {
+        const response = await axios.post(
+          `/api/shop/application/reject/${applicationId}?adminId=${this.adminId}&comment=${encodeURIComponent(text)}`
+        );
+        
+        this.showSuccess("已拒絕", response.data.message || "申請已被拒絕");
+        
+        // 從待審核列表中移除該項
+        const index = this.pendingApplications.findIndex(app => app.applicationId === applicationId);
+        if (index !== -1) {
+          this.pendingApplications.splice(index, 1);
         }
+        this.updateNavBadgeCount();
+
+        
+        // 如果當前顯示的是已拒絕列表，重新獲取數據
+        if (this.showRejected) {
+          await this.fetchRejectedApplications();
+        }
+        
+        // 注意：這裡不再主動更新計數，而是通過子組件的事件觸發
+        
+        return Promise.resolve(true);
+      } catch (error) {
+        this.showError("操作失敗：" + (error.response?.data.message || error.message));
+        return Promise.reject(error);
+      } finally {
+        this.globalLoading = false;
       }
     },
-    async refreshAllLists() {
-      // 不管當前顯示哪個列表，都刷新所有數據
-      if (this.showPending) {
-        await this.fetchApplications();
+    updateCountsFromData() {
+      // 使用現有數據更新計數器
+      if (this.$refs.appControls) {
+        this.$refs.appControls.updateCounts({
+          pending: this.pendingApplications.length,
+          approved: this.approvedApplications.length,
+          rejected: this.rejectedApplications.length
+        });
       }
-      
-      if (this.showApproved) {
-        await this.fetchApprovedApplications();
-      }
-      
-      if (this.showRejected) {
-        await this.fetchRejectedApplications();
+    },
+    provideCounts() {
+      // 提供計數給子組件
+      this.updateCountsFromData();
+    },
+    updateApplicationCounts(countData) {
+      // 將計數更新轉發給 ApplicationControls 組件
+      if (this.$refs.appControls) {
+        this.$refs.appControls.updateCounts(countData);
       }
     },
     showError(message) {
@@ -381,6 +474,14 @@ export default {
         this.fetchRejectedApplications();
       }
     },
+  },
+  created() {
+    // 創建計數管理者對象
+    this.countManager = {
+      updateCount: (type, amount) => {
+        this.updateApplicationCounts({ type, amount });
+      }
+    };
   },
   mounted() {
     this.adminId = this.getAdminId();
