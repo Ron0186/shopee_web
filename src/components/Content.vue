@@ -129,13 +129,13 @@ const loadStores = async () => {
     }
 };
 
-// ✅ 新增：检查店铺聊天室状态
+// 更新店铺状态检查逻辑
 const checkStoreChatStatus = async (shopId) => {
     try {
-        const res = await axios.get(`/api/chat/seller/check/${shopId}`, {
+        const res = await axios.get(`http://localhost:8081/api/chat/shop/${shopId}`, {
             headers: { Authorization: `Bearer ${sessionStorage.getItem('authToken')}` }
         });
-        return res.data.hasActiveChat;
+        return res.data.chatRoomId ? true : false;
     } catch {
         return false;
     }
@@ -220,7 +220,7 @@ const sellerChat = async (shopId) => {
         if (!token) throw new Error('未登录');
 
         // ✅ 验证店铺归属时携带 Token
-        const isOwner = await axios.get(`/api/shop/${shopId}/check-ownership`, {
+        const isOwner = await axios.get(`http://localhost:8081/api/shop/${shopId}/check-ownership`, {
             headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -228,27 +228,21 @@ const sellerChat = async (shopId) => {
             throw new Error('您不是此店铺的管理员');
         }
 
-        // ✅ 新增：检查是否存在有效聊天室
-        const checkChatRes = await axios.get(
-            `http://localhost:8081/api/chat/seller/check/${shopId}`,
+        // ✅ 第二步：调用卖家专用入口API
+        const enterRes = await axios.get(
+            `http://localhost:8081/api/chat/seller/enter/${shopId}`,
             { headers: { Authorization: `Bearer ${token}` } }
         );
-        // 如果存在未读消息的聊天室则进入
-        if (checkChatRes.data.hasActiveChat) {
-            router.push(`/chat/${checkChatRes.data.chatRoomId}`);
-        } else {
-            Swal.fire("提示", "当前没有买家发起对话", "info");
+        // ✅ 处理不同响应状态
+        if (enterRes.status === 200) {
+            router.push(`/chat/${enterRes.data.chatRoomId}`);
+        } else if (enterRes.status === 404) {
+            Swal.fire("提示", "尚未有买家发起对话", "info");
         }
 
 
     } catch (error) {
-        if (error.response?.status === 404) {
-            Swal.fire("提示", "尚未有买家发起对话", "info");
-        } else if (error.response?.status === 403) {
-            Swal.fire("权限不足", "您无法访问此聊天室", "error");
-        } else {
-            handleChatError(error);
-        }
+        handleChatError(error, shopId);
 
     }
 };
@@ -259,19 +253,52 @@ const handleChatError = (error) => {
     const status = error.response?.status;
     const msg = error.response?.data?.message || '操作失败，请稍后重试';
 
-    if (status === 403) {
-        Swal.fire("權限不足", "您無法訪問此聊天室", "error");
-    } else if (status === 404) {
-        Swal.fire("提示", "尚未建立聊天室", "info");
-    } else {
-        Swal.fire("錯誤", msg, "error");
+    switch (status) {
+        case 403:
+            Swal.fire("权限不足", "您不是该店铺的拥有者", "error");
+            break;
+        case 404:
+            Swal.fire({
+                title: '尚无对话',
+                text: '当前没有买家发起对话',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonText: '查看其他聊天室',
+                cancelButtonText: '返回帮助中心'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    router.push('/chat/list'); // 假设有聊天室列表页
+                }
+            });
+            break;
+        default:
+            Swal.fire("错误", msg, "error");
     }
 };
+
+
+
+
 const loadUnreadCounts = async () => {
-    if (!userStore.userId) return;
     try {
+        if (!userStore.userId) return;
+        // 添加加载状态
+        const loading = Swal.fire({
+            title: '加载未读消息...',
+            allowOutsideClick: false,
+            didOpen: () => Swal.showLoading()
+        });
+
         const response = await fetchUnreadCounts(userStore.userId);
         console.log('未讀訊息計數:', response.data);
+
+        // 更新商店数据
+        stores.value = stores.value.map(store => ({
+            ...store,
+            unreadCount: response[store.shopId] || 0,
+            hasActiveChat: response[store.shopId] > 0
+        }));
+        loading.close();
     } catch (error) {
         console.error('載入未讀訊息計數失敗:', error);
     }

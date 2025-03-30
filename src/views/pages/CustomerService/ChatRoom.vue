@@ -1,11 +1,15 @@
 <template>
-    <div v-if="!activeChatRoom.chatRoomId || checkingExisting" class="loading-container">
+    <!-- 在聊天室容器顶部添加状态提示 -->
+    <div class="connection-status" :class="connectionStatus">
+        {{ statusText }}
+
+    </div>
+    <!-- 先檢查 activeChatRoom 是否存在，若不存在則顯示 loading -->
+    <div v-if="!activeChatRoom || !activeChatRoom.chatRoomId || checkingExisting" class="loading-container">
         <div class="loading-spinner"></div>
         <p>{{ loadingText }}</p>
     </div>
-    <!-- 修改判断条件为 chatRoomId -->
     <div class="chat-room" v-else>
-        <!-- 调整显示逻辑，优先显示店铺信息 -->
         <h2 v-if="activeChatRoom.shop">
             {{ activeChatRoom.shop.shopName || activeChatRoom.seller.username }}的客服聊天室
         </h2>
@@ -14,15 +18,28 @@
         </h2>
 
         <div class="messages">
-            <div v-for="msg in safeMessages" :key="msg.id" class="message">
-                <div :class="['message-container', { 'my-message': msg.sender?.userId === currentUser?.userId }]">
-                    <div class="message-header">
-                        <small class="timestamp">{{ formatTime(msg.timestamp) }}</small>
-                        <strong class="username">{{ msg.senderName }}</strong>
+            <transition-group name="message-list" tag="div">
+                <div v-for="msg in displayMessages" :key="msg.id + msg._status" class="message">
+                    <div :class="[
+                        'message-container',
+                        {
+                            'my-message': isMyMessage(msg),
+                            'sending': msg._status === 'sending',
+                            'failed': msg._status === 'failed'
+                        }
+                    ]">
+                        <div class="message-state">
+                            <span v-if="msg._status === 'sending'">🔄 发送中</span>
+                            <span v-if="msg._status === 'failed'">❌ 发送失败</span>
+                        </div>
+                        <div class="message-header">
+                            <span class="username">{{ msg.senderName || '未知用户' }}</span>
+                            <span class="timestamp">{{ formatTime(msg.timestamp) }}</span>
+                        </div>
+                        <div class="message-content">{{ msg.content }}</div>
                     </div>
-                    <div class="message-content">{{ msg.content }}</div>
                 </div>
-            </div>
+            </transition-group>
         </div>
 
         <div class="input-area">
@@ -33,55 +50,51 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, onUnmounted, computed } from "vue";
+import { ref, onMounted, watch, computed, onUnmounted, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import SockJS from "sockjs-client/dist/sockjs";
-import Stomp from "stompjs";
 import axios from "@/plugins/axios";
-import { useChatStore } from '@/stores/chatStore';
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 import { storeToRefs } from "pinia";
+import { useChatStore } from '@/stores/chatStore';
 
-
+// 從 store 中取得相關狀態與方法
 const chatStore = useChatStore();
+const { currentUser, activeChatRoom, displayMessages, connectionStatus } = storeToRefs(chatStore);
+
 const route = useRoute();
 const router = useRouter();
 
-// 🔴 <span style="color:red;">【修改處】用於顯示載入中文案</span>
 const loadingText = ref("載入中...");
-
-// 文字輸入框
+const checkingExisting = ref(false);
 const newMessage = ref("");
+const userId = ref(localStorage.getItem("userId"));
+const authToken = ref(sessionStorage.getItem("authToken"));
 
-// 🔴 修改1：直接从 localStorage 获取 userId
-const userId = ref(localStorage.getItem('userId'));
-
-
-// 從 chatStore 取出當前使用者
-const { currentUser } = storeToRefs(chatStore);
-
-// 聊天室基本資料
-const activeChatRoom = ref({
-    chatRoomId: null,
-    seller: {
-        userId: null,
-        username: null
-    },
-    shop: {
-        shopId: null,
-        shopName: null
-    }
+// 添加计算属性和方法
+const statusText = computed(() => {
+    return {
+        disconnected: '❌ 连接已断开',
+        connecting: '🔄 连接中...',
+        connected: '✅ 已连接'
+    }[connectionStatus.value];
 });
 
-// 聊天訊息列表 (來自 store)
-const messages = computed(() => chatStore.messages);
-const safeMessages = computed(() => messages.value);
 
-// 是否在檢查聊天室狀態
-const checkingExisting = ref(false);
 
-// WebSocket 客戶端
-let stompClient = null;
+const reconnect = async () => {
+    try {
+        await chatStore.connectChatRoom(chatStore.activeChatRoom.chatRoomId);
+    } catch (error) {
+        Swal.fire('错误', '重新连接失败', 'error');
+    }
+};
+
+
+
+// 判斷是否為本人發送
+const isMyMessage = computed(() => (msg) => {
+    return msg.sender?.userId === currentUser.value?.userId;
+});
 
 // 時間格式化函式
 function formatTime(timestamp) {
@@ -94,52 +107,115 @@ function formatTime(timestamp) {
         hour: "2-digit",
         minute: "2-digit",
         second: "2-digit",
-        hour12: false
+        hour12: false,
     });
 }
 
-onMounted(async () => {
-    try {
-        // 🔴 统一使用函数获取最新 Token
-        const currentToken = sessionStorage.getItem('authToken');
+// 自動同步 token
+watchEffect(() => {
+    sessionStorage.setItem("authToken", authToken.value);
+    axios.defaults.headers.common["Authorization"] = `Bearer ${authToken.value}`;
+});
 
-        if (!currentToken) {
-            Swal.fire('错误', '登录状态已过期', 'error');
-            router.push('/user/login');
-            return;
+// 載入聊天室資料與連線
+async function loadChatRoom(chatRoomId) {
+    try {
+        authToken.value = sessionStorage.getItem("authToken");
+        const response = await axios.get(`http://localhost:8081/api/chat/${chatRoomId}`, {
+            headers: { Authorization: `Bearer ${authToken.value}` },
+        });
+
+        // 若有店鋪資訊則檢查擁有權
+        if (response.data.shop) {
+            authToken.value = sessionStorage.getItem("authToken");
+            const isOwner = await axios.get(
+                `http://localhost:8081/api/chat/${response.data.shop.shopId}/check-ownership`,
+                { headers: { Authorization: `Bearer ${authToken.value}` } }
+            );
+            if (isOwner.data.isOwner) {
+                response.data.isOwner = true;
+                await checkChatActivity(chatRoomId);
+            }
         }
 
-        // 後續聊天室操作使用 sessionStorage 的 Token
-        axios.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
+        // 將取得的聊天室資訊設定到 store 中
+        chatStore.activeChatRoom = response.data;
 
-        // 🔴 确保先获取用户数据再加载聊天室
+        // 載入歷史訊息
+        await loadMessages(chatRoomId);
+
+        // 若 currentUser 有值，再建立 WebSocket 連線
+        if (currentUser.value) {
+            chatStore.connectChatRoom(chatRoomId);
+        }
+    } catch (error) {
+        console.error("聊天室詳情載入失敗:", error);
+        Swal.fire("錯誤", error.response?.data?.message || "載入失敗", "error");
+        router.push("/user/login");
+    }
+}
+
+async function checkChatActivity(chatRoomId) {
+    try {
+        const res = await axios.get(`/api/chat/${chatRoomId}/activity`);
+        if (!res.data.hasMessages) {
+            Swal.fire("提示", "此聊天室尚无有效对话", "info");
+        }
+    } catch (error) {
+        console.error("活动检查失败:", error);
+    }
+}
+
+async function loadMessages(chatRoomId) {
+    try {
+        authToken.value = sessionStorage.getItem("authToken");
+        const response = await axios.get(`http://localhost:8081/api/chat/${chatRoomId}/messages`, {
+            headers: { Authorization: `Bearer ${authToken.value}` },
+        });
+        chatStore.messages = response.data;
+    } catch (error) {
+        console.error("歷史訊息載入失敗:", error);
+    }
+}
+
+// 監聽路由參數變化
+watch(
+    () => route.params.chatRoomId,
+    async (newChatRoomId, oldChatRoomId) => {
+        if (newChatRoomId && newChatRoomId !== oldChatRoomId) {
+            chatStore.messages = [];
+            await loadChatRoom(newChatRoomId);
+        }
+    },
+    { immediate: true }
+);
+
+onMounted(async () => {
+    try {
+        authToken.value = sessionStorage.getItem("authToken");
+        if (!authToken.value) {
+            Swal.fire("错误", "登录状态已过期", "error");
+            router.push("/user/login");
+            return;
+        }
+        axios.defaults.headers.common["Authorization"] = `Bearer ${authToken.value}`;
         await chatStore.fetchCurrentUser();
-
-        // 情況1：直接透過路由參數 chatRoomId 進入
         if (route.params.chatRoomId) {
-            await loadChatRoom(route.params.chatRoomId, currentToken);
-
+            await loadChatRoom(route.params.chatRoomId);
         } else if (route.query.shopId) {
             checkingExisting.value = true;
-
+            authToken.value = sessionStorage.getItem("authToken");
             const response = await axios.post(
                 "http://localhost:8081/api/chat/create",
                 { shopId: route.query.shopId },
-                {
-                    headers: {
-                        Authorization: `Bearer ${currentToken}`
-                    }
-                }
+                { headers: { Authorization: `Bearer ${authToken.value}` } }
             );
-
             if (response.data.alreadyExists) {
-                // 聊天室已存在，直接載入
                 await loadChatRoom(response.data.chatRoomId);
             } else {
-                // 新建立的聊天室，改用 router.replace 進入
                 router.replace({
                     path: `/chat/${response.data.chatRoomId}`,
-                    query: { from: 'new' }
+                    query: { from: "new" },
                 });
             }
         }
@@ -147,263 +223,98 @@ onMounted(async () => {
         Swal.fire({
             title: "錯誤",
             text: error.response?.data?.message || "聊天室處理失敗",
-            icon: "error"
+            icon: "error",
         });
-        router.push('/user/login');
+        router.push("/user/login");
     } finally {
         checkingExisting.value = false;
     }
-})
+});
 
-
-
-
-
-// 監聽路由參數的變動（如切換聊天室）
-watch(
-    () => route.params.chatRoomId,
-    async (newChatRoomId, oldChatRoomId) => {
-        if (newChatRoomId && newChatRoomId !== oldChatRoomId) {
-            // 清空舊訊息
-            chatStore.messages = [];
-
-            // 若已有 stompClient，取消訂閱舊聊天室
-            if (stompClient && stompClient.connected) {
-                stompClient.unsubscribe(`sub-${oldChatRoomId}`);
-            }
-
-            // 重置 activeChatRoom
-            activeChatRoom.value = {
-                chatRoomId: null,
-                seller: {},
-                shop: {}
-            };
-
-            // 載入新聊天室
-            await loadChatRoom(newChatRoomId);
-        }
-    },
-    { immediate: true }
-);
-
-// 監聽 store 中 messages 的變化
-watch(() => chatStore.messages, (newMessages) => {
-    // 這裡可以做一些 UI 效果，例如自動捲動到底部
-}, { deep: true });
-
-/**
- * 依 chatRoomId 取得聊天室詳情，並連線 WebSocket
- */
-async function loadChatRoom(chatRoomId) {
-    try {
-        // 🔴 先断开旧连接
-        if (stompClient && stompClient.connected) {
-            stompClient.disconnect();
-            stompClient = null;
-        }
-        // ✅ 动态获取 Token
-        const currentToken = sessionStorage.getItem('authToken');
-
-        const response = await axios.get(
-            `http://localhost:8081/api/chat/${chatRoomId}`,
-            {
-                headers: {
-                    Authorization: `Bearer ${currentToken}` // 帶上 token
-                }
-            }
-        );
-        // 設定聊天室資訊
-        activeChatRoom.value = response.data;
-
-        // 🔴 <span style="color:red;">【修改處】載入歷史訊息 (若需要)</span>
-        await loadMessages(chatRoomId);
-
-        // 🔴 <span style="color:red;">【修改處】呼叫 connectWebSocket，建立訂閱</span>
-        await connectWebSocket(chatRoomId);
-
-    } catch (error) {
-        console.error('聊天室詳情載入失敗:', error);
-        Swal.fire("錯誤", error.response?.data?.message || '載入失敗', 'error');
-        router.push('/user/login');
+onUnmounted(() => {
+    if (chatStore.socketManager?.value?.stompClient?.connected) {
+        chatStore.socketManager.value.disconnect();
     }
-}
+});
 
 /**
- * 若需要歷史訊息，可從 /api/chat/{chatRoomId}/messages 取得
- */
-async function loadMessages(chatRoomId) {
-    try {
-        const currentToken = sessionStorage.getItem('authToken');
-        const response = await axios.get(
-            `http://localhost:8081/api/chat/${chatRoomId}/messages`,
-            {
-                headers: {
-                    Authorization: `Bearer ${currentToken}`
-                }
-            }
-        );
-        // 直接替換 store 中 messages
-        chatStore.messages = response.data;
-    } catch (error) {
-        console.error('歷史訊息載入失敗:', error);
-    }
-}
-
-/**
- * 建立 WebSocket 連線並訂閱聊天室頻道
- */
-const connectionStatus = ref('disconnected') // 添加连接状态跟踪
-
-// ChatRoom.vue - 修改 connectWebSocket
-async function connectWebSocket(chatRoomId) {
-    try {
-        if (stompClient?.connected) {
-            stompClient.disconnect();
-            stompClient = null;
-            console.log('旧 WebSocket 连接已断开');
-        }
-
-        // 动态获取最新 Token
-        const currentToken = sessionStorage.getItem('authToken');
-        if (!currentToken) {
-            throw new Error('无法获取有效 Token');
-        }
-
-        const socket = new SockJS('http://localhost:8081/ws');
-        stompClient = Stomp.over(socket);
-
-        // 添加心跳检测
-        stompClient.heartbeat.outgoing = 10000;
-        stompClient.heartbeat.incoming = 10000;
-
-        // 加入延遲，確保連線完全建立後再訂閱
-        await new Promise((resolve, reject) => {
-            stompClient.connect(
-                {
-                    Authorization: `Bearer ${currentToken}`,
-                    'X-User-Id': localStorage.getItem('userId') // 携带用户ID
-                },
-                () => {
-                    console.log('🔗 WebSocket 连接成功');
-                    // 延遲 100 毫秒後再進行訂閱
-                    setTimeout(() => {
-                        setupSubscriptions(chatRoomId);
-                        resolve();
-                    }, 100);
-                },
-                (error) => {
-                    console.error('STOMP 连接失败', error);
-                    connectionStatus.value = 'disconnected';
-                    reject(error);
-                }
-            );
-        });
-
-    } catch (error) {
-        console.error('WebSocket 连接异常:', error);
-        connectionStatus.value = 'disconnected';
-        Swal.fire('连接失败', '无法连接到聊天服务器', 'error');
-        throw error;
-    }
-}
-
-
-
-// 订阅消息的逻辑
-function setupSubscriptions(chatRoomId) {
-    // 主消息订阅
-    const mainSub = stompClient.subscribe(
-        `/topic/chat/${chatRoomId}`,
-        (message) => {
-            const receivedMessage = JSON.parse(message.body);
-            chatStore.removeTempMessage(receivedMessage.id);
-            chatStore.addMessage(receivedMessage);
-        }
-    );
-
-    // 错误订阅
-    const errorSub = stompClient.subscribe(
-        `/user/${userId.value}/errors`,
-        (error) => {
-            const errData = JSON.parse(error.body);
-            chatStore.updateMessageStatus(errData.messageId, 'failed');
-        }
-    );
-
-    // 组件卸载时取消订阅
-    onUnmounted(() => {
-        mainSub.unsubscribe();
-        errorSub.unsubscribe();
-        if (stompClient) {
-            stompClient.disconnect();
-        }
-    });
-}
-
-
-/**
- * 發送訊息
+ * 發送訊息：加入臨時訊息後送出，待回應後更新狀態
  */
 async function send() {
-
     if (!newMessage.value.trim()) return;
+    authToken.value = sessionStorage.getItem("authToken");
 
-    // 🌟 实时获取最新 token
-    const currentToken = sessionStorage.getItem('authToken');
-
-    const messageId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     try {
-
-        // 🌟 强制更新 axios headers
-        axios.defaults.headers.common['Authorization'] = `Bearer ${currentToken}`;
-
-        // 🌟 检查连接时使用最新 token
-        if (!stompClient?.connected) {
-            await connectWebSocket(activeChatRoom.value.chatRoomId);
+        // 🔴 关键修改：确保连接已建立
+        if (!socketManager.value.stompClient?.connected) {
+            await chatStore.connectChatRoom(chatStore.activeChatRoom.chatRoomId);
         }
 
-        // 生成唯一訊息ID
+        const messageId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        axios.defaults.headers.common["Authorization"] = `Bearer ${authToken.value}`;
+        // 若 WebSocket 未連線則重新連線
+        if (!chatStore.activeChatRoom?.chatRoomId) {
+            throw new Error("聊天室資訊尚未載入");
+        }
+        // 新增臨時訊息
         const tempMessage = {
             id: messageId,
             content: newMessage.value.trim(),
             sender: { userId: userId.value },
             timestamp: new Date().toISOString(),
-            _status: 'sending'
+            _status: "sending",
         };
         chatStore.addTempMessage(tempMessage);
 
-        // 发送请求
-        const response = await axios.post(`/api/chat/${activeChatRoom.value.chatRoomId}/send`, {
-            content: newMessage.value.trim(),
-            tempId: messageId // 携带临时ID
-        }, {
-            headers: {
-                Authorization: `Bearer ${currentToken}`,
-                'Content-Type': 'application/json'
-            }
-        });
-        // 处理响应
-        if (response.data) {
-            // 更新消息状态
-            chatStore.updateMessageStatus(messageId, 'sent', {
-                id: response.data.id, // 假設後端回傳 id
-                timestamp: response.data.createdAt
-            });
-            newMessage.value = "";
-        }
+        await axios.post(
+            `/api/chat/${chatStore.activeChatRoom.chatRoomId}/send`,
+            { content: newMessage.value.trim(), tempId: messageId },
+            { headers: { Authorization: `Bearer ${authToken.value}`, "Content-Type": "application/json" } }
+        );
+        // 清空输入框
+        newMessage.value = "";
+
     } catch (error) {
-        if (error.message.includes('身份已变更')) {
+        if (error.message.includes("身份已变更")) {
             Swal.fire({
-                title: '会话过期',
-                text: '检测到用户切换，请刷新页面',
-                icon: 'warning'
+                title: "会话过期",
+                text: "检测到用户切换，请刷新页面",
+                icon: "warning",
             });
         }
     }
 }
+function setupSubscriptions(chatRoomId) {
+    // 清除旧订阅
+    if (socketManager.value.stompClient?.subscriptions) {
+        Object.keys(socketManager.value.stompClient.subscriptions).forEach(subId => {
+            socketManager.value.stompClient.unsubscribe(subId);
+        });
+    }
+
+    // 主消息订阅
+    const mainSub = socketManager.value.stompClient.subscribe(
+        `/topic/chat/${chatRoomId}`,
+        (message) => {
+            const receivedMessage = JSON.parse(message.body);
+            chatStore.addMessage(receivedMessage);
+        },
+        { id: `sub-${chatRoomId}-${Date.now()}` } // 动态生成唯一ID
+    );
+
+    // 错误订阅
+    const errorSub = socketManager.value.stompClient.subscribe(
+        '/user/queue/errors',
+        (error) => {
+            const errorData = JSON.parse(error.body);
+            Swal.fire('错误', errorData.message, 'error');
+        }
+    );
+}
 </script>
 
 <style scoped>
+/* 此處保持原有樣式不變 */
 .chat-room {
     padding: 20px;
     max-width: 800px;
@@ -509,5 +420,22 @@ button:hover {
     100% {
         transform: rotate(360deg);
     }
+}
+
+.message-list-enter-active,
+.message-list-leave-active {
+    transition: all 0.5s ease;
+}
+
+.message-list-enter-from,
+.message-list-leave-to {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+.message-state {
+    font-size: 0.8em;
+    margin-bottom: 4px;
+    color: #666;
 }
 </style>
