@@ -119,6 +119,35 @@ const router = createRouter({
           component: () => import("@/views/front/ApplyShop.vue"),
         },
 
+        //下單頁面
+        {
+          path: "/checkout",
+          name: "Checkout",
+          component: () => import("@/views/pages/Checkout.vue"),
+          meta: { requiresAuth: true } // 可選：需要登入才能進入
+        },
+
+        //評價頁面
+        {
+          path: '/submitReview',
+          name: 'SubmitReview',
+          component: () => import('@/views/pages/SubmitReview.vue')
+        },
+
+        {
+          path: '/seller-setting',
+          name: 'SellerSetting',
+          component: () => import('@/views/pages/SellerSetting.vue'),
+          meta: { requiresAuth: true, requiresSeller: true }
+        },
+
+        {
+          path: '/403',
+          name: 'Forbidden',
+          component: () => import('@/views/errors/Forbidden.vue')
+        }        
+        
+        ,
         // 添加支付結帳頁面
         {
           path: "/checkout/:orderId",
