@@ -2,8 +2,12 @@
   <div class="container mt-5">
     <h2 class="mb-4 text-center">商店申請審核</h2>
 
-    <ApplicationControls :showPending="showPending" :showRejected="showRejected"
-      @updateView="updateView" />
+    <ApplicationControls 
+      :showPending="showPending" 
+      :showApproved="showApproved"
+      :showRejected="showRejected"
+      @updateView="updateView" 
+    />
 
     <div class="table-container">
       <table class="table table-bordered table-hover table-striped"
@@ -29,6 +33,33 @@
           </template>
           <tr v-else>
             <td colspan="8" class="text-center">查無資料</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="table table-bordered table-hover table-striped"
+        v-if="showApproved">
+        <caption class="text-center text-success">已核准申請</caption>
+        <thead class="table-light">
+          <tr>
+            <th scope="col" style="width: 60px;">申請 ID</th>
+            <th scope="col" style="width: 60px;">用戶 ID</th>
+            <th scope="col" style="width: 100px;">用戶名稱</th>
+            <th scope="col" style="width: 130px;">商店名稱</th>
+            <th scope="col" style="width: 100px;">商店分類</th>
+            <th scope="col" style="width: 150px;">商店簡介</th>
+            <th scope="col" style="width: 120px;">申請時間</th>
+            <th scope="col" style="width: 80px;">審核人</th>
+            <th scope="col" style="width: 120px;">審核時間</th>
+          </tr>
+        </thead>
+        <tbody>
+          <template v-if="approvedApplications.length > 0">
+            <ApprovedApplicationItem v-for="app in approvedApplications"
+              :key="app.applicationId" :app="app" />
+          </template>
+          <tr v-else>
+            <td colspan="9" class="text-center">查無資料</td>
           </tr>
         </tbody>
       </table>
@@ -68,25 +99,28 @@
 
 
 <script>
-// ... (其餘的 <script> 部分保持不變) ...
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import ApplicationControls from "@/components/admin/ShopApplication.components/ApplicationControls.vue";
 import ApplicationItem from "@/components/admin/ShopApplication.components/ApplicationItem.vue";
 import RejectedApplicationItem from "./RejectedApplicationItem.vue";
+import ApprovedApplicationItem from "./ApprovedApplicationItem.vue";
 
 export default {
   components: {
     ApplicationControls,
     ApplicationItem,
     RejectedApplicationItem,
+    ApprovedApplicationItem
   },
   data() {
     return {
       pendingApplications: [],
+      approvedApplications: [],
       rejectedApplications: [],
       adminId: null,
       showPending: true,
+      showApproved: false,
       showRejected: false,
     };
   },
@@ -111,6 +145,15 @@ export default {
         this.pendingApplications = response.data;
       } catch (error) {
         this.showError("載入待審核申請失敗：" + (error.response?.data.message || error.message));
+      }
+    },
+    async fetchApprovedApplications() {
+      if (!this.showApproved) return; // 避免不必要請求
+      try {
+        const response = await axios.get("/api/shop/application/approved");
+        this.approvedApplications = response.data;
+      } catch (error) {
+        this.showError("載入已核准申請失敗：" + (error.response?.data.message || error.message));
       }
     },
     async fetchRejectedApplications() {
@@ -146,6 +189,7 @@ export default {
           );
           Swal.fire("已通過!", response.data.message, "success");
           this.fetchApplications();
+          this.fetchApprovedApplications();
           this.fetchRejectedApplications();
         } catch (error) {
           this.showError("操作失敗：" + (error.response?.data.message || error.message));
@@ -194,6 +238,7 @@ export default {
             );
             Swal.fire("已拒絕!", response.data.message, "success");
             this.fetchApplications();
+            this.fetchApprovedApplications();
             this.fetchRejectedApplications();
           } catch (error) {
             this.showError("操作失敗：" + (error.response?.data.message || error.message));
@@ -210,13 +255,15 @@ export default {
       });
     },
     updateView(view) {
-      if (view === "pending") {
-        this.showPending = true;
-        this.showRejected = false;
+      this.showPending = view === "pending";
+      this.showApproved = view === "approved";
+      this.showRejected = view === "rejected";
+      
+      if (this.showPending) {
         this.fetchApplications();
-      } else {
-        this.showPending = false;
-        this.showRejected = true;
+      } else if (this.showApproved) {
+        this.fetchApprovedApplications();
+      } else if (this.showRejected) {
         this.fetchRejectedApplications();
       }
     },
@@ -231,7 +278,7 @@ export default {
 <style scoped>
 /* 設定表格容器的固定大小 */
 .table-container {
-  width: 1200px;
+  width: 1400px;
   /* 或您希望的寬度 */
   height: 600px;
   /* 或您希望的高度 */

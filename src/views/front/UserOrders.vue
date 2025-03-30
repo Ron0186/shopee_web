@@ -60,12 +60,12 @@
           </div>
           <div class="order-brief">
             <span class="items-count">{{ getTotalItems(order) }}件商品</span>
-            <span class="price"
-              >總金額: NT${{ order.totalPrice.toLocaleString() }}</span
-            >
-            <span class="expand-icon">{{
-              expandedOrderId === order.orderId ? "▲" : "▼"
-            }}</span>
+            <span class="price">
+              總金額: NT${{ order.totalPrice.toLocaleString() }}
+            </span>
+            <span class="expand-icon">
+              {{ expandedOrderId === order.orderId ? "▲" : "▼" }}
+            </span>
           </div>
         </div>
 
@@ -94,16 +94,26 @@
                 </div>
                 <div class="product-info">
                   <div class="product-name">{{ item.productName }}</div>
-                  <div class="product-specs" v-if="item.specs">
+                  <div v-if="item.specs" class="product-specs">
                     {{ item.specs }}
                   </div>
                 </div>
                 <div class="product-quantity">x{{ item.quantity }}</div>
                 <div class="product-price">
-                  NT${{ item.price.toLocaleString() }}
+                  NT${{
+                    (item.price > 0
+                      ? item.price
+                      : item.unitPrice
+                    ).toLocaleString()
+                  }}
                 </div>
                 <div class="product-subtotal">
-                  NT${{ (item.price * item.quantity).toLocaleString() }}
+                  NT${{
+                    (
+                      (item.price > 0 ? item.price : item.unitPrice) *
+                      item.quantity
+                    ).toLocaleString()
+                  }}
                 </div>
               </div>
             </div>
@@ -115,19 +125,19 @@
               <h3>金額摘要</h3>
               <div class="summary-row">
                 <span>商品小計:</span>
-                <span
-                  >NT${{
+                <span>
+                  NT${{
                     order.subtotal
                       ? order.subtotal.toLocaleString()
                       : order.totalPrice.toLocaleString()
-                  }}</span
-                >
+                  }}
+                </span>
               </div>
-              <div class="summary-row" v-if="order.shippingFee">
+              <div v-if="order.shippingFee" class="summary-row">
                 <span>運費:</span>
                 <span>NT${{ order.shippingFee.toLocaleString() }}</span>
               </div>
-              <div class="summary-row" v-if="order.discount">
+              <div v-if="order.discount" class="summary-row">
                 <span>折扣:</span>
                 <span>-NT${{ order.discount.toLocaleString() }}</span>
               </div>
@@ -136,15 +146,15 @@
                 <span>NT${{ order.totalPrice.toLocaleString() }}</span>
               </div>
               <div
-                class="summary-row payment-method"
                 v-if="order.paymentMethod"
+                class="summary-row payment-method"
               >
                 <span>付款方式:</span>
                 <span>{{ order.paymentMethod }}</span>
               </div>
             </div>
 
-            <div class="delivery-info" v-if="order.shipping">
+            <div v-if="order.shipping" class="delivery-info">
               <h3>配送資訊</h3>
               <div class="info-row">
                 <span>收件人:</span>
@@ -158,11 +168,11 @@
                 <span>配送地址:</span>
                 <span>{{ order.shipping.address }}</span>
               </div>
-              <div class="info-row" v-if="order.shipping.trackingNumber">
+              <div v-if="order.shipping.trackingNumber" class="info-row">
                 <span>物流編號:</span>
                 <span>{{ order.shipping.trackingNumber }}</span>
               </div>
-              <div class="info-row" v-if="order.shipping.shippingMethod">
+              <div v-if="order.shipping.shippingMethod" class="info-row">
                 <span>配送方式:</span>
                 <span>{{ order.shipping.shippingMethod }}</span>
               </div>
@@ -171,8 +181,8 @@
 
           <!-- 訂單時間軌跡 -->
           <div
-            class="order-timeline"
             v-if="order.statusHistory && order.statusHistory.length"
+            class="order-timeline"
           >
             <h3>訂單狀態追蹤</h3>
             <div class="timeline">
@@ -215,6 +225,13 @@
               立即付款
             </button>
             <button
+              @click="directPayOrder(order.orderId)"
+              class="action-btn pay-btn"
+              v-if="order.status === '未付款'"
+            >
+              立即付款
+            </button>
+            <button
               v-if="canReview(order)"
               @click="reviewOrder(order.orderId)"
               class="action-btn review-btn"
@@ -240,7 +257,7 @@
     </div>
 
     <!-- 分頁控制 -->
-    <div class="pagination" v-if="totalPages > 1">
+    <div v-if="totalPages > 1" class="pagination">
       <button
         @click="changePage(currentPage - 1)"
         :disabled="currentPage === 1"
@@ -275,6 +292,14 @@ import { ref, onMounted, computed, watch } from "vue";
 import axios from "@/plugins/axios";
 import { useUserStore } from "@/stores/user";
 import { imageMap } from "@/utils/imageMap";
+import { useRouter } from "vue-router";
+
+// 在 setup 函數中定義
+const router = useRouter();
+
+const directPayOrder = (orderId) => {
+  router.push(`/checkout/pay/${orderId}`);
+};
 
 const userStore = useUserStore();
 const isSeller = computed(() => userStore.roles?.includes("SELLER"));
@@ -477,7 +502,34 @@ const canCancel = (order) => {
 };
 
 const canPayNow = (order) => {
-  return order.status === "待付款";
+  console.log("檢查訂單:", order);
+
+  // 檢查訂單狀態是否為「未付款」或相關狀態
+  const isPendingPayment =
+    order.status === "待付款" ||
+    order.status === "PENDING" ||
+    order.status === "未付款";
+
+  // 檢查支付狀態
+  const isNotPaid =
+    !order.paymentStatus ||
+    order.paymentStatus === "未付款" ||
+    order.paymentStatus === "UNPAID";
+
+  // 檢查訂單是否存在且有效
+  const isValidOrder = order && order.orderId;
+
+  // 檢查用戶是否已登入
+  const isLoggedIn = Boolean(userStore.token);
+
+  console.log("訂單付款檢查:", {
+    isPendingPayment,
+    isNotPaid,
+    isValidOrder,
+    isLoggedIn,
+  });
+
+  return isPendingPayment && isNotPaid && isValidOrder && isLoggedIn;
 };
 
 const canReview = (order) => {
@@ -528,8 +580,34 @@ const cancelOrder = async (orderId) => {
   }
 };
 
-const payOrder = (orderId) => {
-  window.location.href = `/checkout/pay/${orderId}`;
+// 立即付款方法
+const payOrder = async (orderId) => {
+  try {
+    // 呼叫檢查付款 API
+    const checkResponse = await axios.get(
+      `/api/orders/check-payment/${orderId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${userStore.token}`,
+          Accept: "application/json",
+        },
+      }
+    );
+
+    console.log("檢查付款回應:", checkResponse.data);
+
+    // 正確處理 API 響應
+    if (checkResponse.data.status === "success") {
+      // 可以付款，導向付款頁面
+      router.push(`/checkout/pay/${orderId}`);
+    } else {
+      // 顯示 API 返回的錯誤訊息
+      alert(checkResponse.data.message || "無法進行付款");
+    }
+  } catch (error) {
+    console.error("付款檢查錯誤:", error);
+    alert("付款檢查失敗，請稍後再試");
+  }
 };
 
 const reviewOrder = (orderId) => {
@@ -630,9 +708,11 @@ const fetchOrders = async () => {
             `item-${Math.random().toString(36).substring(2, 9)}`,
           productName: item.productName || "未知商品",
           price:
-            typeof item.price === "number"
+            typeof item.price === "number" && item.price > 0
               ? item.price
-              : parseFloat(item.price) || 0,
+              : typeof item.unitPrice === "number"
+              ? item.unitPrice
+              : 0,
           quantity:
             typeof item.quantity === "number"
               ? item.quantity
@@ -668,7 +748,7 @@ const fetchOrders = async () => {
       } else if (statusCode === 401) {
         error.value = "登入已過期，請重新登入";
         // 可能需要重新導向到登入頁面
-        // window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
+        // window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname)
       } else {
         error.value = responseData.message || "獲取訂單時出現問題";
       }
