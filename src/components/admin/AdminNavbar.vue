@@ -3,6 +3,9 @@
         <h1 class="title">後台管理系統</h1>
         <div class="navbar-right">
             <button class="icon-btn">🔔</button>
+            <button @click="logoutToFrontend" class="frontend-btn">
+                <i class="fas fa-home"></i> 前往前台
+            </button>
             <div class="dropdown">
                 <button class="icon-btn">👤</button>
                 <div class="dropdown-content">
@@ -33,6 +36,22 @@ async function logout() {
         });
   // 跳轉到登入頁
   router.push({ name: "AdminLogin" });
+}
+
+// 新增登出並跳轉到前台登入頁的函數
+async function logoutToFrontend() {
+  // 清除 pinia userStore
+  userStore.clearUserData();
+  
+  await Swal.fire({
+    title: "已登出後台",
+    text: "正在前往前台登入頁面",
+    icon: "success",
+    confirmButtonText: "OK",
+  });
+  
+  // 跳轉到前台登入頁
+  window.location.href = "/user/login";
 }
 </script>
 
@@ -80,6 +99,34 @@ async function logout() {
     color: white;
     font-size: 20px;
     cursor: pointer;
+}
+
+/* 前往前台按鈕樣式 */
+.frontend-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.frontend-btn:hover {
+    background-color: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.frontend-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 /* 下拉選單 */
