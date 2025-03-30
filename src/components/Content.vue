@@ -79,6 +79,7 @@ import axios from 'axios';
 import Swal from "sweetalert2";
 import SockJS from "sockjs-client/dist/sockjs";
 
+const authToken = ref(sessionStorage.getItem("authToken"));
 const route = useRoute();
 const router = useRouter();
 const helpStore = useHelpStore();
@@ -132,8 +133,9 @@ const loadStores = async () => {
 // 更新店铺状态检查逻辑
 const checkStoreChatStatus = async (shopId) => {
     try {
+        authToken.value = sessionStorage.getItem('authToken');
         const res = await axios.get(`http://localhost:8081/api/chat/shop/${shopId}`, {
-            headers: { Authorization: `Bearer ${sessionStorage.getItem('authToken')}` }
+            headers: { Authorization: `Bearer ${sessionStorage.getItem(authToken.value)}` }
         });
         return res.data.chatRoomId ? true : false;
     } catch {
@@ -188,20 +190,18 @@ const subscribeSellerNotifications = (userId) => {
 
 const buyerChat = async (shopId) => {
     try {
-        // 通用创建/进入逻辑
-        const token = sessionStorage.getItem('authToken');
-        console.log('Current Token:', token); // 添加這行檢查實際 token 值
-        if (!token) throw new Error('未登录');
+        authToken.value = sessionStorage.getItem('authToken');
+        if (!authToken.value) throw new Error('未登入')
 
+        // ✅ 第二步：创建新聊天室（使用固定格式的chatRoomId）
         const response = await axios.post(
             'http://localhost:8081/api/chat/create',
-            { shopId },
-            { headers: { Authorization: `Bearer ${token}` } }
+            { shopId: Number(shopId) }, // 确保传递数字类型
+            { headers: { Authorization: `Bearer ${authToken.value}` } }
         );
 
-        if (response.data.chatRoomId) {
-            router.push(`/chat/${response.data.chatRoomId}`);
-        }
+        // ✅ 使用纯数字ID跳转
+        router.push(`/chat/${response.data.chatRoomId}`);
     } catch (error) {
         if (error.response?.status === 403) {
             Swal.fire("錯誤", "您無法在自己的商店建立聊天室", "error");
@@ -212,38 +212,31 @@ const buyerChat = async (shopId) => {
 };
 
 
+
 // 修改後的 sellerChat 方法
 const sellerChat = async (shopId) => {
     try {
         // 🌟 檢查 sessionStorage 中的 token 是否存在
-        const token = sessionStorage.getItem('authToken');
-        if (!token) throw new Error('未登录');
+        authToken.value = sessionStorage.getItem('authToken');
+        if (!authToken.value) throw new Error('未登录');
 
-        // ✅ 验证店铺归属时携带 Token
-        const isOwner = await axios.get(`http://localhost:8081/api/shop/${shopId}/check-ownership`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (!ownershipRes.data.isOwner) {
-            throw new Error('您不是此店铺的管理员');
-        }
-
-        // ✅ 第二步：调用卖家专用入口API
-        const enterRes = await axios.get(
-            `http://localhost:8081/api/chat/seller/enter/${shopId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
+        // ✅ 卖家专属进入流程
+        const response = await axios.get(
+            `http://localhost:8081/api/chat/seller/enter/${Number(shopId)}`,
+            { headers: { Authorization: `Bearer ${authToken.value}` } }
         );
-        // ✅ 处理不同响应状态
-        if (enterRes.status === 200) {
-            router.push(`/chat/${enterRes.data.chatRoomId}`);
-        } else if (enterRes.status === 404) {
-            Swal.fire("提示", "尚未有买家发起对话", "info");
-        }
+
+
+        // ✅ 使用纯数字跳转
+        router.push(`/chat/${response.data.chatRoomId}`);
 
 
     } catch (error) {
-        handleChatError(error, shopId);
-
+        if (error.response?.status === 404) {
+            Swal.fire("提示", "尚未有买家发起对话", "info");
+        } else {
+            handleChatError(error);
+        }
     }
 };
 
