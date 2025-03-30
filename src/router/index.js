@@ -296,6 +296,24 @@ const router = createRouter({
           component: () => import("@/views/admin/PaymentMethodManagement.vue"),
         },
         {
+          // 管理付款狀態頁面
+          path: "payment-status-management",
+          name: "PaymentStatusManagement",
+          component: () => import("@/views/admin/PaymentStatusManagement.vue"),
+        },
+        {
+          // 管理物流方式頁面
+          path: "shipment-method-management",
+          name: "ShipmentMethodManagement",
+          component: () => import("@/views/admin/ShipmentMethodManagement.vue"),
+        },
+        {
+          // 管理物流狀態頁面
+          path: "shipment-status-management",
+          name: "ShipmentStatusManagement",
+          component: () => import("@/views/admin/ShipmentStatusManagement.vue"),
+        },
+        {
           // 後台管理頁面
           path: "admin-management",
           name: "AdminManagement",

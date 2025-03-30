@@ -232,10 +232,35 @@ async function login() {
         icon: "success",
       });
       const decodedToken = jwtDecode(response.data.token);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
+      axios.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${response.data.token}`;
 
       //設定userStore
-      userStore.saveUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
+      userStore.saveUserData(
+        decodedToken.sub,
+        decodedToken.userId,
+        response.data.token,
+        decodedToken.roles
+      );
+
+      // 如果用戶是賣家，獲取他們的商店 ID
+      if (decodedToken.roles && decodedToken.roles.includes("SELLER")) {
+        try {
+          // 調用新增的 API 獲取商店 ID
+          const shopResponse = await axios.get(
+            `/api/user/${decodedToken.userId}/shop`
+          );
+          if (shopResponse.data && shopResponse.data.shopId) {
+            // 將 shopId 轉換為字符串並更新到 UserStore
+            userStore.updateShopId(shopResponse.data.shopId.toString());
+            console.log("成功獲取商店 ID:", shopResponse.data.shopId);
+          }
+        } catch (shopError) {
+          console.error("獲取商店 ID 失敗:", shopError);
+        }
+      }
+
       userStore.reloadUserData();
       if (result.isConfirmed) {
         router.push("/shop");

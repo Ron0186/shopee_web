@@ -10,12 +10,31 @@
 
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
-      <router-link to="/user/login" v-if="!userStore.username">🔑
-        登入</router-link>
-      <router-link to="/user/register" v-if="!userStore.username">📝
-        註冊</router-link>
-      <router-link to="/shop/apply" v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
-        我要當賣家!!</router-link>
+      <router-link to="/user/login" v-if="!userStore.username"
+        >🔑 登入</router-link
+      >
+      <router-link to="/user/register" v-if="!userStore.username"
+        >📝 註冊</router-link
+      >
+      <router-link
+        to="/shop/apply"
+        v-if="userStore.token && !userStore.roles.includes('SELLER')"
+        >📝 我要當賣家!!</router-link
+      >
+
+      <!-- 新增賣家中心按鈕 -->
+      <router-link
+        :to="'/store/' + userStore.shopId"
+        v-if="
+          userStore.token &&
+          userStore.isSeller &&
+          userStore.shopId &&
+          userStore.shopId !== 'undefined'
+        "
+      >
+        🏪 賣家中心
+      </router-link>
+
       <router-link to="/profile">👤 會員中心</router-link>
 
       <!-- ✅ 訂單管理 + 通知角標 -->
@@ -70,37 +89,46 @@
         </ul>
       </li>
       <li>
-        <router-link to="/discounts" @click="toggleDrawer">💰 優惠專區</router-link>
+        <router-link to="/discounts" @click="toggleDrawer"
+          >💰 優惠專區</router-link
+        >
       </li>
       <li>
-        <router-link to="/notifications" @click="toggleDrawer">🔔
-          通知</router-link>
+        <router-link to="/notifications" @click="toggleDrawer"
+          >🔔 通知</router-link
+        >
       </li>
       <li>
-        <router-link to="/customerService" @click="toggleDrawer">📞 客服 &
-          幫助中心</router-link>
+        <router-link to="/customerService" @click="toggleDrawer"
+          >📞 客服 & 幫助中心</router-link
+        >
       </li>
       <li>
-        <router-link to="/address" @click="toggleDrawer">📍 地址管理</router-link>
+        <router-link to="/address" @click="toggleDrawer"
+          >📍 地址管理</router-link
+        >
       </li>
       <li>
-        <router-link to="/payment-methods" @click="toggleDrawer">💳
-          付款方式</router-link>
+        <router-link to="/payment-methods" @click="toggleDrawer"
+          >💳 付款方式</router-link
+        >
       </li>
       <li>
-        <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
-          使用者條款</router-link>
+        <router-link to="/privacy" @click="toggleDrawer"
+          >📜 隱私政策 & 使用者條款</router-link
+        >
       </li>
       <li v-if="userStore.username" @click="logoutToAdmin">
         <a class="admin-link">🔐 前往後台</a>
       </li>
+     
     </ul>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
-import { useUserStore } from '@/stores/user';
+import { ref ,onMounted } from "vue";
+import { useUserStore } from "@/stores/user";
 import Swal from "sweetalert2";
 import router from "@/router/index";
 import axios from "@/plugins/axios";
@@ -108,6 +136,14 @@ import axios from "@/plugins/axios";
 const userStore = useUserStore();
 const drawerOpen = ref(false);
 const categoryOpen = ref(false);
+
+const toggleDrawer = () => {
+  drawerOpen.value = !drawerOpen.value;
+};
+
+const toggleCategory = () => {
+  categoryOpen.value = !categoryOpen.value;
+};
 const pendingCount = ref(0);  // 賣家通知數
 const shippedCount = ref(0);  // 買家通知數
 
@@ -120,7 +156,7 @@ async function logout() {
     confirmButtonText: "OK",
   });
   if (response.isConfirmed) {
-    router.push('/shop');
+    router.push("/shop");
   }
 }
 
@@ -148,13 +184,47 @@ onMounted(() => {
   }
 });
 
-const toggleDrawer = () => {
-  drawerOpen.value = !drawerOpen.value;
+
+
+// ✅ 登出並跳轉至後台登入頁
+async function logoutToAdmin() {
+  userStore.clearUserData();
+  const response = await Swal.fire({
+    title: "已登出前台",
+    text: "正在前往後台登入頁面",
+    icon: "success",
+    confirmButtonText: "OK",
+  });
+  if (response.isConfirmed) {
+    window.location.href = "/admin/login";
+  }
+}
+
+// ✅ 通知角標查詢
+const fetchNotificationCount = async () => {
+  if (!userStore.token) return;
+
+  try {
+    if (userStore.isSeller) {
+      const res = await axios.get(`/api/orders/notification/pending-count/seller`);
+      pendingCount.value = res.data;
+    } else if (userStore.isUser) {
+      const res = await axios.get(`/api/orders/notification/shipped-count/user`);
+      shippedCount.value = res.data;
+    }
+  } catch (err) {
+    console.error("🔴 無法取得訂單通知數量", err);
+  }
 };
 
-const toggleCategory = () => {
-  categoryOpen.value = !categoryOpen.value;
-};
+// ✅ 初始化時查詢一次
+onMounted(() => {
+  if (userStore.token) {
+    fetchNotificationCount(); // 回傳通知列
+  }
+});
+
+
 
 // ✅ 登出並跳轉至後台登入頁
 async function logoutToAdmin() {
@@ -188,7 +258,7 @@ async function logoutToAdmin() {
   box-sizing: border-box;
 }
 
-.title>a {
+.title > a {
   color: #000;
   text-decoration: none;
   font-weight: 600;
@@ -276,7 +346,7 @@ async function logoutToAdmin() {
 .logout-link {
   color: #000;
   text-decoration: none;
-  font-size: 16px
+  font-size: 16px;
 }
 
 .logout-link:hover {
