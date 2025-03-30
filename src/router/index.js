@@ -61,18 +61,14 @@ const router = createRouter({
           name: "help-center",
           component: () => import("@/views/pages/HelpCenter.vue"),
         },
-        // 幫助中心搜尋內容頁面
+        // 幫助中心搜尋內容頁面 留哪個自己判斷~
+        // {
+        //   path: "/search",
+        //   name: "search-link",
+        //   component: SearchResult,
+        //   props: (route) => ({ query: route.query.q }),
+        // },
         {
-          path: "/search",
-          name: "search-link",
-          component: SearchResult,
-          props: (route) => ({ query: route.query.q }),
-        },
-        {
-          path: "/article/:id",
-          name: "article-link",
-          component: HelpCenter,
-          props: true,
           path: "/search",
           name: "search-link",
           component: () => import("@/components/SearchResult.vue"),
@@ -124,56 +120,57 @@ const router = createRouter({
           path: "/checkout",
           name: "Checkout",
           component: () => import("@/views/pages/Checkout.vue"),
-          meta: { requiresAuth: true } // 可選：需要登入才能進入
+          meta: { requiresAuth: true }, // 可選：需要登入才能進入
         },
 
         //評價頁面
         {
-          path: '/submitReview',
-          name: 'SubmitReview',
-          component: () => import('@/views/pages/SubmitReview.vue')
+          path: "/submitReview",
+          name: "SubmitReview",
+          component: () => import("@/views/pages/SubmitReview.vue"),
         },
 
         {
-          path: '/seller-setting',
-          name: 'SellerSetting',
-          component: () => import('@/views/pages/SellerSetting.vue'),
-          meta: { requiresAuth: true, requiresSeller: true }
+          path: "/seller-setting",
+          name: "SellerSetting",
+          component: () => import("@/views/pages/SellerSetting.vue"),
+          meta: { requiresAuth: true, requiresSeller: true },
         },
 
         {
-          path: '/403',
-          name: 'Forbidden',
-          component: () => import('@/views/errors/Forbidden.vue')
-        }        
-        
-        ,
+          path: "/403",
+          name: "Forbidden",
+          component: () => import("@/views/errors/Forbidden.vue"),
+        },
+
         // 添加支付結帳頁面
         {
           path: "/checkout/:orderId",
-          name: "Checkout",
+          name: "OrderCheckout",
           component: () => import("@/views/CheckoutPage.vue"),
-          meta: { role: "USER" } // 一般使用者用
+          meta: { role: "USER" }, // 一般使用者用
         },
         {
-          path: '/checkout/pay/:orderId',
-          name: 'OrderPayment',
-          component: () => import('@/components/order.components/OrderPayment.vue'),
-          meta: { requiresAuth: true }
+          path: "/checkout/pay/:orderId",
+          name: "OrderPayment",
+          component: () =>
+            import("@/components/order.components/OrderPayment.vue"),
+          meta: { requiresAuth: true },
         },
 
         // 添加支付結果頁面
         {
-          path: '/checkout/payment/:orderId',
-          name: 'OrderPaymentAlias',
-          component: () => import('@/components/order.components/OrderPayment.vue'),
-          meta: { role: "USER" } // 一般使用者用
+          path: "/checkout/payment/:orderId",
+          name: "OrderPaymentAlias",
+          component: () =>
+            import("@/components/order.components/OrderPayment.vue"),
+          meta: { role: "USER" }, // 一般使用者用
         },
         {
-          path: '/debug/payment/:id',
-          name: 'DebugPayment',
-          component: () => import('@/views/DebugPaymentPage.vue')
-        }
+          path: "/debug/payment/:id",
+          name: "DebugPayment",
+          component: () => import("@/views/DebugPaymentPage.vue"),
+        },
         // ,
         // {
         //   path: '/wishlist',
@@ -186,16 +183,21 @@ const router = createRouter({
         //   component: () => import('@/views/Placeholder.vue')
         // }
         //客服中心
+        // {
+        //   path: "/chat/:chatRoomId",
+        //   name: "ChatRoom",
+        //   component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
+        // },
 
+        //聊天室頁面
         {
           path: "/chat/:chatRoomId",
           name: "ChatRoom",
           component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
-          meta: { requiresAuth: true }
-
+          meta: { requiresAuth: true },
         },
+
         //賣家商店頁
-        ,
         {
           path: "/store/:shopId",
           name: "Store",
@@ -246,13 +248,6 @@ const router = createRouter({
             title: "連結帳號",
             requiresAuth: false, // 此頁面不需要身份驗證
           },
-        },
-
-        //聊天室頁面
-        {
-          path: '/chat/:chatRoomId',
-          name: 'ChatRoom',
-          component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
         },
       ],
     },
@@ -378,7 +373,7 @@ const router = createRouter({
         },
         {
           // 訂單頁面
-          path: "/admin/orders",
+          path: "orders",
           name: "AdminOrders",
           component: () => import("@/views/admin/AdminOrders.vue"),
         },

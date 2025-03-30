@@ -5,22 +5,22 @@
       <form @submit.prevent="login" class="login-form">
         <div class="form-group">
           <label for="username">使用者名稱</label>
-          <input 
-            type="text" 
-            id="username" 
-            v-model="username" 
+          <input
+            type="text"
+            id="username"
+            v-model="username"
             class="form-input"
             placeholder="請輸入使用者名稱"
           />
         </div>
-        
+
         <div class="form-group">
           <label for="password">密碼</label>
           <div class="password-container">
-            <input 
-              :type="showPassword ? 'text' : 'password'" 
-              id="password" 
-              v-model="password" 
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              id="password"
+              v-model="password"
               class="form-input"
               placeholder="請輸入密碼"
             />
@@ -33,8 +33,14 @@
 
         <!-- reCAPTCHA v2 勾選框 -->
         <div class="form-group recaptcha-container">
-          <div ref="recaptchaContainer" class="g-recaptcha" :data-sitekey="recaptchaSiteKey"></div>
-          <div v-if="captchaError" class="captcha-error">請勾選「我不是機器人」</div>
+          <div
+            ref="recaptchaContainer"
+            class="g-recaptcha"
+            :data-sitekey="recaptchaSiteKey"
+          ></div>
+          <div v-if="captchaError" class="captcha-error">
+            請勾選「我不是機器人」
+          </div>
         </div>
 
         <div class="form-links forgot-password">
@@ -58,7 +64,7 @@
         <div class="social-login">
           <GoogleLoginButton />
         </div>
-        
+
         <div class="form-links register-link">
           <router-link to="/user/register">
             <i class="bi bi-person-plus"></i> 還沒有帳號？立即註冊
@@ -69,10 +75,18 @@
         <div class="quick-login">
           <h3 class="quick-login-title">快速登入</h3>
           <div class="quick-login-buttons">
-            <button type="button" @click="quickLogin('Waylay')" class="quick-login-btn">
+            <button
+              type="button"
+              @click="quickLogin('Waylay')"
+              class="quick-login-btn"
+            >
               <i class="bi bi-lightning-charge"></i> Waylay
             </button>
-            <button type="button" @click="quickLogin('Cypher')" class="quick-login-btn">
+            <button
+              type="button"
+              @click="quickLogin('Cypher')"
+              class="quick-login-btn"
+            >
               <i class="bi bi-shield-lock"></i> Cypher
             </button>
           </div>
@@ -117,19 +131,20 @@ function loadRecaptchaScript() {
       recaptchaLoaded.value = true;
       return resolve();
     }
-    
+
     // 載入 reCAPTCHA 腳本
-    const recaptchaScript = document.createElement('script');
-    recaptchaScript.src = "https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoaded&render=explicit";
+    const recaptchaScript = document.createElement("script");
+    recaptchaScript.src =
+      "https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoaded&render=explicit";
     recaptchaScript.async = true;
     recaptchaScript.defer = true;
-    
+
     // 定義全局回調函數
     window.onRecaptchaLoaded = () => {
       recaptchaLoaded.value = true;
       resolve();
     };
-    
+
     document.head.appendChild(recaptchaScript);
   });
 }
@@ -140,18 +155,22 @@ async function initializeRecaptcha() {
   if (!recaptchaLoaded.value) {
     await loadRecaptchaScript();
   }
-  
+
   // 確保 DOM 已更新
   await nextTick();
-  
+
   // 確保容器元素存在且 grecaptcha 已載入
-  if (recaptchaContainer.value && window.grecaptcha && window.grecaptcha.render) {
+  if (
+    recaptchaContainer.value &&
+    window.grecaptcha &&
+    window.grecaptcha.render
+  ) {
     try {
       // 嘗試渲染 reCAPTCHA
       // 可能需要檢查元素是否已經包含 reCAPTCHA 以避免重複渲染
-      if (!recaptchaContainer.value.querySelector('iframe')) {
+      if (!recaptchaContainer.value.querySelector("iframe")) {
         window.grecaptcha.render(recaptchaContainer.value, {
-          'sitekey': recaptchaSiteKey
+          sitekey: recaptchaSiteKey,
         });
       }
     } catch (error) {
@@ -203,13 +222,13 @@ function resetRecaptcha() {
 // 新增存储管理方法
 const syncStorage = {
   setToken(token) {
-    localStorage.setItem('authToken', token);       // 长期存储
-    sessionStorage.setItem('authToken', token);  // 会话存储
+    localStorage.setItem("authToken", token); // 长期存储
+    sessionStorage.setItem("authToken", token); // 会话存储
   },
   clearTokens() {
-    localStorage.removeItem('authToken');
-    sessionStorage.removeItem('authToken');
-  }
+    localStorage.removeItem("authToken");
+    sessionStorage.removeItem("authToken");
+  },
 };
 
 async function login() {
@@ -230,7 +249,7 @@ async function login() {
   const data = {
     username: username.value,
     password: password.value,
-    recaptchaResponse: recaptchaResponse // 將 reCAPTCHA 回應傳送到後端
+    recaptchaResponse: recaptchaResponse, // 將 reCAPTCHA 回應傳送到後端
   };
 
   // 清除之前的 Authorization header (避免和其他登入狀態衝突)
@@ -244,14 +263,13 @@ async function login() {
       syncStorage.setToken(response.data.token);
 
       // 同步儲存使用者資訊到 localStorage
-      localStorage.setItem('userId', decodedToken.userId);
-      localStorage.setItem('username', decodedToken.sub);
+      localStorage.setItem("userId", decodedToken.userId);
+      localStorage.setItem("username", decodedToken.sub);
 
       const result = await Swal.fire({
         title: response.data.message,
         icon: "success",
       });
-      const decodedToken = jwtDecode(response.data.token);
       axios.defaults.headers.common[
         "Authorization"
       ] = `Bearer ${response.data.token}`;
@@ -333,24 +351,24 @@ async function quickLogin(user) {
 
   username.value = userData.username; // 自動填入帳號
   password.value = userData.password; // 自動填入密碼
-  
+
   // 在快速登入時，需要用戶仍然手動勾選 reCAPTCHA
   await login(); // 呼叫 login 函數
 }
 
-window.addEventListener('storage', (event) => {
-  if (event.key === 'authToken') {
+window.addEventListener("storage", (event) => {
+  if (event.key === "authToken") {
     // 當其他分頁更新 localStorage 時，同步到 sessionStorage
-    sessionStorage.setItem('tempAuthToken', event.newValue);
+    sessionStorage.setItem("tempAuthToken", event.newValue);
   }
 });
 
 // 修改跨标签页事件監聽，統一使用 authToken 鍵
-window.addEventListener('storage', (event) => {
-  if (event.key === 'authToken') {
+window.addEventListener("storage", (event) => {
+  if (event.key === "authToken") {
     // 當其他分頁更新 localStorage 時，同步到 sessionStorage
-    sessionStorage.setItem('authToken', event.newValue);
-    if (!event.newValue) router.push('/user/login');
+    sessionStorage.setItem("authToken", event.newValue);
+    if (!event.newValue) router.push("/user/login");
   }
 });
 </script>
@@ -614,12 +632,12 @@ window.addEventListener('storage', (event) => {
   .login-card {
     padding: 20px;
   }
-  
+
   .quick-login-buttons {
     flex-direction: column;
     align-items: center;
   }
-  
+
   .quick-login-btn {
     width: 100%;
     justify-content: center;
