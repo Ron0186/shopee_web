@@ -7,17 +7,20 @@ import { useUserStore } from './user';
 import { useRouter } from 'vue-router';
 
 class SocketManager {
-    constructor() {
-        this.stompClient = null;
-        this.subscriptions = new Map();
-    }
-    connect(chatRoomId, userId, messageHandler) {
+
+    connect(chatRoomId, messageHandler) {
         const socket = new SockJS('http://localhost:8081/ws');
         this.stompClient = Stomp.over(socket);
-        this.stompClient.connect({}, () => {
-            this.subscribe(`/topic/chat/${chatRoomId}`, messageHandler);
-            this.subscribe(`/user/${userId}/queue/notifications`, this.handleNotification);
-        });
+        this.stompClient.connect(
+            {
+                Authorization: `Bearer ${authToken.value}`,
+                'X-User-Id': userId.value
+            },
+            () => {
+                // 只訂閱公共頻道
+                this.subscribe(`/topic/chat/${chatRoomId}`, messageHandler);
+            }
+        );
     }
     subscribe(destination, callback) {
         const sub = this.stompClient.subscribe(destination, (message) => {
@@ -122,15 +125,15 @@ export const useChatStore = defineStore('chat', () => {
         }
     };
 
-    const sendMessage = (content) => {
-        if (!stompClient.value?.connected) return;
-        stompClient.value.send(
+    const sendMessage = (content, tempId) => {
+        if (!socketManager.value.stompClient?.connected) return;
+        socketManager.value.stompClient.send(
             `/app/chat/${activeChatRoom.value.chatRoomId}/send`,
             {},
             JSON.stringify({
                 content: content,
                 senderId: currentUser.value.userId,
-                chatRoomId: activeChatRoom.value.chatRoomId
+                tempId: tempId // 傳遞臨時ID供伺服器回傳確認
             })
         );
     };
@@ -197,12 +200,11 @@ export const useChatStore = defineStore('chat', () => {
 
     const connectChatRoom = async (chatRoomId) => {
         return new Promise((resolve, reject) => {
-            // 🔴 添加状态检查
             if (connectionStatus.value === 'connected') {
+                setupSubscriptions(chatRoomId); // 確保訂閱更新
                 resolve();
                 return;
             }
-
             connectionStatus.value = 'connecting'; // 更新状态
 
             const socket = new SockJS('http://localhost:8081/ws');
@@ -214,9 +216,8 @@ export const useChatStore = defineStore('chat', () => {
                     'X-User-Id': userId.value
                 },
                 () => {
-                    connectionStatus.value = 'connected'; // 连接成功
                     socketManager.value.stompClient = stompClient;
-                    setupSubscriptions(chatRoomId);
+                    setupSubscriptions(chatRoomId); // 連線成功後設定訂閱
                     resolve();
                 },
                 (error) => {

@@ -202,6 +202,9 @@ onMounted(async () => {
         await chatStore.fetchCurrentUser();
         if (route.params.chatRoomId) {
             await loadChatRoom(route.params.chatRoomId);
+            if (chatStore.activeChatRoom.chatRoomId && chatStore.socketManager?.value?.stompClient?.connected) {
+                setupSubscriptions(chatStore.activeChatRoom.chatRoomId);
+            }
         } else if (route.query.shopId) {
             checkingExisting.value = true;
             authToken.value = sessionStorage.getItem("authToken");
@@ -242,21 +245,16 @@ onUnmounted(() => {
  */
 async function send() {
     if (!newMessage.value.trim()) return;
-    authToken.value = sessionStorage.getItem("authToken");
+    let messageId; // 將 messageId 宣告移到 try 區塊外
 
     try {
-        // 🔴 关键修改：确保连接已建立
-        if (!socketManager.value.stompClient?.connected) {
+        // 確保連線正常
+        if (!chatStore.socketManager.value?.stompClient?.connected) {
             await chatStore.connectChatRoom(chatStore.activeChatRoom.chatRoomId);
         }
 
         const messageId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        axios.defaults.headers.common["Authorization"] = `Bearer ${authToken.value}`;
-        // 若 WebSocket 未連線則重新連線
-        if (!chatStore.activeChatRoom?.chatRoomId) {
-            throw new Error("聊天室資訊尚未載入");
-        }
-        // 新增臨時訊息
+        // 添加臨時訊息
         const tempMessage = {
             id: messageId,
             content: newMessage.value.trim(),
@@ -266,49 +264,47 @@ async function send() {
         };
         chatStore.addTempMessage(tempMessage);
 
-        await axios.post(
-            `/api/chat/${chatStore.activeChatRoom.chatRoomId}/send`,
-            { content: newMessage.value.trim(), tempId: messageId },
-            { headers: { Authorization: `Bearer ${authToken.value}`, "Content-Type": "application/json" } }
-        );
-        // 清空输入框
-        newMessage.value = "";
+        // 透過 WebSocket 發送訊息
+        chatStore.sendMessage(newMessage.value.trim(), messageId);
 
+        newMessage.value = "";
     } catch (error) {
-        if (error.message.includes("身份已变更")) {
-            Swal.fire({
-                title: "会话过期",
-                text: "检测到用户切换，请刷新页面",
-                icon: "warning",
-            });
-        }
+        console.error("發送失敗:", error);
+        chatStore.updateMessageStatus(messageId, 'failed');
     }
 }
-function setupSubscriptions(chatRoomId) {
-    // 清除旧订阅
-    if (socketManager.value.stompClient?.subscriptions) {
-        Object.keys(socketManager.value.stompClient.subscriptions).forEach(subId => {
-            socketManager.value.stompClient.unsubscribe(subId);
-        });
-    }
 
-    // 主消息订阅
-    const mainSub = socketManager.value.stompClient.subscribe(
+function setupSubscriptions(chatRoomId) {
+    const stompClient = chatStore.socketManager.value.stompClient;
+    if (!stompClient) return;
+
+    Object.keys(subs).forEach(subId => {
+        stompClient.unsubscribe(subId);
+    });
+
+    // 訂閱公共聊天頻道
+    const mainSub = stompClient.subscribe(
         `/topic/chat/${chatRoomId}`,
         (message) => {
             const receivedMessage = JSON.parse(message.body);
-            chatStore.addMessage(receivedMessage);
+            // 處理伺服器回傳的訊息確認
+            if (receivedMessage.tempId) {
+                chatStore.updateMessageStatus(receivedMessage.tempId, 'sent', receivedMessage);
+            } else {
+                chatStore.addMessage(receivedMessage);
+            }
         },
-        { id: `sub-${chatRoomId}-${Date.now()}` } // 动态生成唯一ID
+        { id: `sub-main-${chatRoomId}` }
     );
 
-    // 错误订阅
-    const errorSub = socketManager.value.stompClient.subscribe(
-        '/user/queue/errors',
+    // 錯誤訂閱
+    const errorSub = stompClient.subscribe(
+        `/user/queue/errors`,
         (error) => {
             const errorData = JSON.parse(error.body);
-            Swal.fire('错误', errorData.message, 'error');
-        }
+            Swal.fire('錯誤', errorData.message, 'error');
+        },
+        { id: `error-sub-${chatRoomId}` }
     );
 }
 </script>
