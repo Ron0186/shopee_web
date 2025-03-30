@@ -124,27 +124,29 @@ const router = createRouter({
           path: "/checkout/:orderId",
           name: "Checkout",
           component: () => import("@/views/CheckoutPage.vue"),
-          meta: { role: "USER" } // 一般使用者用
+          meta: { role: "USER" }, // 一般使用者用
         },
         {
-          path: '/checkout/pay/:orderId',
-          name: 'OrderPayment',
-          component: () => import('@/components/order.components/OrderPayment.vue'),
-          meta: { requiresAuth: true }
+          path: "/checkout/pay/:orderId",
+          name: "OrderPayment",
+          component: () =>
+            import("@/components/order.components/OrderPayment.vue"),
+          meta: { requiresAuth: true },
         },
 
         // 添加支付結果頁面
         {
-          path: '/checkout/payment/:orderId',
-          name: 'OrderPaymentAlias',
-          component: () => import('@/components/order.components/OrderPayment.vue'),
-          meta: { role: "USER" } // 一般使用者用
+          path: "/checkout/payment/:orderId",
+          name: "OrderPaymentAlias",
+          component: () =>
+            import("@/components/order.components/OrderPayment.vue"),
+          meta: { role: "USER" }, // 一般使用者用
         },
         {
-          path: '/debug/payment/:id',
-          name: 'DebugPayment',
-          component: () => import('@/views/DebugPaymentPage.vue')
-        }
+          path: "/debug/payment/:id",
+          name: "DebugPayment",
+          component: () => import("@/views/DebugPaymentPage.vue"),
+        },
         // ,
         // {
         //   path: '/wishlist',
@@ -165,7 +167,6 @@ const router = createRouter({
         // },
 
         //賣家商店頁
-        ,
         {
           path: "/store/:shopId",
           name: "Store",
@@ -284,6 +285,14 @@ const router = createRouter({
           name: "ShipmentStatusManagement",
           component: () => import("@/views/admin/ShipmentStatusManagement.vue"),
         },
+
+        {
+          // 整合管理付款/物流頁面
+          path: "integrated-management",
+          name: "IntegratedManagement",
+          component: () => import("@/views/admin/IntegratedManagement.vue"),
+        },
+
         {
           // 後台管理頁面
           path: "admin-management",
