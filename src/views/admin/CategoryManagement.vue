@@ -121,7 +121,9 @@
                   v-model="form.name"
                 />
               </div>
-              <div v-if="dialogType === 'category2'" class="mb-3">
+
+              <!-- 修改這裡：只在新增二級分類時顯示一級分類選擇，編輯時不顯示 -->
+              <div v-if="dialogType === 'category2' && !form.id" class="mb-3">
                 <label for="category1Id" class="form-label">對應一級分類</label>
                 <select
                   class="form-select"
@@ -138,6 +140,16 @@
                   </option>
                 </select>
               </div>
+              <!-- 顯示關聯的一級分類（編輯時的只讀顯示） -->
+              <div v-if="dialogType === 'category2' && form.id" class="mb-3">
+                <label class="form-label">關聯的一級分類</label>
+                <div class="form-control bg-light">
+                  {{ getCategoryName(getCategory1Id()) }}
+                </div>
+                <small class="text-muted"
+                  >* 一旦建立關聯，不能更改。如需更改請刪除後重新創建。</small
+                >
+              </div>
             </div>
             <div class="modal-footer">
               <button
@@ -147,6 +159,7 @@
               >
                 關閉
               </button>
+
               <button
                 type="button"
                 class="btn btn-primary"
@@ -189,6 +202,40 @@ const dialogTitle = ref("");
 const dialogType = ref("");
 const form = ref({ id: null, name: "", category1Id: null });
 
+// 獲取一級分類名稱的方法
+const getCategoryName = (id) => {
+  if (!id) return "無關聯";
+  const category = category1List.value.find((cat) => cat.id === parseInt(id));
+  return category ? category.name : "未知分類";
+};
+
+// 從表單中獲取一級分類ID的方法
+const getCategory1Id = () => {
+  // 先檢查是否有 category1Id
+  if (form.value.category1Id) {
+    return form.value.category1Id;
+  }
+
+  // 如果沒有直接的 category1Id，檢查 category1Ids 陣列
+  if (
+    Array.isArray(form.value.category1Ids) &&
+    form.value.category1Ids.length > 0
+  ) {
+    return form.value.category1Ids[0];
+  }
+
+  // 如果還是沒有，檢查 category1List 屬性 (某些 API 可能使用此格式)
+  if (
+    Array.isArray(form.value.category1List) &&
+    form.value.category1List.length > 0
+  ) {
+    return form.value.category1List[0].id;
+  }
+
+  // 都沒有找到，返回 null
+  return null;
+};
+
 // 獲取一級分類
 const fetchCategory1 = async () => {
   try {
@@ -229,13 +276,27 @@ const openDialog = (type, data = null) => {
   dialogTitle.value = data ? "編輯分類" : "新增分類";
   dialogVisible.value = true;
 
+  console.log("openDialog 被調用", type, data); // 新增日誌
+
   if (data) {
     // 編輯現有分類
+    console.log("編輯資料:", data); // 新增日誌
     form.value = { ...data };
-    // 移除編輯二級分類時的 category1Id 和 category1Ids 欄位
+
+    // 對於二級分類，確保保留category1Id或從category1Ids中獲取它
     if (type === "category2") {
-      delete form.value.category1Id;
-      delete form.value.category1Ids;
+      if (
+        !form.value.category1Id &&
+        Array.isArray(form.value.category1Ids) &&
+        form.value.category1Ids.length > 0
+      ) {
+        form.value.category1Id = form.value.category1Ids[0];
+      }
+      // 如果兩者都沒有，嘗試從後端重新獲取該分類的詳細資訊
+      if (!form.value.category1Id && !Array.isArray(form.value.category1Ids)) {
+        // 可以選擇在這裡添加額外的API調用來獲取詳細資訊
+        console.log("警告: 無法確定二級分類的關聯一級分類");
+      }
     }
   } else {
     // 新增分類
@@ -244,13 +305,17 @@ const openDialog = (type, data = null) => {
         id: null,
         name: "",
         category1Id: selectedCategory1.value || null,
-        category1Ids: selectedCategory1.value ? [selectedCategory1.value] : [], // 使用陣列
+        category1Ids: selectedCategory1.value
+          ? [parseInt(selectedCategory1.value)]
+          : [], // 使用陣列
       };
     } else {
       // 一級分類
       form.value = { id: null, name: "" };
     }
   }
+
+  console.log("表單數據準備完成:", form.value); // 新增日誌
 };
 
 // 保存分類
@@ -265,7 +330,8 @@ const saveCategory = async () => {
       return;
     }
 
-    if (dialogType.value === "category2") {
+    if (dialogType.value === "category2" && !form.value.id) {
+      // 只在新增二級分類時檢查
       if (!form.value.category1Id) {
         Swal.fire({
           title: "錯誤",
@@ -277,6 +343,13 @@ const saveCategory = async () => {
 
       // 確保 category1Ids 是包含選擇的 category1Id 的陣列
       form.value.category1Ids = [parseInt(form.value.category1Id)];
+    } else if (dialogType.value === "category2" && form.value.id) {
+      // 編輯二級分類時，保留原有關聯
+      const category1Id = getCategory1Id();
+      if (category1Id) {
+        form.value.category1Id = category1Id;
+        form.value.category1Ids = [parseInt(category1Id)];
+      }
     }
 
     const url = form.value.id
@@ -284,6 +357,7 @@ const saveCategory = async () => {
       : `/api/${dialogType.value}`;
     const method = form.value.id ? "put" : "post";
 
+    console.log(`準備發送 ${method.toUpperCase()} 請求到 ${url}`, form.value);
     await axios[method](url, form.value);
 
     Swal.fire({

@@ -1,136 +1,183 @@
 <template>
-  <div class="container mt-4">
-    <h2>管理付款方式</h2>
-    <div>
-      <button class="btn btn-success" @click="showAddModel = true">
-        新增付款方式
-      </button>
+  <div>
+    <h2>付款方式管理</h2>
+    <div class="container">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">付款方式</h5>
+          <button class="btn btn-primary" @click="openDialog()">
+            新增付款方式
+          </button>
+          <table class="table mt-3">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>付款方式名稱</th>
+                <th>操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in paymentMethodList" :key="item.id">
+                <td>{{ item.id }}</td>
+                <td>{{ item.name }}</td>
+                <td>
+                  <button
+                    class="btn btn-primary me-2"
+                    @click="openDialog(item)"
+                  >
+                    編輯
+                  </button>
+                  <button
+                    class="btn btn-danger"
+                    @click="deletePaymentMethod(item.id)"
+                  >
+                    刪除付款方式
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 新增/編輯付款方式 Dialog -->
+      <div
+        class="modal"
+        tabindex="-1"
+        :class="{ 'd-block': dialogVisible, 'd-none': !dialogVisible }"
+        @click="closeDialog"
+      >
+        <div class="modal-dialog" @click.stop>
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title">{{ dialogTitle }}</h5>
+              <button
+                type="button"
+                class="btn-close"
+                @click="closeDialog"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="paymentMethodName" class="form-label"
+                  >付款方式名稱</label
+                >
+                <input
+                  type="text"
+                  class="form-control"
+                  id="paymentMethodName"
+                  v-model="form.name"
+                />
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                @click="closeDialog"
+              >
+                關閉
+              </button>
+
+              <button
+                type="button"
+                class="btn btn-primary"
+                @click="savePaymentMethod"
+              >
+                儲存付款方式
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
-    <table class="table table-bordered payment-method-table">
-      <thead>
-        <tr>
-          <th style="width: 50px">ID</th>
-          <th style="width: 150px">名稱</th>
-          <th style="width: 180px">操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr
-          v-if="paymentMethods.length > 0"
-          v-for="e in paymentMethods"
-          :key="e.id"
-        >
-          <td>{{ e.id }}</td>
-          <td>{{ e.name }}</td>
-          <td>
-            <button class="btn btn-primary btn-sm" @click="openEditModal(e)">
-              編輯資料
-            </button>
-
-            <button
-              class="btn btn-danger btn-sm ms-2"
-              @click="deleteProduct(e.id)"
-            >
-              刪除付款方式
-            </button>
-          </td>
-        </tr>
-      </tbody>
-    </table>
   </div>
-
-  <!-- 新增付款方式 Modal -->
-  <payment-method-add-modal
-    :isOpen="showAddModel"
-    @close="showAddModel = false"
-    @refresh="fetchPaymentMethods"
-  />
-
-  <!-- 編輯付款方式 Modal -->
-  <payment-method-edit-modal
-    :isOpen="showEditModal"
-    :theData="selectedElement"
-    @close="showEditModal = false"
-    @save="updatePaymentMethods"
-  />
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
+import { ref, onMounted } from "vue";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
-import PaymentMethodAddModal from "@/components/payment-method.components/PaymentMethodAddModal.vue";
-import PaymentMethodEditModal from "@/components/payment-method.components/PaymentMethodEditModal.vue";
 
-const paymentMethods = ref([]);
-const showAddModel = ref(false);
-const showEditModal = ref(false);
-const selectedElement = ref(null);
+// 狀態變數
+const paymentMethodList = ref([]);
+const dialogVisible = ref(false);
+const dialogTitle = ref("");
+const form = ref({ id: null, name: "" });
 
-// 取得付款方式列表
+// 獲取所有付款方式
 const fetchPaymentMethods = async () => {
   try {
-    const response = await axios.get(`/api/paymentMethod/all`);
-    console.log("API 回傳的付款方式資料：", response.data);
-    paymentMethods.value = response.data;
+    const response = await axios.get("/api/paymentMethod/all");
+    paymentMethodList.value = response.data;
   } catch (error) {
-    console.error("載入付款方式列表失敗", error);
-  }
-};
-
-// 開啟編輯 Modal
-const openEditModal = (e) => {
-  selectedElement.value = { ...e }; //複製物件，避免影響原資料
-  showEditModal.value = true;
-};
-
-// 更新付款方式
-const updatePaymentMethods = async (updatedData) => {
-  if (!updatedData || !updatedData.id) {
+    console.error("獲取付款方式失敗:", error);
     Swal.fire({
       title: "錯誤",
-      text: "無效的更新資料",
+      text: "獲取付款方式失敗",
       icon: "error",
     });
-    return;
   }
+};
 
+// 打開對話框
+const openDialog = (data = null) => {
+  dialogTitle.value = data ? "編輯付款方式" : "新增付款方式";
+  dialogVisible.value = true;
+
+  if (data) {
+    // 編輯現有支付方式
+    form.value = { ...data };
+  } else {
+    // 新增支付方式
+    form.value = { id: null, name: "" };
+  }
+};
+
+// 保存支付方式
+const savePaymentMethod = async () => {
   try {
-    const { id, ...updateDto } = updatedData;
-    const response = await axios.put(`/api/paymentMethod/${id}`, updateDto);
-    if (response.status >= 200 && response.status < 300) {
-      console.log("更新成功，API 回傳的付款方式資料：", response.data);
-
+    if (!form.value.name) {
       Swal.fire({
-        title: "更新成功",
-        icon: "success",
+        title: "錯誤",
+        text: "請輸入付款方式名稱",
+        icon: "warning",
       });
-
-      // 重新載入列表 (更新 UI)
-      await fetchPaymentMethods();
-      // 關閉 Modal
-      showEditModal.value = false;
-    } else {
-      Swal.fire({
-        title: "更新失敗",
-        icon: "error",
-      });
+      return;
     }
+
+    const url = form.value.id
+      ? `/api/paymentMethod/${form.value.id}`
+      : `/api/paymentMethod`;
+    const method = form.value.id ? "put" : "post";
+
+    console.log(`準備發送 ${method.toUpperCase()} 請求到 ${url}`, form.value);
+    await axios[method](url, form.value);
+
+    Swal.fire({
+      title: "成功",
+      text: "操作成功",
+      icon: "success",
+    });
+
+    dialogVisible.value = false;
+    await fetchPaymentMethods();
   } catch (error) {
+    console.error("保存付款方式失敗:", error);
     Swal.fire({
       title: "錯誤",
-      text: error.response?.data?.message || "無法更新付款方式",
+      text: error.response?.data?.message || "保存付款方式失敗",
       icon: "error",
     });
-    console.error("錯誤", error);
   }
 };
 
-// 刪除付款方式
+// 刪除支付方式
 const deletePaymentMethod = async (id) => {
   try {
     const result = await Swal.fire({
-      title: `確定要刪除 ID:${id} 的付款方式嗎？`,
+      title: "確定刪除？",
+      text: "刪除後將無法恢復，且相關訂單付款資訊可能會受影響！",
       icon: "warning",
       showCancelButton: true,
       confirmButtonColor: "#d33",
@@ -140,34 +187,53 @@ const deletePaymentMethod = async (id) => {
     });
 
     if (result.isConfirmed) {
-      const response = await axios.delete(`/api/paymentMethod/${id}`);
-      if (response.status >= 200 && response.status < 300) {
-        await Swal.fire({
-          title: "刪除成功",
-          icon: "success",
-        });
+      await axios.delete(`/api/paymentMethod/${id}`);
 
-        // 重新載入付款方式列表
-        await fetchPaymentMethods();
-      }
+      Swal.fire({
+        title: "成功",
+        text: "刪除成功",
+        icon: "success",
+      });
+
+      await fetchPaymentMethods();
     }
   } catch (error) {
+    console.error("刪除付款方式失敗:", error);
     Swal.fire({
       title: "錯誤",
+      text: error.response?.data?.message || "刪除付款方式失敗",
       icon: "error",
     });
   }
 };
 
-// 元件掛載時取得付款方式列表
+// 關閉對話框
+const closeDialog = () => {
+  dialogVisible.value = false;
+};
+
+// 初始化
 onMounted(() => {
   fetchPaymentMethods();
 });
 </script>
 
 <style scoped>
-.payment-method-table {
-  table-layout: fixed;
-  width: 100%;
+.container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.modal {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.table {
+  margin-top: 20px;
+}
+
+button {
+  margin-right: 5px;
 }
 </style>

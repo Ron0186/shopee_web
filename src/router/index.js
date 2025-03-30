@@ -163,6 +163,7 @@ const router = createRouter({
         //   component: () =>
         //     import("@/views/pages/CustomerService/CustomerService.vue"),
         // },
+
         //賣家商店頁
         ,
         {
@@ -170,6 +171,30 @@ const router = createRouter({
           name: "Store",
           component: () => import("@/views/front/SellerStore.vue"),
         },
+
+        // 「我的商品」頁面
+        {
+          path: "/seller/shops/:shopId/products",
+          name: "Products",
+          component: () => import("@/views/front/Products.vue"),
+          meta: { requiresAuth: true }, // 如果需要登入驗證
+        },
+        // SKU 管理頁面
+        {
+          path: "/seller/shops/:shopId/products/:productId/skus",
+          name: "ProductSkuManagement",
+          component: () => import("@/views/front/ProductSkuManagement.vue"),
+          meta: { requiresAuth: true, role: "seller" },
+        },
+
+        //賣家數據分析頁
+        {
+          path: "/seller/analytics",
+          name: "SellerAnalytics",
+          component: () => import("@/views/front/SellerAnalytics.vue"),
+          meta: { role: "SELLER", requiresAuth: true }, // 只有 SELLER 角色的用戶可以訪問，並需要登入
+        },
+
         //google登入後回填頁
         {
           path: "/fill-phone",
@@ -277,13 +302,7 @@ const router = createRouter({
           name: "categoryManagement",
           component: () => import("@/views/admin/CategoryManagement.vue"),
         },
-        {
-          // 「我的商品」頁面
-          path: "/my-products/:shopId",
-          name: "Products",
-          component: () => import("@/views/admin/Products.vue"),
-          meta: { requiresAuth: true }, // 如果需要登入驗證
-        },
+
         {
           // 商品分類頁面
           path: "product-category",

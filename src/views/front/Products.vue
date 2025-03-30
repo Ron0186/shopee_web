@@ -1,6 +1,6 @@
 <template>
   <div class="container mt-4">
-    <h2>我的商品 - 商店 ID: {{ shopId }}</h2>
+    <h2>我的商品</h2>
     <div>
       <button class="btn btn-success mb-3" @click="showAddModal = true">
         新增商品
@@ -13,10 +13,10 @@
           <th style="width: 90px">圖片</th>
           <th style="width: 150px">商品名稱</th>
           <th style="width: 150px">商品描述</th>
-          <th style="width: 150px">上架/審核中</th>
+          <th style="width: 150px">上架/未上架</th>
           <th style="width: 150px">創建時間</th>
           <th style="width: 150px">更新時間</th>
-          <th style="width: 180px">操作</th>
+          <th style="width: 230px">操作</th>
         </tr>
       </thead>
       <tbody>
@@ -24,9 +24,11 @@
           <td>{{ e.productId }}</td>
           <td>
             <img
-              v-if="e.image"
+              v-if="e.primaryImageUrl"
               :src="
-                e.image.startsWith('http') ? e.image : `${baseUrl}${e.image}`
+                e.primaryImageUrl.startsWith('http')
+                  ? e.primaryImageUrl
+                  : `${baseUrl}${e.primaryImageUrl}`
               "
               alt="商品圖片"
               class="product-image"
@@ -37,17 +39,24 @@
           <td>{{ e.description }}</td>
           <td>
             <span :class="e.active ? 'text-success' : 'text-warning'">
-              {{ e.active ? "上架" : "審核中" }}
+              {{ e.active ? "上架" : "未上架" }}
             </span>
           </td>
           <td>{{ formatDate(e.createdAt) }}</td>
           <td>{{ formatDate(e.updatedAt) }}</td>
           <td>
             <button
-              class="btn btn-primary btn-sm me-2"
+              class="btn btn-primary btn-sm me-1"
               @click="openEditModal(e)"
             >
               編輯
+            </button>
+
+            <button
+              class="btn btn-info btn-sm me-1"
+              @click="goToSkuManagement(e.productId)"
+            >
+              SKU管理
             </button>
 
             <button
@@ -80,7 +89,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from "vue";
-import { useRoute } from "vue-router";
+import { useRoute, useRouter } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
@@ -89,6 +98,7 @@ import ProductEditModal from "@/components/product.components/ProductEditModal.v
 import defaultImage from "@/assets/default-image.png"; // 默认图片
 
 const route = useRoute();
+const router = useRouter();
 const shopId = parseInt(route.params.shopId) || null;
 
 const products = ref([]);
@@ -122,34 +132,29 @@ const fetchProducts = async () => {
       return;
     }
 
-    console.log("正在請求的 shopId:", shopId.value);
+    console.log("正在請求的 shopId:", shopId);
     console.log("當前 userId:", userId);
     console.log("當前 token:", token);
 
-    const response = await axios.get(`/api/product/byShop`, {
+    const response = await axios.get(`/api/products`, {
       params: {
         shopId: shopId,
+        page: 0,
+        size: 100, // 設定適當的分頁大小
       },
       headers: { Authorization: `Bearer ${token}` },
     });
 
     console.log("API 回傳原始數據:", response);
-    console.log("API 回傳的「我的商品」資料:", response.data);
 
-    if (response.data.length > 0) {
-      console.log("商品數據詳細檢查:");
-      response.data.forEach((item, index) => {
-        console.log(`商品 ${index + 1}:`, {
-          productId: item.productId,
-          image: item.image, // 檢查這個值是否存在
-          imageUrl: item.imageUrl, // 檢查這個值是否存在
-          productName: item.productName,
-        });
-      });
+    // 檢查是否為分頁格式的回傳結果
+    if (response.data && response.data.content) {
+      console.log("API 回傳的「我的商品」資料:", response.data.content);
+      products.value = response.data.content;
     }
-
-    // 檢查 response.data 是否為數組
-    if (Array.isArray(response.data)) {
+    // 保留原有的處理邏輯，以防 API 回傳格式不變
+    else if (Array.isArray(response.data)) {
+      console.log("API 回傳的「我的商品」資料:", response.data);
       products.value = response.data;
     } else if (response.data && Array.isArray(response.data.products)) {
       // 如果数据是嵌套在 products 字段中
@@ -157,6 +162,18 @@ const fetchProducts = async () => {
     } else {
       console.error("回傳的數據格式不正確:", response.data);
       products.value = [];
+    }
+
+    if (products.value.length > 0) {
+      console.log("商品數據詳細檢查:");
+      products.value.forEach((item, index) => {
+        console.log(`商品 ${index + 1}:`, {
+          productId: item.productId,
+          image: item.image, // 檢查這個值是否存在
+          imageUrl: item.imageUrl, // 檢查這個值是否存在
+          productName: item.productName,
+        });
+      });
     }
 
     // 打印最終賦值結果
@@ -183,52 +200,9 @@ const openEditModal = (e) => {
   showEditModal.value = true;
 };
 
-// 更新「我的商品」
-const updateProduct = async (productId) => {
-  try {
-    const userStore = useUserStore();
-    const token = userStore.token; // 獲取 token
-
-    if (!productId) {
-      Swal.fire({ title: "商品 ID 不存在", icon: "warning" });
-      return;
-    }
-
-    let formData = new FormData();
-    formData.append(
-      "product",
-      new Blob([JSON.stringify(updatedProduct.value)], {
-        type: "application/json",
-      })
-    );
-
-    if (updatedProduct.value.image) {
-      formData.append("image", updatedProduct.value.image); // 上傳圖片
-    }
-
-    const response = await axios.put(`/api/product/${productId}`, formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        Authorization: `Bearer ${token}`,
-      },
-    });
-
-    if (response.status >= 200 && response.status < 300) {
-      await Swal.fire({ title: "更新成功", icon: "success" });
-
-      emit("refresh"); // 通知父元件重新獲取商品列表
-      emit("close"); // 關閉 Modal
-    } else {
-      Swal.fire({ title: "錯誤:" + response.data.message, icon: "error" });
-    }
-  } catch (error) {
-    console.error(error);
-    Swal.fire({
-      title:
-        "錯誤:" + (error.response?.data?.message || "請求失敗，請稍後再試"),
-      icon: "error",
-    });
-  }
+// 跳轉到 SKU 管理頁面
+const goToSkuManagement = (productId) => {
+  router.push(`/seller/shops/${shopId}/products/${productId}/skus`);
 };
 
 // 刪除「我的商品」
@@ -245,7 +219,7 @@ const deleteProduct = async (id) => {
     });
 
     if (result.isConfirmed) {
-      const response = await axios.delete(`/api/product/${id}`, {
+      const response = await axios.delete(`/api/products/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

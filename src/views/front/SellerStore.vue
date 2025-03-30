@@ -102,7 +102,7 @@ const checkOwner = async () => {
 
 // 導航到「我的商品」頁面，並攜帶 shopId 作為路由參數
 const goToMyProducts = () => {
-  router.push(`/my-products/${shop.value.shopId}`);
+  router.push(`/seller/shops/${shop.value.shopId}/products`);
 };
 
 // 監聽 shopId 變化
