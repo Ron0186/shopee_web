@@ -40,13 +40,18 @@ export const useChatStore = defineStore('chat', () => {
     const messages = ref([]);
     const unreadCounts = ref({});
     const stompClient = ref(null);
-    const socketManager = ref(new SocketManager());
+
     // 統一從 sessionStorage 讀取 'authToken'
     const authToken = ref(sessionStorage.getItem('authToken'));
     const userStore = useUserStore();
     const router = useRouter();
     const connectionStatus = ref('disconnected');
     const userId = ref(localStorage.getItem('userId'));
+    const socketManager = ref({
+        stompClient: null,
+        subscriptions: new Map(),
+        isConnecting: false
+    });
 
     // 新增消息已读状态更新方法
     const updateReadStatus = (chatRoomId, readerId) => {
@@ -198,34 +203,60 @@ export const useChatStore = defineStore('chat', () => {
 
 
 
+    // stores/chatStore.js
     const connectChatRoom = async (chatRoomId) => {
-        return new Promise((resolve, reject) => {
-            if (connectionStatus.value === 'connected') {
-                setupSubscriptions(chatRoomId); // 確保訂閱更新
-                resolve();
+        try {
+            // 强制初始化（双重验证）
+            if (!socketManager.value) {
+                socketManager.value = {
+                    stompClient: null,
+                    subscriptions: new Map(),
+                    isConnecting: false
+                };
+            }
+
+            // 如果正在连接中则等待
+            if (socketManager.value.isConnecting) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                return connectChatRoom(chatRoomId);
+            }
+
+            // 如果已连接则直接返回
+            if (socketManager.value.stompClient?.connected) {
                 return;
             }
-            connectionStatus.value = 'connecting'; // 更新状态
+
+            socketManager.value.isConnecting = true;
 
             const socket = new SockJS('http://localhost:8081/ws');
             const stompClient = Stomp.over(socket);
 
-            stompClient.connect(
-                {
-                    Authorization: `Bearer ${authToken.value}`,
-                    'X-User-Id': userId.value
-                },
-                () => {
-                    socketManager.value.stompClient = stompClient;
-                    setupSubscriptions(chatRoomId); // 連線成功後設定訂閱
-                    resolve();
-                },
-                (error) => {
-                    connectionStatus.value = 'disconnected'; // 连接失败
-                    reject(error);
-                }
-            );
-        });
+            // 添加心跳配置
+            stompClient.heartbeatIncoming = 5000;
+            stompClient.heartbeatOutgoing = 5000;
+
+            await new Promise((resolve, reject) => {
+                stompClient.connect(
+                    {
+                        Authorization: `Bearer ${authToken.value}`,
+                        'X-User-Id': userId.value
+                    },
+                    () => {
+                        socketManager.value.stompClient = stompClient;
+                        socketManager.value.isConnecting = false;
+                        resolve();
+                    },
+                    (error) => {
+                        socketManager.value.isConnecting = false;
+                        reject(error);
+                    }
+                );
+            });
+
+        } catch (error) {
+            socketManager.value.isConnecting = false;
+            throw error;
+        }
     };
 
     const tempMessages = ref([]);
@@ -234,11 +265,17 @@ export const useChatStore = defineStore('chat', () => {
 
     // 新增正式訊息方法：更新 messages 並強制觸發響應式更新
     const addMessage = (message) => {
+        console.log('[DEBUG] 收到新消息:', message); // 添加日誌
         // 避免重複
         if (!messages.value.some(m => m.id === message.id)) {
-            messages.value.push(message);
-            // 強制重設陣列以觸發更新
+            messages.value.push({
+                ...message,
+                // 確保字段名稱與後端一致
+                id: message.id || message.messageId, // 兼容不同命名
+                timestamp: message.timestamp || message.createdAt // 兼容不同時間字段
+            });
             messages.value = [...messages.value];
+            console.log('[DEBUG] 更新後的消息列表:', messages.value); // 添加日誌
             messageIds.value.add(message.id);
             localStorage.setItem(`msg-${message.id}`, JSON.stringify(message));
         }

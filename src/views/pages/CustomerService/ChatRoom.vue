@@ -192,6 +192,14 @@ watch(
 
 onMounted(async () => {
     try {
+        if (!chatStore.socketManager.value) {
+            chatStore.socketManager.value = {
+                stompClient: null,
+                subscriptions: new Map(),
+                isConnecting: false
+            };
+        }
+
         authToken.value = sessionStorage.getItem("authToken");
         if (!authToken.value) {
             Swal.fire("错误", "登录状态已过期", "error");
@@ -202,6 +210,8 @@ onMounted(async () => {
         await chatStore.fetchCurrentUser();
         if (route.params.chatRoomId) {
             await loadChatRoom(route.params.chatRoomId);
+            await chatStore.connectChatRoom(route.params.chatRoomId);
+
             if (chatStore.activeChatRoom.chatRoomId && chatStore.socketManager?.value?.stompClient?.connected) {
                 setupSubscriptions(chatStore.activeChatRoom.chatRoomId);
             }
@@ -243,34 +253,59 @@ onUnmounted(() => {
 /**
  * 發送訊息：加入臨時訊息後送出，待回應後更新狀態
  */
+// ChatRoom.vue
 async function send() {
-    if (!newMessage.value.trim()) return;
-    let messageId; // 將 messageId 宣告移到 try 區塊外
-
     try {
-        // 確保連線正常
-        if (!chatStore.socketManager.value?.stompClient?.connected) {
-            await chatStore.connectChatRoom(chatStore.activeChatRoom.chatRoomId);
+        if (!newMessage.value.trim()) return;
+
+        // 第一层检查：管理器是否存在
+        if (!chatStore.socketManager?.value) {
+            throw new Error('聊天系统未就绪，请刷新页面');
         }
 
-        const messageId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        // 添加臨時訊息
-        const tempMessage = {
-            id: messageId,
-            content: newMessage.value.trim(),
-            sender: { userId: userId.value },
-            timestamp: new Date().toISOString(),
-            _status: "sending",
-        };
-        chatStore.addTempMessage(tempMessage);
+        // 第二层检查：连接状态
+        if (!chatStore.socketManager.value.stompClient?.connected) {
+            console.log('正在尝试重新连接...');
+            await chatStore.connectChatRoom(route.params.chatRoomId);
+        }
 
-        // 透過 WebSocket 發送訊息
-        chatStore.sendMessage(newMessage.value.trim(), messageId);
+        // 第三层检查：最终状态验证
+        const { stompClient } = chatStore.socketManager.value;
+        if (!stompClient || !stompClient.connected) {
+            throw new Error('无法建立稳定连接，请检查网络');
+        }
+
+        // 发送逻辑
+        const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const payload = {
+            content: newMessage.value.trim(),
+            senderId: userId.value,
+            tempId: tempId
+        };
+
+        stompClient.send(
+            `/app/chat/${route.params.chatRoomId}/send`,
+            {},
+            JSON.stringify(payload)
+        );
 
         newMessage.value = "";
     } catch (error) {
-        console.error("發送失敗:", error);
-        chatStore.updateMessageStatus(messageId, 'failed');
+        console.error('发送失败详情:', {
+            error: error.message,
+            managerState: chatStore.socketManager?.value,
+            connectionStatus: chatStore.connectionStatus
+        });
+
+        Swal.fire({
+            title: '发送失败',
+            text: error.message,
+            icon: 'error',
+            willClose: () => {
+                // 尝试恢复连接
+                chatStore.connectChatRoom(route.params.chatRoomId);
+            }
+        });
     }
 }
 
