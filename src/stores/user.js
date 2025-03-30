@@ -46,7 +46,13 @@ export const useUserStore = defineStore('user', () => {
         token.value = localStorage.getItem('token') || '';
 
         const rolesString = localStorage.getItem('roles');
-        roles.value = rolesString ? JSON.parse(rolesString) : [];
+        if (rolesString) {
+            sessionStorage.setItem('roles', rolesString); // 同步到 sessionStorage
+            roles.value = JSON.parse(rolesString);
+        } else {
+            roles.value = [];
+        }
+
 
         console.log("📌 讀取用戶數據: ", {
             username: username.value,
@@ -71,6 +77,7 @@ export const useUserStore = defineStore('user', () => {
         localStorage.setItem('userId', userId);
         localStorage.setItem('token', token);
         localStorage.setItem('roles', JSON.stringify(roles)); // 轉成 JSON 字串存入
+        sessionStorage.setItem('roles', JSON.stringify(roles)); // 新增這行
     }
 
     function reloadUserData() {
@@ -87,7 +94,11 @@ export const useUserStore = defineStore('user', () => {
         token.value = newToken;
         roles.value = newRoles;
 
+
         // 同步存储
+
+        sessionStorage.setItem('roles', JSON.stringify(newRoles)); // 新增這行
+
         localStorage.setItem('userData', JSON.stringify({ username, userId, roles }));
         sessionStorage.setItem('sessionToken', token);
 
