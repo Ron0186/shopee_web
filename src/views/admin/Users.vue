@@ -282,7 +282,7 @@ const fetchUsers = async (page = 0, name = searchName.value) => {
     const response = await axios.get(`/api/admin/any`, {
       params: {
         userName: name,
-        roleName: "User",
+        roleName: "USER",
         page: page,
         size: pageSize.value,
         sort: `${sortField.value},${sortDirection.value}` // 添加排序參數

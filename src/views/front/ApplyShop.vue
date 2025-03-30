@@ -1,21 +1,27 @@
 <template>
-  <div class="container mt-5">
-    <h2 class="mb-4">申請成為賣家</h2>
+  <div class="container mt-3">
+    <h2 class="mb-3 h3">申請成為賣家</h2>
+    <!-- 新增一鍵帶入按鈕 -->
+    <div class="mb-2">
+      <button type="button" class="btn btn-secondary w-100" @click="fillDefaultInfo">
+        <i class="bi bi-lightning-fill me-1"></i>一鍵帶入資料
+      </button>
+    </div>
     <form @submit.prevent="submitApplication">
       <!-- 商店相關資訊 -->
-      <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-          <h5 class="mb-0">商店資訊</h5>
+      <div class="card mb-3">
+        <div class="card-header bg-primary text-white py-2">
+          <h5 class="mb-0 h6">商店資訊</h5>
         </div>
-        <div class="card-body">
-          <div class="mb-3">
-            <label class="form-label">商店名稱</label>
-            <input v-model="form.shopName" type="text" class="form-control" placeholder="請輸入商店名稱" required />
+        <div class="card-body py-2">
+          <div class="mb-2">
+            <label class="form-label small mb-1">商店名稱</label>
+            <input v-model="form.shopName" type="text" class="form-control form-control-sm" placeholder="請輸入商店名稱" required />
           </div>
 
-          <div class="mb-3">
-            <label class="form-label">商店分類</label>
-            <select v-model="form.shopCategory" class="form-select" required>
+          <div class="mb-2">
+            <label class="form-label small mb-1">商店分類</label>
+            <select v-model="form.shopCategory" class="form-select form-select-sm" required>
               <option value="" disabled>請選擇商店分類</option>
               <option v-for="category in shopCategories" :key="category" :value="category">
                 {{ category }}
@@ -23,31 +29,31 @@
             </select>
           </div>
 
-          <div class="mb-3">
-            <label class="form-label">商店描述</label>
-            <textarea v-model="form.description" class="form-control" rows="3" placeholder="請輸入商店描述(50字以內)"></textarea>
+          <div class="mb-2">
+            <label class="form-label small mb-1">商店描述</label>
+            <textarea v-model="form.description" class="form-control form-control-sm" rows="4" placeholder="請輸入商店描述(50字以內)"></textarea>
           </div>
         </div>
       </div>
 
       <!-- 退貨地址相關資訊 -->
-      <div class="card mb-4">
-        <div class="card-header bg-warning text-white">
-          <h5 class="mb-0">退貨地址</h5>
+      <div class="card mb-3">
+        <div class="card-header bg-warning text-white py-2">
+          <h5 class="mb-0 h6">退貨地址</h5>
         </div>
-        <div class="card-body">
+        <div class="card-body py-2">
           <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">城市</label>
-              <select v-model="selectedCity" class="form-select" @change="updateDistricts" required>
+            <div class="col-md-6 mb-2">
+              <label class="form-label small mb-1">城市</label>
+              <select v-model="selectedCity" class="form-select form-select-sm" @change="updateDistricts" required>
                 <option value="" disabled>請選擇城市</option>
                 <option v-for="city in Object.keys(taiwanCities)" :key="city" :value="city">{{ city }}</option>
               </select>
             </div>
 
-            <div class="col-md-6 mb-3">
-              <label class="form-label">區域</label>
-              <select v-model="form.returnDistrict" class="form-select" @change="updatePostalCode" required>
+            <div class="col-md-6 mb-2">
+              <label class="form-label small mb-1">區域</label>
+              <select v-model="form.returnDistrict" class="form-select form-select-sm" @change="updatePostalCode" required>
                 <option value="" disabled>請選擇區域</option>
                 <option v-for="district in Object.keys(availableDistricts)" :key="district" :value="district">
                   {{ district }}
@@ -57,39 +63,39 @@
           </div>
 
           <div class="row">
-            <div class="col-md-4 mb-3">
-              <label class="form-label">郵遞區號</label>
-              <input v-model="form.returnZipCode" type="text" class="form-control" readonly />
+            <div class="col-md-4 mb-2">
+              <label class="form-label small mb-1">郵遞區號</label>
+              <input v-model="form.returnZipCode" type="text" class="form-control form-control-sm" readonly />
             </div>
 
-            <div class="col-md-8 mb-3">
-              <label class="form-label">詳細地址</label>
-              <input v-model="form.returnStreetEtc" type="text" class="form-control" placeholder="請輸入詳細地址" required />
+            <div class="col-md-8 mb-2">
+              <label class="form-label small mb-1">詳細地址</label>
+              <input v-model="form.returnStreetEtc" type="text" class="form-control form-control-sm" placeholder="請輸入詳細地址" required />
             </div>
           </div>
         </div>
       </div>
 
       <!-- 收件人相關資訊 -->
-      <div class="card mb-4">
-        <div class="card-header bg-success text-white">
+      <div class="card mb-3">
+        <div class="card-header bg-success text-white py-2">
           <div class="d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">收件人資訊</h5>
-            <button type="button" class="btn btn-light btn-sm" @click="fillSameAsUser">
+            <h5 class="mb-0 h6">收件人資訊</h5>
+            <button type="button" class="btn btn-light btn-sm py-0 px-2" @click="fillSameAsUser">
               <i class="bi bi-person-check me-1"></i>同使用者資料
             </button>
           </div>
         </div>
-        <div class="card-body">
+        <div class="card-body py-2">
           <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">收件人姓名</label>
-              <input v-model="form.returnRecipientName" type="text" class="form-control" placeholder="請輸入收件人姓名" required />
+            <div class="col-md-6 mb-2">
+              <label class="form-label small mb-1">收件人姓名</label>
+              <input v-model="form.returnRecipientName" type="text" class="form-control form-control-sm" placeholder="請輸入收件人姓名" required />
             </div>
 
-            <div class="col-md-6 mb-3">
-              <label class="form-label">收件人電話</label>
-              <input v-model="form.returnRecipientPhone" type="text" class="form-control" placeholder="請輸入收件人電話" required />
+            <div class="col-md-6 mb-2">
+              <label class="form-label small mb-1">收件人電話</label>
+              <input v-model="form.returnRecipientPhone" type="text" class="form-control form-control-sm" placeholder="請輸入收件人電話" required />
             </div>
           </div>
         </div>
@@ -97,7 +103,7 @@
 
       <!-- 提交按鈕 -->
       <div class="d-grid">
-        <button type="submit" class="btn btn-primary btn-lg">提交申請</button>
+        <button type="submit" class="btn btn-primary">提交申請</button>
       </div>
     </form>
   </div>
@@ -132,6 +138,16 @@ export default {
         userName: "",
         userPhone: ""
       },
+      // 預設資料
+      defaultInfo: {
+        shopName: "選貨小舖",
+        shopCategories:"服飾",
+        description: "全館商品 #台灣現貨 #快速出貨！\n價格優惠實在 👍\n有任何問題歡迎【聊聊】詢問，客服看到會盡快回覆喔 😉\n祝您購物愉快！",
+        city: "高雄市",
+        district: "前金區",
+        zipCode: "801",
+        address: "中正四路211號8樓之1"
+      }
     };
   },
   created() {
@@ -159,6 +175,31 @@ export default {
     fillSameAsUser() {
       this.form.returnRecipientName = this.userData.userName;
       this.form.returnRecipientPhone = this.userData.userPhone;
+    },
+    
+    // 一鍵帶入預設資料
+    fillDefaultInfo() {
+      // 填入商店資訊
+      this.form.shopName = this.defaultInfo.shopName;
+      this.form.description = this.defaultInfo.description;
+      this.form.shopCategory = this.defaultInfo.shopCategories;
+      
+      // 填入地址資訊
+      this.selectedCity = this.defaultInfo.city;
+      this.updateDistricts(); // 更新區域選項
+      
+      // 設置區域 (需確保updateDistricts後才設置)
+      this.$nextTick(() => {
+        this.form.returnDistrict = this.defaultInfo.district;
+        this.updatePostalCode(); // 更新郵遞區號
+        
+        // 手動設置郵遞區號，以防updatePostalCode沒有正確設置
+        this.form.returnZipCode = this.defaultInfo.zipCode;
+        this.form.returnStreetEtc = this.defaultInfo.address;
+        
+        // 填入收件人資訊
+        this.fillSameAsUser();
+      });
     },
     
     updateDistricts() {

@@ -316,23 +316,23 @@ async function quickLogin(user) {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
+  min-height: 85vh; /* 從100vh改為85vh，考慮到navbar和footer的空間 */
   background-color: var(--bg-color);
-  padding: 20px;
+  padding: 15px; /* 減少內邊距 */
 }
 
 .login-card {
   width: 100%;
-  max-width: 450px;
+  max-width: 420px; /* 略微縮小最大寬度 */
   background-color: var(--card-bg);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow);
-  padding: 30px;
+  padding: 20px; /* 減少內邊距 */
 }
 
 .login-title {
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 20px; /* 減少下邊距 */
   color: var(--primary-color);
   font-weight: 600;
 }
@@ -340,7 +340,7 @@ async function quickLogin(user) {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px; /* 減少表單元素間距 */
 }
 
 /* 表單元素 */
@@ -351,10 +351,10 @@ async function quickLogin(user) {
 
 .form-input {
   width: 100%;
-  padding: 12px 15px;
+  padding: 10px 12px; /* 減少輸入框內邊距 */
   border: 1px solid var(--border-color);
   border-radius: var(--input-radius);
-  font-size: 16px;
+  font-size: 15px; /* 略微縮小字體 */
   transition: all 0.2s ease;
 }
 
@@ -366,7 +366,7 @@ async function quickLogin(user) {
 
 .form-group label {
   display: block;
-  margin-bottom: 8px;
+  margin-bottom: 5px; /* 減少標籤下邊距 */
   font-weight: 500;
   color: var(--text-color);
 }
@@ -379,12 +379,12 @@ async function quickLogin(user) {
 
 .password-container input {
   width: 100%;
-  padding-right: 45px; /* 為眼睛圖標預留空間 */
+  padding-right: 40px; /* 為眼睛圖標預留空間 */
 }
 
 .eye-icon {
   position: absolute;
-  right: 10px;
+  right: 8px;
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
@@ -393,8 +393,8 @@ async function quickLogin(user) {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 35px;
-  height: 35px;
+  width: 30px; /* 減小尺寸 */
+  height: 30px; /* 減小尺寸 */
   color: var(--text-light);
   transition: color 0.2s;
 }
@@ -408,13 +408,13 @@ async function quickLogin(user) {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 10px 0;
+  margin: 8px 0; /* 減少上下間距 */
 }
 
 .captcha-error {
   color: var(--error-color);
-  font-size: 13px;
-  margin-top: 5px;
+  font-size: 12px; /* 略微縮小字體 */
+  margin-top: 3px; /* 減少上邊距 */
 }
 
 /* 按鈕樣式 */
@@ -423,15 +423,15 @@ async function quickLogin(user) {
   color: white;
   border: none;
   border-radius: var(--input-radius);
-  padding: 12px 20px;
-  font-size: 16px;
+  padding: 10px 15px; /* 減少內邊距 */
+  font-size: 15px; /* 略微縮小字體 */
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 6px; /* 減少圖標與文字間距 */
   width: 100%;
 }
 
@@ -453,17 +453,17 @@ async function quickLogin(user) {
 
 .forgot-password {
   justify-content: flex-end;
-  margin-top: -10px;
-  margin-bottom: 10px;
+  margin-top: -5px; /* 減少上邊距 */
+  margin-bottom: 5px; /* 減少下邊距 */
 }
 
 .form-links a {
   color: var(--primary-color);
   text-decoration: none;
-  font-size: 14px;
+  font-size: 13px; /* 略微縮小字體 */
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px; /* 減少圖標與文字間距 */
   transition: color 0.2s;
 }
 
@@ -476,7 +476,7 @@ async function quickLogin(user) {
 .divider {
   position: relative;
   text-align: center;
-  margin: 20px 0;
+  margin: 15px 0; /* 減少上下間距 */
 }
 
 .divider::before {
@@ -501,28 +501,28 @@ async function quickLogin(user) {
 .social-login {
   display: flex;
   justify-content: center;
-  margin-bottom: 10px;
+  margin-bottom: 8px; /* 減少下邊距 */
 }
 
 /* 快速登入區塊 */
 .quick-login {
-  margin-top: 20px;
+  margin-top: 15px; /* 減少上邊距 */
   border-top: 1px solid var(--border-color);
-  padding-top: 20px;
+  padding-top: 15px; /* 減少上內邊距 */
 }
 
 .quick-login-title {
-  font-size: 16px;
+  font-size: 15px; /* 略微縮小字體 */
   font-weight: 600;
   color: var(--text-color);
-  margin-bottom: 15px;
+  margin-bottom: 10px; /* 減少下邊距 */
   text-align: center;
 }
 
 .quick-login-buttons {
   display: flex;
   justify-content: center;
-  gap: 15px;
+  gap: 12px; /* 減少按鈕間距 */
 }
 
 .quick-login-btn {
@@ -530,13 +530,13 @@ async function quickLogin(user) {
   color: white;
   border: none;
   border-radius: var(--input-radius);
-  padding: 10px 15px;
-  font-size: 14px;
+  padding: 8px 12px; /* 減少內邊距 */
+  font-size: 13px; /* 略微縮小字體 */
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px; /* 減少圖標與文字間距 */
 }
 
 .quick-login-btn:hover {
@@ -545,7 +545,7 @@ async function quickLogin(user) {
 
 .register-link {
   justify-content: center;
-  margin-top: 10px;
+  margin-top: 8px; /* 減少上邊距 */
 }
 
 /* 響應式設計 */

@@ -45,6 +45,7 @@
                       :id="'role-' + role.id"
                       :value="role.roleName"
                       v-model="selectedRoles"
+                      :disabled="role.roleName === 'USER'"
                     />
                     <label class="form-check-label d-flex justify-content-between align-items-center" :for="'role-' + role.id">
                       <span>
@@ -53,6 +54,7 @@
                           class="me-2"
                         ></i>
                         <strong>{{ role.roleName }}</strong>
+                        <span v-if="role.roleName === 'USER'" class="ms-2 text-danger small">(必選)</span>
                       </span>
                       <span 
                         class="badge me-1"
@@ -62,10 +64,6 @@
                       </span>
                     </label>
                   </div>
-                </div>
-                
-                <div v-if="selectedRoles.length === 0" class="text-danger small mt-2">
-                  <i class="bi bi-exclamation-circle me-1"></i>請至少選擇一個角色
                 </div>
               </div>
             </div>
@@ -84,7 +82,7 @@
                 type="button" 
                 class="btn btn-info px-4 text-white"
                 @click="saveRoles"
-                :disabled="isSubmitting || selectedRoles.length === 0"
+                :disabled="isSubmitting"
               >
                 <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
                 <i v-else class="bi bi-save me-1"></i>儲存變更
@@ -99,7 +97,7 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, watch } from "vue";
+import { defineProps, defineEmits, ref, watch, onMounted } from "vue";
 
 const props = defineProps({
   user: {
@@ -115,16 +113,33 @@ const emit = defineEmits(["close", "save"]);
 const selectedRoles = ref([]);
 const isSubmitting = ref(false);
 
+// 確保 USER 角色始終被選中
+const ensureUserRole = () => {
+  if (!selectedRoles.value.includes('USER')) {
+    selectedRoles.value.push('USER');
+  }
+};
+
 watch(
   () => props.user,
   (newUser) => {
     if (newUser && newUser.roles) {
       selectedRoles.value = [...(newUser.roles || [])];
+      ensureUserRole();
     } else {
-      selectedRoles.value = [];
+      selectedRoles.value = ['USER'];
     }
   },
   { immediate: true, deep: true }
+);
+
+// 監聽選擇的角色變化，確保 USER 角色始終存在
+watch(
+  selectedRoles,
+  () => {
+    ensureUserRole();
+  },
+  { deep: true }
 );
 
 const closeModal = () => {
@@ -132,10 +147,6 @@ const closeModal = () => {
 };
 
 const saveRoles = () => {
-  if (selectedRoles.value.length === 0) {
-    return;
-  }
-  
   isSubmitting.value = true;
   
   // 模擬網絡延遲
