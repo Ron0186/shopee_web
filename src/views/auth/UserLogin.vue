@@ -200,6 +200,18 @@ function resetRecaptcha() {
   captchaError.value = false;
 }
 
+// 新增存储管理方法
+const syncStorage = {
+  setToken(token) {
+    localStorage.setItem('authToken', token);       // 长期存储
+    sessionStorage.setItem('authToken', token);  // 会话存储
+  },
+  clearTokens() {
+    localStorage.removeItem('authToken');
+    sessionStorage.removeItem('authToken');
+  }
+};
+
 async function login() {
   if (username.value === "") {
     username.value = null;
@@ -227,6 +239,14 @@ async function login() {
     const response = await axios.post("/api/auth/login", data);
 
     if (response.data.success) {
+      const decodedToken = jwtDecode(response.data.token);
+      // 設定 token
+      syncStorage.setToken(response.data.token);
+
+      // 同步儲存使用者資訊到 localStorage
+      localStorage.setItem('userId', decodedToken.userId);
+      localStorage.setItem('username', decodedToken.sub);
+
       const result = await Swal.fire({
         title: response.data.message,
         icon: "success",
@@ -317,6 +337,22 @@ async function quickLogin(user) {
   // 在快速登入時，需要用戶仍然手動勾選 reCAPTCHA
   await login(); // 呼叫 login 函數
 }
+
+window.addEventListener('storage', (event) => {
+  if (event.key === 'authToken') {
+    // 當其他分頁更新 localStorage 時，同步到 sessionStorage
+    sessionStorage.setItem('tempAuthToken', event.newValue);
+  }
+});
+
+// 修改跨标签页事件監聽，統一使用 authToken 鍵
+window.addEventListener('storage', (event) => {
+  if (event.key === 'authToken') {
+    // 當其他分頁更新 localStorage 時，同步到 sessionStorage
+    sessionStorage.setItem('authToken', event.newValue);
+    if (!event.newValue) router.push('/user/login');
+  }
+});
 </script>
 
 <style scoped>

@@ -186,13 +186,14 @@ const router = createRouter({
         //   component: () => import('@/views/Placeholder.vue')
         // }
         //客服中心
-        // {
-        //   path: "/customerService",
-        //   name: "CustomerService",
-        //   component: () =>
-        //     import("@/views/pages/CustomerService/CustomerService.vue"),
-        // },
 
+        {
+          path: "/chat/:chatRoomId",
+          name: "ChatRoom",
+          component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
+          meta: { requiresAuth: true }
+
+        },
         //賣家商店頁
         ,
         {
@@ -245,6 +246,13 @@ const router = createRouter({
             title: "連結帳號",
             requiresAuth: false, // 此頁面不需要身份驗證
           },
+        },
+
+        //聊天室頁面
+        {
+          path: '/chat/:chatRoomId',
+          name: 'ChatRoom',
+          component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
         },
       ],
     },

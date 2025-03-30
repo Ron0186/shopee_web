@@ -99,9 +99,8 @@
         >
       </li>
       <li>
-        <router-link to="/customerService" @click="toggleDrawer"
-          >📞 客服 & 幫助中心</router-link
-        >
+        <router-link to="/helpCenter" @click="toggleDrawer">📞 客服 &
+          幫助中心</router-link>
       </li>
       <li>
         <router-link to="/address" @click="toggleDrawer"
@@ -157,9 +156,6 @@ async function logout() {
   });
   if (response.isConfirmed) {
     router.push("/shop");
-  }
-}
-
 // ✅ 通知角標查詢
 const fetchNotificationCount = async () => {
   if (!userStore.token) return;
@@ -200,23 +196,6 @@ async function logoutToAdmin() {
   }
 }
 
-// ✅ 通知角標查詢
-const fetchNotificationCount = async () => {
-  if (!userStore.token) return;
-
-  try {
-    if (userStore.isSeller) {
-      const res = await axios.get(`/api/orders/notification/pending-count/seller`);
-      pendingCount.value = res.data;
-    } else if (userStore.isUser) {
-      const res = await axios.get(`/api/orders/notification/shipped-count/user`);
-      shippedCount.value = res.data;
-    }
-  } catch (err) {
-    console.error("🔴 無法取得訂單通知數量", err);
-  }
-};
-
 // ✅ 初始化時查詢一次
 onMounted(() => {
   if (userStore.token) {
@@ -239,6 +218,13 @@ async function logoutToAdmin() {
     window.location.href = "/admin/login";
   }
 }
+
+// 當通知元件點擊時，導向相應聊天室頁面
+const handleNotificationClick = (chatRoomId) => {
+  console.log("即將導向聊天室：", chatRoomId)
+  router.push(`/chat/${chatRoomId}`);
+};
+
 </script>
 
 

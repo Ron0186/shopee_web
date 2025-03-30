@@ -9,6 +9,8 @@ import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 // 正確導入 Bootstrap Vue Next
 import { BModal, BButton } from 'bootstrap-vue-next';
 
+import { useChatStore } from '@/stores/chatStore'; // 正確導入 Store
+import { useHelpStore } from "./stores/HelpStore";
 // ✅ 確保正確引入 Bootstrap 核心樣式 & JS
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
@@ -21,8 +23,17 @@ pinia.use(piniaPluginPersistedstate);
 const app = createApp(App);
 
 
-app.use(pinia);
+
+
 app.use(router);
+app.use(pinia);
+
+
+
+const chatStore = useChatStore();
+if (chatStore.currentUser) {
+    chatStore.connectWebSocket(chatStore.currentUser.id);
+}
 
 // 註冊個別組件
 app.component('BModal', BModal);
