@@ -8,21 +8,33 @@ export const useUserStore = defineStore('user', () => {
     const token = ref('');
     const roles = ref([]);
 
-    // ✅ 改為 computed 確保 Vue 會自動監聽變更
     const isSeller = computed(() => roles.value.includes("SELLER"));
     const isAdmin = computed(() => roles.value.includes("ADMIN"));
     const isSuperAdmin = computed(() => roles.value.includes("SUPER_ADMIN"));
     const isUser = computed(() => roles.value.includes("USER"));
-    console.log(isSeller.value)
-
+    console.log(isSeller.value);
 
     function loadUserData() {
         username.value = localStorage.getItem('username') || '';
         userId.value = localStorage.getItem('userId') || '';
         token.value = localStorage.getItem('token') || '';
 
-        const rolesString = localStorage.getItem('roles');
-        roles.value = rolesString ? JSON.parse(rolesString) : [];
+        try {
+            const rolesString = localStorage.getItem('roles');
+            if (rolesString && rolesString.startsWith('[')) {
+                // ✅ 正常的 JSON 陣列字串
+                roles.value = JSON.parse(rolesString);
+            } else if (typeof rolesString === 'string') {
+                // ✅ 單一角色（字串）
+                roles.value = [rolesString];
+            } else {
+                roles.value = [];
+            }
+        } catch (err) {
+            console.warn("⚠️ 讀取角色時發生錯誤，自動重置：", err);
+            localStorage.removeItem('roles');
+            roles.value = [];
+        }
 
         console.log("📌 讀取用戶數據: ", {
             username: username.value,
@@ -50,13 +62,12 @@ export const useUserStore = defineStore('user', () => {
         username.value = newUsername;
         userId.value = newUserId;
         token.value = newToken;
-        roles.value = newRoles;
+        roles.value = Array.isArray(newRoles) ? newRoles : [newRoles]; // ✅ 確保是陣列
 
         saveUserData();
 
         console.log("🚀 設定用戶角色:", roles.value);
 
-        // ✅ 角色變更後確保 UI 反應正確
         if (isSeller.value) {
             console.log("✅ 使用者是 SELLER，導向 /seller/orders");
             router.push("/seller/orders");
@@ -80,7 +91,6 @@ export const useUserStore = defineStore('user', () => {
         console.log("🗑️ 清除用戶數據");
     }
 
-    // ✅ 監聽角色變更，確保 UI 更新
     watch(roles, (newRoles) => {
         console.log("🎯 角色變更:", newRoles);
     });
