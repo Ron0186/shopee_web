@@ -1,6 +1,6 @@
 <template>
   <div class="container mt-4">
-    <h2>我的商品 - 商店 ID: {{ shopId }}</h2>
+    <h2>我的商品</h2>
     <div>
       <button class="btn btn-success mb-3" @click="showAddModal = true">
         新增商品
@@ -13,7 +13,7 @@
           <th style="width: 90px">圖片</th>
           <th style="width: 150px">商品名稱</th>
           <th style="width: 150px">商品描述</th>
-          <th style="width: 150px">上架/審核中</th>
+          <th style="width: 150px">上架/未上架</th>
           <th style="width: 150px">創建時間</th>
           <th style="width: 150px">更新時間</th>
           <th style="width: 230px">操作</th>
@@ -24,9 +24,11 @@
           <td>{{ e.productId }}</td>
           <td>
             <img
-              v-if="e.image"
+              v-if="e.primaryImageUrl"
               :src="
-                e.image.startsWith('http') ? e.image : `${baseUrl}${e.image}`
+                e.primaryImageUrl.startsWith('http')
+                  ? e.primaryImageUrl
+                  : `${baseUrl}${e.primaryImageUrl}`
               "
               alt="商品圖片"
               class="product-image"
@@ -37,7 +39,7 @@
           <td>{{ e.description }}</td>
           <td>
             <span :class="e.active ? 'text-success' : 'text-warning'">
-              {{ e.active ? "上架" : "審核中" }}
+              {{ e.active ? "上架" : "未上架" }}
             </span>
           </td>
           <td>{{ formatDate(e.createdAt) }}</td>
@@ -134,7 +136,6 @@ const fetchProducts = async () => {
     console.log("當前 userId:", userId);
     console.log("當前 token:", token);
 
-    // 修正 API 路徑從 /api/product/byShop 到 /api/products
     const response = await axios.get(`/api/products`, {
       params: {
         shopId: shopId,
@@ -218,7 +219,6 @@ const deleteProduct = async (id) => {
     });
 
     if (result.isConfirmed) {
-      // 修正 API 路徑從 /api/product/${id} 到 /api/products/${id}
       const response = await axios.delete(`/api/products/${id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
