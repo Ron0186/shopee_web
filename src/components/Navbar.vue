@@ -24,6 +24,9 @@
       <span v-if="userStore.username" @click="logout" class="logout-link">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
       </span>
+      <span v-if="userStore.username" @click="logoutToAdmin" class="logout-link admin-logout">
+        <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
+      </span>
     </div>
   </nav>
 
@@ -74,6 +77,9 @@
         <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
           使用者條款</router-link>
       </li>
+      <li v-if="userStore.username" @click="logoutToAdmin">
+        <a class="admin-link">🔐 前往後台</a>
+      </li>
     </ul>
   </div>
 </template>
@@ -110,6 +116,20 @@ async function logout() {
   });
   if (response.isConfirmed) {
     router.push('/shop');
+  }
+}
+
+// ✅ 登出並跳轉至後台登入頁
+async function logoutToAdmin() {
+  userStore.clearUserData();
+  const response = await Swal.fire({
+    title: "已登出前台",
+    text: "正在前往後台登入頁面",
+    icon: "success",
+    confirmButtonText: "OK",
+  });
+  if (response.isConfirmed) {
+    window.location.href = "/admin/login";
   }
 }
 </script>
@@ -227,6 +247,23 @@ async function logout() {
 
 .logout-link:hover {
   cursor: pointer;
+  text-decoration: underline;
+}
+
+/* 後台登入按鈕樣式 */
+.admin-logout {
+  margin-left: 10px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.admin-link {
+  cursor: pointer;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.admin-link:hover {
   text-decoration: underline;
 }
 </style>
