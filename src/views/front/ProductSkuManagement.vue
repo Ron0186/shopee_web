@@ -28,7 +28,7 @@
       </div>
       <div class="card-body">
         <div class="row mb-4">
-          <div class="col-md-8">
+          <div class="col-md-6">
             <div class="table-responsive">
               <table class="table table-bordered">
                 <tbody>
@@ -56,139 +56,172 @@
               </table>
             </div>
           </div>
-          <div class="col-md-4 text-center">
-            <!-- 圖片輪播 -->
+          <div class="col-md-6 text-center">
+            <!-- 图片轮播 -->
             <div v-if="hasProductImages" class="card h-100">
-              <div
-                id="productImagesCarousel"
-                class="carousel slide"
-                data-bs-ride="carousel"
-              >
-                <div class="carousel-inner">
-                  <!-- 顯示主圖 -->
-                  <div v-if="primaryImage" class="carousel-item active">
-                    <img
-                      :src="getImageUrl(primaryImage)"
-                      alt="商品主圖"
-                      class="d-block w-100 product-thumbnail"
-                      style="max-height: 200px; object-fit: contain"
-                      @error="handleImageError"
-                    />
-                    <div class="carousel-caption d-none d-md-block">
-                      <span class="badge bg-primary">主圖</span>
+              <div class="position-relative">
+                <!-- 主轮播区域 -->
+                <div
+                  id="productImagesCarousel"
+                  class="carousel slide"
+                  data-bs-ride="carousel"
+                >
+                  <div class="carousel-inner">
+                    <!-- 显示主图 -->
+                    <div v-if="primaryImage" class="carousel-item active">
+                      <img
+                        :src="getImageUrl(primaryImage)"
+                        alt="商品主图"
+                        class="d-block mx-auto product-thumbnail"
+                        style="
+                          height: 280px;
+                          object-fit: contain;
+                          max-width: 100%;
+                        "
+                        @error="handleImageError"
+                      />
+                      <div class="position-absolute top-0 start-0 m-2">
+                        <span class="badge bg-primary">主图</span>
+                      </div>
+                    </div>
+
+                    <!-- 显示其他图片 -->
+                    <div
+                      v-for="(image, index) in nonPrimaryImages"
+                      :key="index"
+                      class="carousel-item"
+                    >
+                      <img
+                        :src="getImageUrl(image)"
+                        alt="商品图片"
+                        class="d-block w-100 product-thumbnail"
+                        style="height: 250px; object-fit: contain"
+                        @error="handleImageError"
+                      />
                     </div>
                   </div>
 
-                  <!-- 顯示其他圖片 -->
+                  <!-- 图片计数指示器 -->
                   <div
-                    v-for="(image, index) in nonPrimaryImages"
+                    class="position-absolute top-0 end-0 m-2 px-2 py-1 rounded"
+                    style="background-color: rgba(0, 0, 0, 0.5)"
+                  >
+                    <small class="text-white"
+                      >{{ currentSlideIndex + 1 }} / {{ totalImages }}</small
+                    >
+                  </div>
+
+                  <!-- 轮播控制按钮 (只有当有多张图片时才显示) -->
+                  <button
+                    v-if="totalImages > 1"
+                    class="carousel-control-prev"
+                    type="button"
+                    data-bs-target="#productImagesCarousel"
+                    data-bs-slide="prev"
+                  >
+                    <span
+                      class="carousel-control-prev-icon"
+                      aria-hidden="true"
+                    ></span>
+                    <span class="visually-hidden">上一张</span>
+                  </button>
+                  <button
+                    v-if="totalImages > 1"
+                    class="carousel-control-next"
+                    type="button"
+                    data-bs-target="#productImagesCarousel"
+                    data-bs-slide="next"
+                  >
+                    <span
+                      class="carousel-control-next-icon"
+                      aria-hidden="true"
+                    ></span>
+                    <span class="visually-hidden">下一张</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 缩略图导航 -->
+              <div v-if="totalImages > 1" class="thumbnail-nav mt-2 px-2">
+                <div
+                  class="d-flex gap-2 overflow-auto py-2"
+                  style="scrollbar-width: thin"
+                >
+                  <div
+                    v-for="(image, index) in allProductImages"
                     :key="index"
-                    class="carousel-item"
+                    @click="goToSlide(index)"
+                    class="thumbnail-item"
+                    :class="{ 'active-thumbnail': index === currentSlideIndex }"
+                    style="cursor: pointer; flex: 0 0 auto; position: relative"
                   >
                     <img
                       :src="getImageUrl(image)"
-                      alt="商品圖片"
-                      class="d-block w-100 product-thumbnail"
-                      style="max-height: 200px; object-fit: contain"
-                      @error="handleImageError"
+                      alt="商品缩略图"
+                      style="
+                        width: 60px;
+                        height: 60px;
+                        object-fit: cover;
+                        border-radius: 4px;
+                      "
+                      :style="{
+                        border:
+                          index === currentSlideIndex
+                            ? '2px solid var(--bs-primary)'
+                            : '1px solid #dee2e6',
+                      }"
                     />
+                    <span
+                      v-if="isPrimaryImage(image)"
+                      class="position-absolute top-0 start-0 p-1"
+                      style="
+                        font-size: 8px;
+                        line-height: 1;
+                        border-radius: 0 0 4px 0;
+                        background-color: var(--bs-primary);
+                        color: white;
+                      "
+                    >
+                      主图
+                    </span>
                   </div>
-                </div>
-
-                <!-- 輪播控制按鈕 (只有當有多張圖片時才顯示) -->
-                <button
-                  v-if="totalImages > 1"
-                  class="carousel-control-prev"
-                  type="button"
-                  data-bs-target="#productImagesCarousel"
-                  data-bs-slide="prev"
-                >
-                  <span
-                    class="carousel-control-prev-icon"
-                    aria-hidden="true"
-                  ></span>
-                  <span class="visually-hidden">上一張</span>
-                </button>
-                <button
-                  v-if="totalImages > 1"
-                  class="carousel-control-next"
-                  type="button"
-                  data-bs-target="#productImagesCarousel"
-                  data-bs-slide="next"
-                >
-                  <span
-                    class="carousel-control-next-icon"
-                    aria-hidden="true"
-                  ></span>
-                  <span class="visually-hidden">下一張</span>
-                </button>
-
-                <!-- 輪播指示器 -->
-                <div v-if="totalImages > 1" class="carousel-indicators">
-                  <button
-                    v-for="(_, index) in totalImages"
-                    :key="index"
-                    type="button"
-                    data-bs-target="#productImagesCarousel"
-                    :data-bs-slide-to="index"
-                    :class="{ active: index === 0 }"
-                    :aria-current="index === 0 ? 'true' : 'false'"
-                    :aria-label="`Slide ${index + 1}`"
-                  ></button>
                 </div>
               </div>
 
-              <!-- 圖片計數 -->
+              <!-- 底部控制区 -->
               <div
                 class="card-footer bg-light p-2 d-flex justify-content-between align-items-center"
               >
-                <small class="text-muted">共 {{ totalImages }} 張圖片</small>
-                <button
-                  v-if="totalImages > 1"
-                  type="button"
-                  class="btn btn-sm btn-outline-primary"
-                  @click="openGalleryView"
-                >
-                  查看所有圖片
-                </button>
+                <small class="text-muted">共 {{ totalImages }} 张图片</small>
+                <div class="btn-group" role="group">
+                  <button
+                    v-if="totalImages > 1"
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    @click="openFullscreenView"
+                    title="全屏查看"
+                  >
+                    <i class="bi bi-fullscreen"></i>
+                  </button>
+                  <button
+                    v-if="totalImages > 1"
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    @click="openGalleryView"
+                  >
+                    查看所有图片
+                  </button>
+                </div>
               </div>
             </div>
 
-            <!-- 沒有圖片時顯示 -->
+            <!-- 无图片时显示 -->
             <div v-else class="no-image card h-100">
               <div
                 class="card-body d-flex align-items-center justify-content-center"
               >
                 <span>無商品圖片</span>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 縮略圖預覽 (僅在有多張圖片時顯示) -->
-        <div v-if="totalImages > 1" class="mb-4">
-          <div class="d-flex flex-wrap gap-2 justify-content-center">
-            <div
-              v-for="(image, index) in allProductImages"
-              :key="index"
-              class="position-relative thumbnail-container"
-              style="cursor: pointer"
-              @click="goToSlide(index)"
-            >
-              <img
-                :src="getImageUrl(image)"
-                alt="商品圖片"
-                class="img-thumbnail"
-                style="width: 60px; height: 60px; object-fit: cover"
-                :class="{ 'border-primary': isPrimaryImage(image) }"
-              />
-              <span
-                v-if="isPrimaryImage(image)"
-                class="position-absolute top-0 start-0 badge bg-primary"
-                style="font-size: 0.6rem"
-              >
-                主圖
-              </span>
             </div>
           </div>
         </div>
@@ -359,35 +392,79 @@
             ></button>
           </div>
           <div class="modal-body">
-            <div class="row">
+            <!-- 大图预览区域 -->
+            <div class="text-center mb-4 position-relative">
+              <img
+                :src="getImageUrl(allProductImages[galleryActiveIndex])"
+                class="img-fluid"
+                alt="商品图片预览"
+                style="max-height: 300px; object-fit: contain"
+              />
+              <!-- 导航箭头 -->
+              <button
+                v-if="totalImages > 1"
+                class="position-absolute top-50 start-0 translate-middle-y btn btn-light rounded-circle p-1"
+                @click="galleryPrevImage"
+              >
+                <i class="bi bi-chevron-left"></i>
+              </button>
+              <button
+                v-if="totalImages > 1"
+                class="position-absolute top-50 end-0 translate-middle-y btn btn-light rounded-circle p-1"
+                @click="galleryNextImage"
+              >
+                <i class="bi bi-chevron-right"></i>
+              </button>
+              <!-- 图片计数 -->
+              <div
+                class="position-absolute top-0 end-0 m-2 px-2 py-1 rounded"
+                style="background-color: rgba(0, 0, 0, 0.5)"
+              >
+                <small class="text-white"
+                  >{{ galleryActiveIndex + 1 }} / {{ totalImages }}</small
+                >
+              </div>
+            </div>
+
+            <!-- 缩略图网格 -->
+            <div class="row g-2">
               <div
                 v-for="(image, index) in allProductImages"
                 :key="index"
-                class="col-md-4 mb-3"
+                class="col-4 col-md-3 col-lg-2"
               >
-                <div class="card h-100">
-                  <img
-                    :src="getImageUrl(image)"
-                    class="card-img-top"
-                    alt="商品图片"
-                    style="height: 150px; object-fit: contain; padding: 10px"
-                  />
-                  <div class="card-body d-flex flex-column align-items-center">
-                    <p class="card-text mb-2">图片 {{ index + 1 }}</p>
-                    <div>
-                      <span
-                        v-if="isPrimaryImage(image)"
-                        class="badge bg-primary"
-                        >主图</span
-                      >
-                      <button
-                        v-else
-                        class="btn btn-sm btn-outline-primary"
-                        @click="setPrimaryImage({ image, index })"
-                      >
-                        设为主图
-                      </button>
-                    </div>
+                <div
+                  class="card h-100"
+                  :class="{ 'border-primary': index === galleryActiveIndex }"
+                  style="cursor: pointer"
+                  @click="galleryActiveIndex = index"
+                >
+                  <div class="position-relative">
+                    <img
+                      :src="getImageUrl(image)"
+                      class="card-img-top"
+                      alt="商品图片"
+                      style="height: 80px; object-fit: cover"
+                    />
+                    <span
+                      v-if="isPrimaryImage(image)"
+                      class="position-absolute top-0 start-0 badge bg-primary"
+                      style="border-radius: 0 0 4px 0"
+                      >主图</span
+                    >
+                  </div>
+                  <div
+                    class="card-footer p-1 d-flex justify-content-between align-items-center"
+                  >
+                    <small class="text-muted">图 {{ index + 1 }}</small>
+                    <button
+                      v-if="!isPrimaryImage(image)"
+                      class="btn btn-sm btn-outline-primary py-0 px-1"
+                      style="font-size: 0.7rem"
+                      @click.stop="setPrimaryImage({ image, index })"
+                    >
+                      设主图
+                    </button>
                   </div>
                 </div>
               </div>
@@ -474,7 +551,7 @@ const showEditModal = ref(false);
 const showStockModal = ref(false);
 const showPriceModal = ref(false);
 const selectedSku = ref(null);
-const showGalleryModal = ref(false);
+const currentSlideIndex = ref(0); // 当前显示的轮播图索引
 
 // 獲取商品圖片來源
 const fetchProductImages = async () => {
@@ -585,6 +662,35 @@ const getImageUrl = (image) => {
     : `${baseUrl.value}${imagePath}`;
 };
 
+// 追踪轮播图滑动事件
+const trackCarouselSlide = () => {
+  const carouselElement = document.getElementById("productImagesCarousel");
+  if (!carouselElement) return;
+
+  carouselElement.addEventListener("slid.bs.carousel", (event) => {
+    currentSlideIndex.value = event.to;
+  });
+};
+
+// 全屏查看方法
+const openFullscreenView = () => {
+  try {
+    const carouselElement = document.getElementById("productImagesCarousel");
+
+    if (carouselElement.requestFullscreen) {
+      carouselElement.requestFullscreen();
+    } else if (carouselElement.webkitRequestFullscreen) {
+      /* Safari */
+      carouselElement.webkitRequestFullscreen();
+    } else if (carouselElement.msRequestFullscreen) {
+      /* IE11 */
+      carouselElement.msRequestFullscreen();
+    }
+  } catch (error) {
+    console.error("全屏查看时出错:", error);
+  }
+};
+
 // 輪播控制
 const goToSlide = (index) => {
   // 獲取輪播組件實例
@@ -600,6 +706,9 @@ const goToSlide = (index) => {
 const openGalleryView = () => {
   try {
     console.log("查看所有图片按钮被点击");
+
+    // 设置画廊当前索引与轮播同步
+    galleryActiveIndex.value = currentSlideIndex.value;
 
     if (typeof bootstrap === "undefined") {
       console.error("Bootstrap 未加载，无法打开模态框");
@@ -734,6 +843,27 @@ const getProductImageUrl = (product) => {
 const handleImageError = (e) => {
   console.log("圖片載入失敗，使用預設圖片");
   e.target.src = defaultImage;
+};
+
+// 画廊当前显示的图片索引
+const galleryActiveIndex = ref(0);
+
+// 画廊导航 - 上一张图片
+const galleryPrevImage = () => {
+  if (galleryActiveIndex.value > 0) {
+    galleryActiveIndex.value--;
+  } else {
+    galleryActiveIndex.value = totalImages.value - 1;
+  }
+};
+
+// 画廊导航 - 下一张图片
+const galleryNextImage = () => {
+  if (galleryActiveIndex.value < totalImages.value - 1) {
+    galleryActiveIndex.value++;
+  } else {
+    galleryActiveIndex.value = 0;
+  }
 };
 
 // 分頁導航
@@ -1038,7 +1168,7 @@ onMounted(async () => {
   }, 500);
 });
 
-// 抽取初始化 Bootstrap 组件的函数
+// 修改 initBootstrapComponents 函数，增加轮播事件监听
 const initBootstrapComponents = () => {
   try {
     // 初始化轮播
@@ -1047,7 +1177,11 @@ const initBootstrapComponents = () => {
       new bootstrap.Carousel(carouselElement, {
         interval: 5000,
         touch: true,
+        ride: false, // 允许手动控制
       });
+
+      // 添加轮播事件监听
+      trackCarouselSlide();
     }
 
     // 预初始化图片画廊模态框
@@ -1058,6 +1192,24 @@ const initBootstrapComponents = () => {
   } catch (error) {
     console.error("初始化 Bootstrap 组件时出错:", error);
   }
+};
+
+const adjustCarouselHeight = () => {
+  // 获取轮播容器元素
+  const carousel = document.getElementById("productImagesCarousel");
+  if (!carousel) return;
+
+  // 根据容器宽度动态调整高度
+  if (window.innerWidth < 768) {
+    // 移动设备设置
+    carousel.style.minHeight = "220px";
+  } else {
+    // 桌面设备设置 - 自适应高度
+    const optimalHeight = Math.max(280, Math.min(350, containerWidth * 0.75));
+    carousel.style.minHeight = `${optimalHeight}px`;
+  }
+
+  // 调整图片高度...
 };
 </script>
 
@@ -1129,5 +1281,86 @@ const initBootstrapComponents = () => {
 
 .spec-value {
   color: #0d6efd;
+}
+
+/* 轮播区域样式 */
+.carousel {
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.carousel-item img {
+  transition: transform 0.3s ease;
+}
+
+.carousel-item img:hover {
+  transform: scale(1.02);
+}
+
+/* 缩略图导航样式 */
+.thumbnail-nav {
+  scrollbar-width: thin;
+  scrollbar-color: #dee2e6 white;
+}
+
+.thumbnail-nav::-webkit-scrollbar {
+  height: 6px;
+}
+
+.thumbnail-nav::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.thumbnail-nav::-webkit-scrollbar-thumb {
+  background: #dee2e6;
+  border-radius: 10px;
+}
+
+.thumbnail-nav::-webkit-scrollbar-thumb:hover {
+  background: #c1c1c1;
+}
+
+.thumbnail-item {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.thumbnail-item:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.active-thumbnail {
+  transform: translateY(-2px);
+}
+
+/* 导航按钮样式 */
+.carousel-control-prev,
+.carousel-control-next {
+  width: 10%;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.carousel:hover .carousel-control-prev,
+.carousel:hover .carousel-control-next {
+  opacity: 0.8;
+}
+
+.carousel-control-prev-icon,
+.carousel-control-next-icon {
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+  padding: 10px;
+}
+
+/* 模态框内图片样式 */
+.modal-body .card {
+  transition: all 0.2s ease;
+}
+
+.modal-body .card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
 }
 </style>
