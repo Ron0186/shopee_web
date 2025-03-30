@@ -22,6 +22,19 @@
         >📝 我要當賣家!!</router-link
       >
 
+      <!-- 新增賣家中心按鈕 -->
+      <router-link
+        :to="'/store/' + userStore.shopId"
+        v-if="
+          userStore.token &&
+          userStore.isSeller &&
+          userStore.shopId &&
+          userStore.shopId !== 'undefined'
+        "
+      >
+        🏪 賣家中心
+      </router-link>
+
       <router-link to="/profile">👤 會員中心</router-link>
       <router-link
         v-if="userStore.username"
