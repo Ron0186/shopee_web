@@ -2,95 +2,110 @@
   <div>
     <h2>分類管理</h2>
     <div class="container">
-      <!-- 一級分類 -->
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">一級分類</h5>
-          <button class="btn btn-primary" @click="openDialog('category1')">
-            新增一級分類
-          </button>
-          <table class="table mt-3">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>分類名稱</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in category1List" :key="item.id">
-                <td>{{ item.id }}</td>
-                <td>{{ item.name }}</td>
-                <td>
-                  <button
-                    class="btn btn-primary me-2"
-                    @click="openDialog('category1', item)"
-                  >
-                    編輯
-                  </button>
-                  <button
-                    class="btn btn-danger"
-                    @click="deleteCategory('category1', item.id)"
-                  >
-                    刪除
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+      <div class="row">
+        <!-- 一級分類 -->
+        <div class="col-md-6">
+          <div class="card mb-4">
+            <div class="card-body">
+              <h5 class="card-title">一級分類</h5>
+              <button class="btn btn-primary" @click="openDialog('category1')">
+                新增一級分類
+              </button>
+              <div class="category-table-container">
+                <table class="table mt-3">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>分類名稱</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in category1List" :key="item.id">
+                      <td>{{ item.id }}</td>
+                      <td>{{ item.name }}</td>
+                      <td>
+                        <button
+                          class="btn btn-primary btn-sm me-2"
+                          @click="openDialog('category1', item)"
+                        >
+                          編輯
+                        </button>
+                        <button
+                          class="btn btn-danger btn-sm"
+                          @click="deleteCategory('category1', item.id)"
+                        >
+                          刪除
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- 二級分類 -->
-      <div class="card mb-4">
-        <div class="card-body">
-          <h5 class="card-title">二級分類</h5>
-          <select
-            class="form-select"
-            v-model="selectedCategory1"
-            @change="fetchCategory2"
-          >
-            <option value="" disabled>選擇一級分類</option>
-            <option
-              v-for="item in category1List"
-              :key="item.id"
-              :value="item.id"
-            >
-              {{ item.name }}
-            </option>
-          </select>
-          <button class="btn btn-primary mt-3" @click="openDialog('category2')">
-            新增二級分類
-          </button>
-          <table class="table mt-3">
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>分類名稱</th>
-                <th>操作</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="item in category2List" :key="item.id">
-                <td>{{ item.id }}</td>
-                <td>{{ item.name }}</td>
-                <td>
-                  <button
-                    class="btn btn-primary me-2"
-                    @click="openDialog('category2', item)"
+        <!-- 二級分類 -->
+        <div class="col-md-6">
+          <div class="card mb-4">
+            <div class="card-body">
+              <h5 class="card-title">二級分類</h5>
+              <div class="d-flex mb-3">
+                <select
+                  class="form-select me-2"
+                  v-model="selectedCategory1"
+                  @change="fetchCategory2"
+                >
+                  <option value="" disabled>選擇一級分類</option>
+                  <option
+                    v-for="item in category1List"
+                    :key="item.id"
+                    :value="item.id"
                   >
-                    編輯
-                  </button>
-                  <button
-                    class="btn btn-danger"
-                    @click="deleteCategory('category2', item.id)"
-                  >
-                    刪除
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                    {{ item.name }}
+                  </option>
+                </select>
+                <button
+                  class="btn btn-primary"
+                  @click="openDialog('category2')"
+                >
+                  新增
+                </button>
+              </div>
+              <div class="category-table-container">
+                <table class="table mt-3">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>分類名稱</th>
+                      <th>操作</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in category2List" :key="item.id">
+                      <td>{{ item.id }}</td>
+                      <td>{{ item.name }}</td>
+                      <td>
+                        <button
+                          class="btn btn-primary btn-sm me-2"
+                          @click="openDialog('category2', item)"
+                        >
+                          編輯
+                        </button>
+                        <button
+                          class="btn btn-danger btn-sm"
+                          @click="deleteCategory('category2', item.id)"
+                        >
+                          刪除
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -240,7 +255,8 @@ const getCategory1Id = () => {
 const fetchCategory1 = async () => {
   try {
     const response = await axios.get("/api/category1/all");
-    category1List.value = response.data;
+    // 按照ID排序
+    category1List.value = response.data.sort((a, b) => a.id - b.id);
   } catch (error) {
     console.error("獲取一級分類失敗:", error);
     Swal.fire({
@@ -259,7 +275,8 @@ const fetchCategory2 = async () => {
     const response = await axios.get(
       `/api/category2/byC1?category1Id=${selectedCategory1.value}`
     );
-    category2List.value = response.data;
+    // 按照ID排序
+    category2List.value = response.data.sort((a, b) => a.id - b.id);
   } catch (error) {
     console.error("獲取二級分類失敗:", error);
     Swal.fire({
@@ -276,11 +293,8 @@ const openDialog = (type, data = null) => {
   dialogTitle.value = data ? "編輯分類" : "新增分類";
   dialogVisible.value = true;
 
-  console.log("openDialog 被調用", type, data); // 新增日誌
-
   if (data) {
     // 編輯現有分類
-    console.log("編輯資料:", data); // 新增日誌
     form.value = { ...data };
 
     // 對於二級分類，確保保留category1Id或從category1Ids中獲取它
@@ -294,7 +308,6 @@ const openDialog = (type, data = null) => {
       }
       // 如果兩者都沒有，嘗試從後端重新獲取該分類的詳細資訊
       if (!form.value.category1Id && !Array.isArray(form.value.category1Ids)) {
-        // 可以選擇在這裡添加額外的API調用來獲取詳細資訊
         console.log("警告: 無法確定二級分類的關聯一級分類");
       }
     }
@@ -314,8 +327,6 @@ const openDialog = (type, data = null) => {
       form.value = { id: null, name: "" };
     }
   }
-
-  console.log("表單數據準備完成:", form.value); // 新增日誌
 };
 
 // 保存分類
@@ -357,7 +368,6 @@ const saveCategory = async () => {
       : `/api/${dialogType.value}`;
     const method = form.value.id ? "put" : "post";
 
-    console.log(`準備發送 ${method.toUpperCase()} 請求到 ${url}`, form.value);
     await axios[method](url, form.value);
 
     Swal.fire({
@@ -434,20 +444,76 @@ onMounted(() => {
 
 <style scoped>
 .container {
-  max-width: 800px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
 }
 
 .modal {
   background-color: rgba(0, 0, 0, 0.5);
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1050;
+  display: none;
+  overflow: hidden;
+  outline: 0;
+}
+
+.modal.d-block {
+  display: block;
+}
+
+.modal-dialog {
+  margin: 1.75rem auto;
 }
 
 .table {
-  margin-top: 20px;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.table th {
+  background-color: #f8f9fa;
 }
 
 button {
   margin-right: 5px;
+}
+
+.card {
+  height: 100%;
+  box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.category-table-container {
+  flex-grow: 1;
+  overflow-y: auto;
+  max-height: 400px;
+}
+
+/* 自適應處理 */
+@media (max-width: 768px) {
+  .col-md-6 {
+    width: 100%;
+  }
+}
+
+/* 美化細節 */
+.btn-sm {
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+.card-title {
+  margin-bottom: 1rem;
+  font-weight: 600;
 }
 </style>
