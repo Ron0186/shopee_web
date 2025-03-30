@@ -1,4 +1,4 @@
-<template>
+<!-- <template>
   <div v-if="isOpen" class="modal-backdrop">
     <div class="modal-content">
       <h4 class="modal-title">新增付款方式</h4>
@@ -101,4 +101,4 @@ const addPaymentMethod = async () => {
   justify-content: flex-end;
   gap: 10px;
 }
-</style>
+</style> -->

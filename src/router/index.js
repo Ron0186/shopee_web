@@ -229,6 +229,12 @@ const router = createRouter({
           component: () => import("@/views/admin/PaymentMethodManagement.vue"),
         },
         {
+          // 管理付款狀態頁面
+          path: "payment-status-management",
+          name: "PaymentStatusManagement",
+          component: () => import("@/views/admin/PaymentStatusManagement.vue"),
+        },
+        {
           // 後台管理頁面
           path: "admin-management",
           name: "AdminManagement",
