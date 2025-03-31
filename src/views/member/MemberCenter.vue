@@ -156,7 +156,7 @@ onMounted(() => {
 });
 </script>
 
-<style>
+<style scoped>
 body {
     background-color: #f4f4f4;
 }

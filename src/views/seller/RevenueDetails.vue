@@ -89,14 +89,14 @@ onMounted(async () => {
         shopId.value = decoded.shopId || 1
 
         const [
-            // shopRes, 
+            shopRes,
             orderRes, reviewRes
             , skuRes
         ] = await Promise.all([
-            // axios.get(`http://localhost:8081/api/products/byShop?shopId=${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`http://localhost:8081/api/products/byShop?shopId=${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
             axios.get(`http://localhost:8081/api/orders/seller/orders?seller=${userId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
             axios.get(`http://localhost:8081/api/review/shop/${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get(`http://localhost:8081/api/sku/shop/${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get(`http://localhost:8081/api/byshop/${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
         ])
 
         // shopData.value = shopRes.data
