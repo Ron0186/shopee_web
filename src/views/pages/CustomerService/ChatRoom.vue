@@ -56,23 +56,13 @@ import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { storeToRefs } from "pinia";
 import { useChatStore } from '@/stores/chatStore';
+import SockJS from 'sockjs-client/dist/sockjs';
 import { Client } from '@stomp/stompjs';
 
-const client = new Client({
-    brokerURL: 'ws://localhost:8081/ws',
-    onConnect: () => {
-        client.subscribe(`/topic/${chatRoomId}`, message =>
-            console.log(`Received: ${message.body}`)
-        );
-        client.publish({ destination: `/topic/${chatRoomId}`, body: 'First Message' });
-    },
-});
-
-client.activate();
 
 // 從 store 中取得相關狀態與方法
 const chatStore = useChatStore();
-const { currentUser, activeChatRoom, displayMessages, connectionStatus } = storeToRefs(chatStore);
+const { currentUser, activeChatRoom, displayMessages, connectionStatus, socketManager } = storeToRefs(chatStore);
 
 const route = useRoute();
 const router = useRouter();
@@ -107,6 +97,31 @@ const reconnect = async () => {
 // 判斷是否為本人發送
 const isMyMessage = computed(() => (msg) => {
     return msg.sender?.userId === currentUser.value?.userId;
+});
+
+onMounted(async () => {
+
+    const client = new Client({
+        webSocketFactory: () => new SockJS('http://localhost:8081/ws'),
+        reconnectDelay: 5000, // 自動重新連接
+        debug: (msg) => console.log(msg),
+        onConnect: (frame) => {
+            console.log("WebSocket 已連接:", frame);
+            client.subscribe(`/topic/chat/${route.params.chatRoomId}`, (message) => {
+                console.log(`接收到訊息: ${message.body}`);
+            });
+        },
+        onWebSocketError: (error) => {
+            console.error("WebSocket 錯誤:", error);
+        },
+        onStompError: (frame) => {
+            console.error("STOMP 錯誤:", frame);
+        }
+    });
+    client.activate();
+
+
+
 });
 
 // 時間格式化函式
@@ -203,59 +218,7 @@ watch(
     { immediate: true }
 );
 
-onMounted(async () => {
-    try {
-        if (!chatStore.socketManager.value) {
-            chatStore.socketManager.value = {
-                stompClient: null,
-                subscriptions: new Map(),
-                isConnecting: false
-            };
-        }
 
-        authToken.value = sessionStorage.getItem("authToken");
-        if (!authToken.value) {
-            Swal.fire("错误", "登录状态已过期", "error");
-            router.push("/user/login");
-            return;
-        }
-        axios.defaults.headers.common["Authorization"] = `Bearer ${authToken.value}`;
-        await chatStore.fetchCurrentUser();
-        if (route.params.chatRoomId) {
-            await loadChatRoom(route.params.chatRoomId);
-            await chatStore.connectChatRoom(route.params.chatRoomId);
-
-            if (chatStore.activeChatRoom.chatRoomId && chatStore.socketManager?.value?.stompClient?.connected) {
-                setupSubscriptions(chatStore.activeChatRoom.chatRoomId);
-            }
-        } else if (route.query.shopId) {
-            checkingExisting.value = true;
-            authToken.value = sessionStorage.getItem("authToken");
-            const response = await axios.post(
-                "http://localhost:8081/api/chat/create",
-                { shopId: route.query.shopId },
-                { headers: { Authorization: `Bearer ${authToken.value}` } }
-            );
-            if (response.data.alreadyExists) {
-                await loadChatRoom(response.data.chatRoomId);
-            } else {
-                router.replace({
-                    path: `/chat/${response.data.chatRoomId}`,
-                    query: { from: "new" },
-                });
-            }
-        }
-    } catch (error) {
-        Swal.fire({
-            title: "錯誤",
-            text: error.response?.data?.message || "聊天室處理失敗",
-            icon: "error",
-        });
-        router.push("/user/login");
-    } finally {
-        checkingExisting.value = false;
-    }
-});
 
 onUnmounted(() => {
     if (chatStore.socketManager?.value?.stompClient?.connected) {
@@ -271,55 +234,54 @@ async function send() {
     try {
         if (!newMessage.value.trim()) return;
 
-        // 第一层检查：管理器是否存在
-        if (!chatStore.socketManager?.value) {
-            throw new Error('聊天系统未就绪，请刷新页面');
+        // 檢查 socketManager 是否已初始化
+        if (!socketManager.value) {
+            throw new Error('聊天系统未初始化，请刷新页面');
         }
 
-        // 第二层检查：连接状态
-        if (!chatStore.socketManager.value.stompClient?.connected) {
-            console.log('正在尝试重新连接...');
-            await chatStore.connectChatRoom(route.params.chatRoomId);
-        }
-
-        // 第三层检查：最终状态验证
-        const { stompClient } = chatStore.socketManager.value;
+        // 取得 stompClient
+        let stompClient = socketManager.value.stompClient;
         if (!stompClient || !stompClient.connected) {
-            throw new Error('无法建立稳定连接，请检查网络');
+            console.warn("WebSocket 尚未連線，嘗試重新連線...");
+            await chatStore.connectChatRoom(route.params.chatRoomId);
+            stompClient = socketManager.value.stompClient;
+            if (!stompClient) {
+                throw new Error('未建立 WebSocket 連線');
+            }
         }
-
-        // 发送逻辑
-        const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         const payload = {
             content: newMessage.value.trim(),
             senderId: userId.value,
-            tempId: tempId
+            tempId: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            type: 'TEXT_MESSAGE'
         };
 
-        stompClient.send(
-            `/app/chat/${route.params.chatRoomId}/send`,
-            {},
-            JSON.stringify(payload)
-        );
+        await new Promise((resolve, reject) => {
+            const stompClient = socketManager.value.stompClient;
+            if (!stompClient) {
+                return reject(new Error('未建立 WebSocket 連線'));
+            }
+            // 發送訊息
+            stompClient.send(
+                `/app/chat/${route.params.chatRoomId}/send`,
+                {},
+                JSON.stringify(payload)
+            );
+            // 這裡可以視需求設定發送回覆或超時處理
+            setTimeout(() => {
+                resolve();
+            }, 100); // 如果沒有特別需要等待確認，可以立即 resolve
+        });
 
         newMessage.value = "";
     } catch (error) {
-        console.error('发送失败详情:', {
-            error: error.message,
-            managerState: chatStore.socketManager?.value,
-            connectionStatus: chatStore.connectionStatus
-        });
-
-        Swal.fire({
-            title: '发送失败',
-            text: error.message,
-            icon: 'error',
-            willClose: () => {
-                // 尝试恢复连接
-                chatStore.connectChatRoom(route.params.chatRoomId);
-            }
-        });
+        handleSendError(error);
     }
+}
+// 錯誤處理函數
+function handleSendError(error) {
+    console.error("消息發送失敗:", error);
+    Swal.fire("錯誤", error.message || "無法發送訊息", "error");
 }
 
 function setupSubscriptions(chatRoomId) {
