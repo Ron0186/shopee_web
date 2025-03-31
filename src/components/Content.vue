@@ -22,33 +22,31 @@
             style="background-color: rgba(0,0,0,0.5)">
             <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content">
-                    <div class="modal-header bg-light">
+                    <div class="modal-header">
                         <h5 class="modal-title">選擇商店</h5>
                         <button type="button" class="btn-close" @click="closeModal"></button>
                     </div>
                     <div class="modal-body">
                         <div class="row row-cols-1 row-cols-md-2 g-4">
                             <div class="col" v-for="store in stores" :key="store.id">
-                                <div class="card h-100 shadow-sm">
-                                    <div class="card-body d-flex justify-content-between align-items-center">
-                                        <div>
+                                <div class="card h-100">
+                                    <div class="card-body d-flex align-items-center">
+                                        <div class="flex-grow-1">
                                             <h5 class="card-title mb-1">{{ store.name }}</h5>
                                         </div>
-                                        <div>
-                                            <button class="btn btn-outline-primary ms-3"
-                                                @click.stop="buyerChat(store.shopId)">
-                                                買家聊天
-                                            </button>
-                                            <button v-if="isShopOwner" class="btn btn-outline-success ms-2"
-                                                :disabled="!store.hasActiveChat" @click.stop="sellerChat(store.shopId)">
-                                                <template v-if="store.hasActiveChat">
-                                                    賣家聊天 ({{ store.unreadCount }}未讀)
-                                                </template>
-                                                <template v-else>
-                                                    暫無對話
-                                                </template>
-                                            </button>
-                                        </div>
+                                        <button v-if="!store.isCurrentUserStore" class="btn btn-primary"
+                                            @click.stop="buyerChat(store.shopId)">
+                                            買家聊天
+                                        </button>
+                                        <button v-else-if="isShopOwner" class="btn btn-primary"
+                                            :disabled="!store.hasActiveChat" @click.stop="sellerChat(store.shopId)">
+                                            <template v-if="store.hasActiveChat">
+                                                賣家聊天 ({{ store.unreadCount }}未讀)
+                                            </template>
+                                            <template v-else>
+                                                暫無對話 🔒
+                                            </template>
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -123,15 +121,15 @@ const loadStores = async () => {
             name: store.name?.trim() || '未命名店铺',
             sellerId: Number(store.sellerId),
             shopId: Number(store.shopId),
-            logo: store.logo || 'https://via.placeholder.com/80', // 添加 logo 字段，设置默认值
-            rating: store.rating || '暂无', // 添加 rating 字段，设置默认值
+            isCurrentUserStore: Number(store.sellerId) === Number(userStore.userId),
+            hasActiveChat: false,
+            unreadCount: 0,
         }));
 
     } catch (error) {
         console.error('商店加载失败:', error);
         stores.value = [];
 
-        // ✅ 显示友好错误提示
         Swal.fire({
             title: '数据加载失败',
             html: `
@@ -171,7 +169,7 @@ const checkStoreChatStatus = async (shopId) => {
 const openModal = () => {
     showStoreList.value = true;
     loadStores();
-    loadUnreadCounts();
+    loadUnreadCounts(); // 在打開 Modal 時載入未讀訊息計數
 };
 
 const closeModal = () => {
@@ -295,18 +293,9 @@ const handleChatError = (error) => {
 };
 
 
-
-
 const loadUnreadCounts = async () => {
     try {
         if (!userStore.userId) return;
-        // 添加加载状态
-        const loading = Swal.fire({
-            title: '加载未读消息...',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-        });
-
         const response = await fetchUnreadCounts(userStore.userId);
         console.log('未讀訊息計數:', response.data);
 
@@ -316,7 +305,6 @@ const loadUnreadCounts = async () => {
             unreadCount: response[store.shopId] || 0,
             hasActiveChat: response[store.shopId] > 0
         }));
-        loading.close();
     } catch (error) {
         console.error('載入未讀訊息計數失敗:', error);
     }
@@ -327,7 +315,6 @@ onMounted(() => {
     syncUserInfoToSession();
     if (userStore.isSeller) {
         subscribeSellerNotifications(userStore.userId);
-
     }
 });
 </script>
@@ -335,39 +322,5 @@ onMounted(() => {
 <style scoped>
 .help-center {
     text-align: center;
-}
-
-.store-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.store-item {
-    background-color: #f9f9f9;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    padding: 15px;
-    text-align: center;
-}
-
-.store-item h5 {
-    font-size: 1.1rem;
-    margin-bottom: 10px;
-}
-
-.store-item button {
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    padding: 8px 15px;
-    cursor: pointer;
-    font-size: 0.9rem;
-}
-
-.store-item button:hover {
-    background-color: #0056b3;
 }
 </style>

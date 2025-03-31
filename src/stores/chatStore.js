@@ -18,7 +18,7 @@ class SocketManager {
         this.stompClient.connect(
             {
                 Authorization: `Bearer ${authToken.value}`,
-                'X-User-Id': userId.value
+                'userId': userId.value // 確保這裡的 header 名稱是 'userId'
             },
             () => {
                 // 只訂閱公共頻道
@@ -231,8 +231,10 @@ export const useChatStore = defineStore('chat', () => {
                         socketManager.value.isConnecting = false;
                         connectionStatus.value = 'connected';
                         // 連線成功後統一在 store 裡訂閱
-                        setupSubscriptions(chatRoomId);
-                        resolve();
+                        setTimeout(() => { // 添加 500 毫秒的延遲
+                            setupSubscriptions(chatRoomId);
+                            resolve();
+                        }, 500);
                     },
                     (error) => {
                         socketManager.value.isConnecting = false;
