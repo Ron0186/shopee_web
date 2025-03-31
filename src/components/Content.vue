@@ -15,59 +15,50 @@
 
         <p class="mb-4">
             感謝您來到我們的幫助中心！這裡是您獲取支援、尋找解決方案和學習如何更有效使用我們產品與服務的最佳場所。無論您是新用戶，還是已經熟悉我們平台的資深使用者，幫助中心都能為您提供有價值的資訊，協助您快速解決各種問題，讓您的使用體驗更加順暢，如果有和賣家相關問題，請由此路徑進入
-            <!-- 聊天客服按鈕 -->
             <button class="btn btn-primary" @click="openModal">聊天客服</button>
         </p>
 
-        <!-- 商店列表 Modal -->
         <div v-if="showStoreList" class="modal fade show d-block" tabindex="-1"
             style="background-color: rgba(0,0,0,0.5)">
             <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content">
-                    <div class="modal-header">
+                    <div class="modal-header bg-light">
                         <h5 class="modal-title">選擇商店</h5>
                         <button type="button" class="btn-close" @click="closeModal"></button>
                     </div>
                     <div class="modal-body">
                         <div class="row row-cols-1 row-cols-md-2 g-4">
                             <div class="col" v-for="store in stores" :key="store.id">
-                                <div class="card h-100">
-                                    <div class="card-body d-flex align-items-center">
-                                        <img :src="store.logo" class="rounded-circle me-3" width="80" height="80">
-                                        <div class="flex-grow-1">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body d-flex justify-content-between align-items-center">
+                                        <div>
                                             <h5 class="card-title mb-1">{{ store.name }}</h5>
-                                            <p class="card-text text-muted mb-1">
-                                                <i class="bi bi-star-fill text-warning"></i> 評價: {{ store.rating }}/5
-                                            </p>
                                         </div>
-                                        <!-- 買家按鈕：僅非當前店鋪所有者顯示 -->
-                                        <button v-if="!store.isCurrentUserStore" class="btn btn-primary"
-                                            @click.stop="buyerChat(store.shopId)">
-                                            買家聊天
-                                        </button>
-
-                                        <!-- 賣家按鈕：僅當前店鋪所有者顯示 -->
-                                        <button v-else-if="isShopOwner" class="btn btn-primary"
-                                            :disabled="!store.hasActiveChat" @click.stop="sellerChat(store.shopId)">
-                                            <template v-if="store.hasActiveChat">
-                                                賣家聊天 ({{ store.unreadCount }}未讀)
-                                            </template>
-                                            <template v-else>
-                                                暫無對話 🔒
-                                            </template>
-                                        </button>
+                                        <div>
+                                            <button class="btn btn-outline-primary ms-3"
+                                                @click.stop="buyerChat(store.shopId)">
+                                                買家聊天
+                                            </button>
+                                            <button v-if="isShopOwner" class="btn btn-outline-success ms-2"
+                                                :disabled="!store.hasActiveChat" @click.stop="sellerChat(store.shopId)">
+                                                <template v-if="store.hasActiveChat">
+                                                    賣家聊天 ({{ store.unreadCount }}未讀)
+                                                </template>
+                                                <template v-else>
+                                                    暫無對話
+                                                </template>
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <!-- 可選的 Modal Footer -->
                 </div>
             </div>
         </div>
     </div>
 </template>
-
 
 <script setup>
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
@@ -114,12 +105,12 @@ const loadStores = async () => {
 
         // ✅ 深度解析响应结构
         const storesData = [].concat(
-            response?.data?.data?.stores ||    // 兼容 { data: { stores: [...] } }
-            response?.data?.stores ||          // 兼容 { stores: [...] }
-            response?.data?.data ||            // 兼容 { data: [...] }
-            response?.data ||                  // 兼容直接返回数组
-            []                                 // 默认值
-        ).filter(Boolean);  // 过滤空值
+            response?.data?.data?.stores ||
+            response?.data?.stores ||
+            response?.data?.data ||
+            response?.data ||
+            []
+        ).filter(Boolean); // 过滤空值
 
         // ✅ 类型安全检查
         if (!Array.isArray(storesData)) {
@@ -132,7 +123,8 @@ const loadStores = async () => {
             name: store.name?.trim() || '未命名店铺',
             sellerId: Number(store.sellerId),
             shopId: Number(store.shopId),
-
+            logo: store.logo || 'https://via.placeholder.com/80', // 添加 logo 字段，设置默认值
+            rating: store.rating || '暂无', // 添加 rating 字段，设置默认值
         }));
 
     } catch (error) {
@@ -150,7 +142,7 @@ const loadStores = async () => {
             <li>服务暂时不可用</li>
             <li>数据格式异常</li>
           </ul>
-          <button 
+          <button
             class="btn btn-primary mt-3"
             @click="loadStores"
           >
@@ -290,7 +282,7 @@ const handleChatError = (error) => {
                 icon: 'info',
                 showCancelButton: true,
                 confirmButtonText: '查看其他聊天室',
-                cancelButtonText: '返回帮助中心'
+                cancelButtonText: '返回幫助中心'
             }).then((result) => {
                 if (result.isConfirmed) {
                     router.push('/chat/list'); // 假设有聊天室列表页
@@ -341,13 +333,41 @@ onMounted(() => {
 </script>
 
 <style scoped>
-h3 {
-    margin-bottom: 10px;
-    font-size: 30px;
+.help-center {
+    text-align: center;
 }
 
-p {
-    line-height: 2.5;
-    font-size: 20px;
+.store-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.store-item {
+    background-color: #f9f9f9;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 15px;
+    text-align: center;
+}
+
+.store-item h5 {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+}
+
+.store-item button {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.store-item button:hover {
+    background-color: #0056b3;
 }
 </style>
