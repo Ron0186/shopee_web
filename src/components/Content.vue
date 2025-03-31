@@ -106,27 +106,59 @@ const syncUserInfoToSession = () => {
 };
 
 
+// Content.vue 修改 loadStores 方法
 const loadStores = async () => {
     try {
-        const { data } = await fetchStores();
-        const storesData = data.data || data.stores || data || [];
+        const response = await fetchStores();
 
-        // ✅ 为每个店铺加载聊天室状态
-        const enrichedStores = await Promise.all(
-            storesData.map(async store => ({
-                ...store,
-                // 強制轉換 sellerId 和 shopId 為數字
-                sellerId: Number(store.sellerId),
-                shopId: Number(store.shopId),
-                // 使用轉換後的 sellerId 進行比較
-                isCurrentUserStore: Number(store.sellerId) === Number(userStore.userId)
-            }))
-        );
+        // ✅ 深度解析响应结构
+        const storesData = [].concat(
+            response?.data?.data?.stores ||    // 兼容 { data: { stores: [...] } }
+            response?.data?.stores ||          // 兼容 { stores: [...] }
+            response?.data?.data ||            // 兼容 { data: [...] }
+            response?.data ||                  // 兼容直接返回数组
+            []                                 // 默认值
+        ).filter(Boolean);  // 过滤空值
 
-        stores.value = enrichedStores;
+        // ✅ 类型安全检查
+        if (!Array.isArray(storesData)) {
+            throw new Error('API返回数据格式异常');
+        }
+
+        // ✅ 数据标准化
+        stores.value = storesData.map(store => ({
+            id: Number(store.id),
+            name: store.name?.trim() || '未命名店铺',
+            sellerId: Number(store.sellerId),
+            shopId: Number(store.shopId),
+
+        }));
+
     } catch (error) {
-        console.error('載入商店失敗:', error);
+        console.error('商店加载失败:', error);
         stores.value = [];
+
+        // ✅ 显示友好错误提示
+        Swal.fire({
+            title: '数据加载失败',
+            html: `
+        <div class="text-start">
+          <p>可能原因：</p>
+          <ul>
+            <li>网络连接不稳定</li>
+            <li>服务暂时不可用</li>
+            <li>数据格式异常</li>
+          </ul>
+          <button 
+            class="btn btn-primary mt-3"
+            @click="loadStores"
+          >
+            点击重试
+          </button>
+        </div>
+      `,
+            icon: 'error'
+        });
     }
 };
 
