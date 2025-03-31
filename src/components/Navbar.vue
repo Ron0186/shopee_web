@@ -146,6 +146,27 @@ const toggleCategory = () => {
 const pendingCount = ref(0); // 賣家通知數
 const shippedCount = ref(0); // 買家通知數
 
+// ✅ 通知角標查詢
+const fetchNotificationCount = async () => {
+  if (!userStore.token) return;
+
+  try {
+    if (userStore.isSeller) {
+      const res = await axios.get(
+        `/api/orders/notification/pending-count/seller`
+      );
+      pendingCount.value = res.data;
+    } else if (userStore.isUser) {
+      const res = await axios.get(
+        `/api/orders/notification/shipped-count/user`
+      );
+      shippedCount.value = res.data;
+    }
+  } catch (err) {
+    console.error("🔴 無法取得訂單通知數量", err);
+  }
+};
+
 // ✅ 登出功能
 async function logout() {
   userStore.clearUserData();
@@ -156,62 +177,35 @@ async function logout() {
   });
   if (response.isConfirmed) {
     router.push("/shop");
-    // ✅ 通知角標查詢
-    const fetchNotificationCount = async () => {
-      if (!userStore.token) return;
-
-      try {
-        if (userStore.isSeller) {
-          const res = await axios.get(
-            `/api/orders/notification/pending-count/seller`
-          );
-          pendingCount.value = res.data;
-        } else if (userStore.isUser) {
-          const res = await axios.get(
-            `/api/orders/notification/shipped-count/user`
-          );
-          shippedCount.value = res.data;
-        }
-      } catch (err) {
-        console.error("🔴 無法取得訂單通知數量", err);
-      }
-    };
-
-    // ✅ 初始化時查詢一次
-    onMounted(() => {
-      if (userStore.token) {
-        fetchNotificationCount(); // 回傳通知列
-      }
-    });
-
-    // ✅ 登出並跳轉至後台登入頁
-    async function logoutToAdmin() {
-      userStore.clearUserData();
-      const response = await Swal.fire({
-        title: "已登出前台",
-        text: "正在前往後台登入頁面",
-        icon: "success",
-        confirmButtonText: "OK",
-      });
-      if (response.isConfirmed) {
-        window.location.href = "/admin/login";
-      }
-    }
-
-    // 當通知元件點擊時，導向相應聊天室頁面
-    const handleNotificationClick = (chatRoomId) => {
-      console.log("即將導向聊天室：", chatRoomId);
-      router.push(`/chat/${chatRoomId}`);
-    };
-
-    // ✅ 初始化時查詢一次
-    onMounted(() => {
-      if (userStore.token) {
-        fetchNotificationCount(); // 回傳通知列
-      }
-    });
   }
 }
+
+// ✅ 登出並跳轉至後台登入頁
+async function logoutToAdmin() {
+  userStore.clearUserData();
+  const response = await Swal.fire({
+    title: "已登出前台",
+    text: "正在前往後台登入頁面",
+    icon: "success",
+    confirmButtonText: "OK",
+  });
+  if (response.isConfirmed) {
+    window.location.href = "/admin/login";
+  }
+}
+
+// 當通知元件點擊時，導向相應聊天室頁面
+const handleNotificationClick = (chatRoomId) => {
+  console.log("即將導向聊天室：", chatRoomId);
+  router.push(`/chat/${chatRoomId}`);
+};
+
+// ✅ 初始化時查詢一次
+onMounted(() => {
+  if (userStore.token) {
+    fetchNotificationCount(); // 回傳通知列
+  }
+});
 </script>
 
 <style scoped>
