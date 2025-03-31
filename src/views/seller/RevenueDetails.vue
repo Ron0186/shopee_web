@@ -93,18 +93,22 @@ onMounted(async () => {
             orderRes, reviewRes
             , skuRes
         ] = await Promise.all([
-            axios.get(`http://localhost:8081/api/products/byShop?shopId=${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
+            // get shop by userId
+            axios.get(`http://localhost:8081/api/shop/user/${userId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
+            // 訂單數量
             axios.get(`http://localhost:8081/api/orders/seller/orders?seller=${userId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
+            // 評論
             axios.get(`http://localhost:8081/api/review/shop/${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
+            // SKU
             axios.get(`http://localhost:8081/api/byshop/${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
         ])
 
-        // shopData.value = shopRes.data
+        shopData.value = shopRes.data
         orderData.value = orderRes.data.data || []
         reviewData.value = reviewRes.data
         skuData.value = skuRes.data
 
-        // console.log("📦 shopData", shopRes.data)
+        console.log("📦 shopData", shopRes.data)
         console.log("📦 orderData", orderRes.data)
         console.log("📦 reviewData", reviewRes.data)
         console.log("📦 skuData", skuRes.data)
