@@ -38,25 +38,38 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from '@/plugins/axios'  // ✅ 這裡一定要正確
+import axios from '@/plugins/axios'
 import { useUserStore } from '@/stores/user'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const cartItems = ref([])
-const userId = ref(userStore.userId)
-
-const totalPrice = computed(() => {
-  return cartItems.value.reduce((sum, item) => sum + item.quantity * item.price, 0)
-})
+const totalPrice = computed(() =>
+  cartItems.value.reduce((sum, item) => sum + item.quantity * item.price, 0)
+)
 
 const fetchCart = async () => {
+  const userId = userStore.userId
+  if (!userId) {
+    console.warn('⚠️ 無法取得 userId，請先登入')
+    return
+  }
+
   try {
-    const response = await axios.get(`/api/cart/${userId.value}`)
-    cartItems.value = response.data
+    const response = await axios.get(`/api/cart/${userId}`)
+    
+    // 根據回傳格式選擇正確欄位
+    if (Array.isArray(response.data)) {
+      cartItems.value = response.data
+    } else if (Array.isArray(response.data.data)) {
+      cartItems.value = response.data.data
+    } else {
+      console.warn('⚠️ 無法解析購物車資料格式', response.data)
+      cartItems.value = []
+    }
   } catch (error) {
-    console.error('獲取購物車資料失敗', error)
+    console.error('❌ 獲取購物車資料失敗', error)
   }
 }
 
@@ -75,9 +88,12 @@ const updateQuantity = async (cartId, newQuantity) => {
 }
 
 const removeFromCart = async (cartId, skuId) => {
+  const userId = userStore.userId
+  if (!userId) return
+
   try {
     await axios.delete(`/api/cart/remove`, {
-      params: { userId: userId.value, skuId }
+      params: { userId, skuId }
     })
     fetchCart()
   } catch (error) {
@@ -91,6 +107,7 @@ const checkout = () => {
 
 onMounted(fetchCart)
 </script>
+
 
 
 <style scoped>

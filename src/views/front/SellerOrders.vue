@@ -1146,6 +1146,24 @@ const formatDate = (dateString) => {
     second: "2-digit",
   });
 };
+
+const forceCloseEditModal = () => {
+  showEditModal.value = false;
+  editError.value = null;
+  successMessage.value = null;
+
+  if (!showDetailModal.value) {
+    document.body.classList.remove("modal-open");
+    document.body.style.overflow = "";
+    document.body.style.paddingRight = "";
+  }
+};
+
+setTimeout(() => {
+  if (successMessage.value) {
+    forceCloseEditModal();
+  }
+}, 2000);
 </script>
 
 <style scoped>
