@@ -5,8 +5,8 @@
         <form @submit.prevent="updateProfile">
             <div>
                 <label>使用者名稱：</label>
-                <input type="text" v-model="user.userName"
-                    :placeholder="userPlaceholder.userName" required />
+                <input type="text" v-model="user.username"
+                    :placeholder="userPlaceholder.username" required />
             </div>
 
             <div>
@@ -41,12 +41,12 @@ export default {
         return {
             userId: null,
             user: {
-                userName: "",
+                username: "",
                 email: "",
                 phone: "",
             },
             userPlaceholder: {
-                userName: "載入中...",
+                username: "載入中...",
                 email: "載入中...",
                 phone: "載入中...",
             },
@@ -66,7 +66,7 @@ export default {
     },
     methods: {
         loadUserId() {
-            const token = sessionStorage.getItem("token");
+            const token = localStorage.getItem("token");
             console.log("獲取的 Token:", token);  // ✅ 確認 Token 是否存在
 
             if (!token) {
@@ -86,10 +86,10 @@ export default {
         },
         async fetchUserData() {
             try {
-                const token = sessionStorage.getItem("token");
+                const token = localStorage.getItem("token");
                 console.log("使用 Token 取得用戶資訊，User ID:", this.userId);  // ✅ 確保請求時 userId 正確
 
-                const response = await axios.get(`http://localhost:8081/api/admin/user/${this.userId}`, {
+                const response = await axios.get(`http://localhost:8081/api/user/check/${this.userId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
@@ -104,13 +104,13 @@ export default {
         },
         async updateProfile() {
             try {
-                const token = sessionStorage.getItem("token");
+                const token = localStorage.getItem("token");
                 console.log("更新 User ID:", this.userId);  // ✅ 確認 userId 在更新時是否存在
 
                 const updatedUser = { ...this.user };
                 // delete updatedUser.password; // **不變更密碼**
 
-                await axios.put(`http://localhost:8081/api/admin/user/update/${this.userId}`, updatedUser, {
+                await axios.put(`http://localhost:8081/api/user/update/${this.userId}`, updatedUser, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 

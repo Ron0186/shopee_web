@@ -1,8 +1,9 @@
 <template>
     <div class="container">
         <h2>新增收件資訊</h2>
+        <label>宅配地址：</label>
         <form @submit.prevent="createAddress">
-            <AddressSelector v-model:addressInfo="user.addressInfo" />
+            <AddressSelector v-model="user.addressInfo" />
 
             <div>收件人：
                 <input v-model="user.recipientName" class="recipient full-width"
@@ -27,16 +28,22 @@ import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios';
 import AddressSelector from '@/components/address/AddressSelector.vue';
+import { jwtDecode } from 'jwt-decode'
 
 // ✅ router 用於跳轉頁面
 const router = useRouter();
 
 // ✅ 假設你有從 JWT 解析出 userId，或直接寫死 userId = 1
-const userId = 1;
+const token = localStorage.getItem("token");
+const decoded = jwtDecode(token);
+const userId = decoded.userId;
 
 // ✅ 組件綁定資料
 const user = ref({
-    address: '',
+    addressInfo: {
+        fullAddress: '',
+        zipCode: ''
+    },
     recipientName: '',
     recipientPhone: ''
 });
@@ -45,11 +52,17 @@ const message = ref('');
 
 async function createAddress() {
     try {
+        const token = localStorage.getItem("token");
         // 從完整地址字串中：台北市 信義區 忠孝東路100號，後端再去 split 拆解
-        await axios.post(`http://localhost:8081/api/user/address/${userId}`, {
-            streetEtc: user.value.address,
+        await axios.post(`http://localhost:8081/api/user/address/${userId}/create-home`, {
+            streetEtc: user.value.addressInfo.fullAddress,
+            zipCode: user.value.addressInfo.zipCode,
             recipientName: user.value.recipientName,
             recipientPhone: user.value.recipientPhone
+        }, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
         });
 
         message.value = "成功新增地址！";
