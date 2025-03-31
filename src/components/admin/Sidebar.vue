@@ -6,15 +6,13 @@ import Swal from "sweetalert2";
 const router = useRouter(); // Vue Router 實例
 const userStore = useUserStore();
 async function logout() {
-
-
   // 清除 pinia userStore
   userStore.clearUserData();
-  
+
   await Swal.fire({
-          title: "登出成功",
-          icon: "success",
-        });
+    title: "登出成功",
+    icon: "success",
+  });
   // 跳轉到登入頁
   router.push({ name: "AdminLogin" });
 }
@@ -28,17 +26,23 @@ async function logout() {
     <router-link to="/admin/orders/all">📜 所有訂單</router-link>
     <router-link to="/admin/orders/pending">⏳ 待處理訂單</router-link>
     <router-link to="/admin/orders/cancelled">❌ 取消/退貨</router-link>
-    <router-link to="/admin/products">🛒 商品管理</router-link>
-    <router-link to="/admin/products/categories">📑 商品分類</router-link>
+    <router-link to="/admin/integrated-management">🛒 付款/物流</router-link>
+    <router-link to="/admin/category-management">📑 商品分類</router-link>
     <router-link to="/admin/products/tags">🔖 商品標籤</router-link>
     <router-link to="/admin/users">👥 會員管理</router-link>
-    <router-link to="/admin/administrators" v-if="userStore.roles.includes('SUPER_ADMIN')">👥 管理員管理</router-link>
+    <router-link
+      to="/admin/administrators"
+      v-if="userStore.roles.includes('SUPER_ADMIN')"
+      >👥 管理員管理</router-link
+    >
     <router-link to="/admin/users/customers">🙍‍♂️ 客戶管理</router-link>
     <router-link to="/admin/shop/review">🛍 商店申請管理</router-link>
     <router-link to="/coupon/AdminCouponManager">🎟️ 優惠券管理</router-link>
     <router-link to="/admin/analytics">📊 數據分析</router-link>
     <router-link to="/admin/analytics/sales">📈 銷售報告</router-link>
-    <router-link to="/admin/analytics/user-behavior">👥 用戶行為分析</router-link>
+    <router-link to="/admin/analytics/user-behavior"
+      >👥 用戶行為分析</router-link
+    >
     <router-link to="/admin/settings">⚙️ 系統設定</router-link>
     <router-link to="/admin/settings/admins">🔧 管理員帳號</router-link>
     <router-link to="/admin/settings/platform">🛠 平台設定</router-link>

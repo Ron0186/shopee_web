@@ -316,6 +316,14 @@ const router = createRouter({
           name: "ShipmentStatusManagement",
           component: () => import("@/views/admin/ShipmentStatusManagement.vue"),
         },
+
+        {
+          // 整合管理付款/物流頁面
+          path: "integrated-management",
+          name: "IntegratedManagement",
+          component: () => import("@/views/admin/IntegratedManagement.vue"),
+        },
+
         {
           // 後台管理頁面
           path: "admin-management",
