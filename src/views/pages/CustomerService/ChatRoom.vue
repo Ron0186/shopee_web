@@ -41,15 +41,13 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, onUnmounted, watchEffect } from "vue";
+import { ref, watch, computed, onUnmounted, watchEffect, onMounted } from "vue"; // 確保引入 onMounted
 import { useRoute, useRouter } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { storeToRefs } from "pinia";
 import { useChatStore } from '@/stores/chatStore';
-
-
-
+import { useUserStore } from '@/stores/user'; // 新增這行
 // 從 store 中取得相關狀態與方法
 const chatStore = useChatStore();
 const { currentUser, activeChatRoom, displayMessages, connectionStatus, socketManager } = storeToRefs(chatStore);
@@ -63,6 +61,9 @@ const newMessage = ref("");
 const userId = ref(localStorage.getItem("userId"));
 const authToken = ref(sessionStorage.getItem("authToken"));
 const subs = ref({}); // 用於儲存訂閱的物件，方便後續取消訂閱
+// 獲取 userStore 實例
+const userStore = useUserStore(); // 新增這行
+
 
 // 添加计算属性和方法
 const statusText = computed(() => {
@@ -73,8 +74,6 @@ const statusText = computed(() => {
     }[connectionStatus.value];
 });
 
-
-
 const reconnect = async () => {
     try {
         await chatStore.connectChatRoom(chatStore.activeChatRoom.chatRoomId);
@@ -83,13 +82,10 @@ const reconnect = async () => {
     }
 };
 
-
-
 // 判斷是否為本人發送
 const isMyMessage = computed(() => (msg) => {
     return msg.sender?.userId === currentUser.value?.userId;
 });
-
 
 // 時間格式化函式
 function formatTime(timestamp) {
@@ -158,6 +154,7 @@ async function checkChatActivity(chatRoomId) {
         }
     } catch (error) {
         console.error("活动检查失败:", error);
+        // 您可以在這裡添加錯誤處理邏輯，例如顯示錯誤訊息給使用者
     }
 }
 
@@ -185,7 +182,19 @@ watch(
     { immediate: true }
 );
 
+onMounted(async () => { // 使用 onMounted
 
+    const userStoreInstance = useUserStore(); // 獲取 userStore 實例
+    if (!currentUser.value) {
+        // 這裡假設您的 userStore 中有獲取 currentUser 的方法
+        await userStoreInstance.fetchCurrentUser();
+    }
+
+    // 如果 activeChatRoom 和 currentUser 都存在，則連接 WebSocket
+    if (activeChatRoom.value && activeChatRoom.value.chatRoomId && currentUser.value) {
+        chatStore.connectChatRoom(activeChatRoom.value.chatRoomId);
+    }
+});
 
 onUnmounted(() => {
     if (chatStore.socketManager?.value?.stompClient?.connected) {
@@ -202,7 +211,6 @@ onUnmounted(() => {
 /**
  * 發送訊息：加入臨時訊息後送出，待回應後更新狀態
  */
-// ChatRoom.vue
 async function send() {
     try {
         if (!newMessage.value.trim()) return;
@@ -243,7 +251,6 @@ async function send() {
             {},
             JSON.stringify(payload)
         );
-
 
         newMessage.value = "";
     } catch (error) {

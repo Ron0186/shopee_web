@@ -101,14 +101,8 @@ const loadStores = async () => {
     try {
         const response = await fetchStores();
 
-        // ✅ 深度解析响应结构
-        const storesData = [].concat(
-            response?.data?.data?.stores ||
-            response?.data?.stores ||
-            response?.data?.data ||
-            response?.data ||
-            []
-        ).filter(Boolean); // 过滤空值
+        // ✅ 直接使用 response.data，因為 API 回應已經是商店列表
+        const storesData = response.data || [];
 
         // ✅ 类型安全检查
         if (!Array.isArray(storesData)) {
@@ -117,11 +111,11 @@ const loadStores = async () => {
 
         // ✅ 数据标准化
         stores.value = storesData.map(store => ({
-            id: Number(store.id),
-            name: store.name?.trim() || '未命名店铺',
-            sellerId: Number(store.sellerId),
+            id: Number(store.shopId),
+            name: store.shopName?.trim() || '未命名店铺',
+            sellerId: Number(store.userId),
             shopId: Number(store.shopId),
-            isCurrentUserStore: Number(store.sellerId) === Number(userStore.userId),
+            isCurrentUserStore: Number(store.userId) === Number(userStore.userId),
             hasActiveChat: false,
             unreadCount: 0,
         }));
@@ -295,8 +289,10 @@ const handleChatError = (error) => {
 
 const loadUnreadCounts = async () => {
     try {
-        if (!userStore.userId) return;
-        const response = await fetchUnreadCounts(userStore.userId);
+        if (!userStore.shopId) return;
+
+
+        const response = await fetchUnreadCounts(userStore.shopId);
         console.log('未讀訊息計數:', response.data);
 
         // 更新商店数据
@@ -313,6 +309,7 @@ const loadUnreadCounts = async () => {
 onMounted(() => {
     // 同步 userId 與 userName 至 sessionStorage
     syncUserInfoToSession();
+    console.log('Content.vue Mounted - Current shop ID:', userStore.shopId); // 加入這行
     if (userStore.isSeller) {
         subscribeSellerNotifications(userStore.userId);
     }

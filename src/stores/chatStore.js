@@ -262,6 +262,8 @@ export const useChatStore = defineStore('chat', () => {
             messages.value = [...messages.value];
             console.log('[DEBUG] 更新後的消息列表:', messages.value);
             messageIds.value.add(message.id);
+            console.log('Received message in addMessage:', message);
+
             localStorage.setItem(`msg-${message.id}`, JSON.stringify(message));
         }
     };
