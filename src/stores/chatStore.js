@@ -166,6 +166,7 @@ export const useChatStore = defineStore('chat', () => {
         addMessage(message);
     };
 
+    // 將連線與訂閱邏輯放在 store 中，由 connectChatRoom 統一管理
     const setupSubscriptions = (chatRoomId) => {
         try {
             if (socketManager.value.stompClient?.subscriptions) {
@@ -173,7 +174,7 @@ export const useChatStore = defineStore('chat', () => {
                     socketManager.value.stompClient.unsubscribe(subId);
                 });
             }
-            // 主頻道訂閱
+            // 主頻道訂閱：所有使用者訂閱同一個公共頻道 /topic/chat/{chatRoomId}
             socketManager.value.stompClient.subscribe(
                 `/topic/chat/${chatRoomId}`,
                 (message) => {
@@ -182,7 +183,6 @@ export const useChatStore = defineStore('chat', () => {
                 },
                 { id: `sub-${chatRoomId}-${Date.now()}` }
             );
-
             // 錯誤訂閱
             socketManager.value.stompClient.subscribe(
                 '/user/queue/errors',
@@ -229,7 +229,8 @@ export const useChatStore = defineStore('chat', () => {
                     () => {
                         socketManager.value.stompClient = stompClient;
                         socketManager.value.isConnecting = false;
-                        // 連線成功後進行訂閱
+                        connectionStatus.value = 'connected';
+                        // 連線成功後統一在 store 裡訂閱
                         setupSubscriptions(chatRoomId);
                         resolve();
                     },

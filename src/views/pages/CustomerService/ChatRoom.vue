@@ -99,30 +99,30 @@ const isMyMessage = computed(() => (msg) => {
     return msg.sender?.userId === currentUser.value?.userId;
 });
 
-onMounted(async () => {
+// onMounted(async () => {
 
-    const client = new Client({
-        webSocketFactory: () => new SockJS('http://localhost:8081/ws'),
-        reconnectDelay: 5000, // 自動重新連接
-        debug: (msg) => console.log(msg),
-        onConnect: (frame) => {
-            console.log("WebSocket 已連接:", frame);
-            client.subscribe(`/topic/chat/${route.params.chatRoomId}`, (message) => {
-                console.log(`接收到訊息: ${message.body}`);
-            });
-        },
-        onWebSocketError: (error) => {
-            console.error("WebSocket 錯誤:", error);
-        },
-        onStompError: (frame) => {
-            console.error("STOMP 錯誤:", frame);
-        }
-    });
-    client.activate();
+//     const client = new Client({
+//         webSocketFactory: () => new SockJS('http://localhost:8081/ws'),
+//         reconnectDelay: 5000, // 自動重新連接
+//         debug: (msg) => console.log(msg),
+//         onConnect: (frame) => {
+//             console.log("WebSocket 已連接:", frame);
+//             client.subscribe(`/topic/chat/${route.params.chatRoomId}`, (message) => {
+//                 console.log(`接收到訊息: ${message.body}`);
+//             });
+//         },
+//         onWebSocketError: (error) => {
+//             console.error("WebSocket 錯誤:", error);
+//         },
+//         onStompError: (frame) => {
+//             console.error("STOMP 錯誤:", frame);
+//         }
+//     });
+//     client.activate();
 
 
 
-});
+// });
 
 // 時間格式化函式
 function formatTime(timestamp) {
