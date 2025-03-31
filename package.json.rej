@@ -1,0 +1,12 @@
+diff a/package.json b/package.json	(rejected hunks)
+@@ -13,10 +13,7 @@
+     "bootstrap": "^5.3.3",
+     "bootstrap-icons": "^1.11.3",
+     "bootstrap-vue-next": "^0.28.0",
+-<<<<<<< HEAD
+     "jwt-decode": "^4.0.0",
+-=======
+->>>>>>> 97035a820bbe537130db0a96a731a89b3aa6dd44
+     "chart.js": "^4.4.8",
+     "lodash": "^4.17.21",
+     "pinia": "^3.0.1",

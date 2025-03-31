@@ -90,40 +90,158 @@ const subscribe = () => {
 </script>
 
 <style scoped>
+/* 主要颜色变量 */
+:root {
+    --primary-color: #d9a76a;
+    --secondary-color: #5a4d3e;
+    --bg-color: #f8f5eb;
+    --border-color: #e6e1d3;
+    --text-color: #5a4d3e;
+    --light-text: #666;
+}
+
+/* 整体页脚风格 */
+.footer {
+    background-color: #f8f5eb;
+    color: #5a4d3e;
+    padding: 40px 20px;
+    width: 100%;
+    max-width: 100%;
+    margin-top: auto;
+    box-sizing: border-box;
+    text-align: center;
+    border-top: 1px solid #e6e1d3;
+}
+
 /* 📢 訂閱新聞區 */
 .newsletter {
     text-align: center;
     padding: 40px 20px;
-    border-bottom: 3px solid red;
+    border-bottom: 1px solid #e6e1d3;
     max-width: 1400px;
     width: 100%;
     margin: 0 auto;
+    background-color: #f0ece0;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    margin-bottom: 40px;
 }
 
 .newsletter h3 {
     font-size: 24px;
     font-weight: bold;
-    margin-bottom: 15px;
+    margin-bottom: 20px;
+    color: #5a4d3e;
+}
+
+.newsletter h3 span {
+    color: #d9a76a;
+}
+
+.newsletter-input {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
 }
 
 .newsletter-input input {
     padding: 15px;
-    font-size: 18px;
+    font-size: 16px;
     width: 350px;
-    border-radius: 5px;
-    border: 1px solid #ccc;
+    border-radius: 4px 0 0 4px;
+    border: 1px solid #d6ceb8;
     outline: none;
+    background-color: #fff;
 }
 
 .newsletter-input button {
-    background: red;
+    background: #d9a76a;
     color: white;
     padding: 15px 20px;
-    font-size: 18px;
+    font-size: 16px;
     border: none;
     cursor: pointer;
-    border-radius: 5px;
-    margin-left: 10px;
+    border-radius: 0 4px 4px 0;
+    transition: background-color 0.3s;
+}
+
+.newsletter-input button:hover {
+    background-color: #c69155;
+}
+
+.social-links {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.social-links a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: #f0ece0;
+    border: 1px solid #d6ceb8;
+    border-radius: 50%;
+    color: #d9a76a;
+    transition: all 0.3s ease;
+}
+
+.social-links a:hover {
+    background-color: #d9a76a;
+    color: white;
+    transform: translateY(-3px);
+}
+
+.social-links i {
+    font-size: 18px;
+}
+
+/* ✅ 讓 `footer-content` 內容水平排列 */
+.footer-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    align-items: flex-start;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 0;
+    box-sizing: border-box;
+    text-align: left;
+}
+
+.footer-column {
+    flex: 1;
+    min-width: 200px;
+    padding: 0 15px;
+    margin-bottom: 30px;
+}
+
+.footer-column h4 {
+    color: #5a4d3e;
+    margin-bottom: 20px;
+    font-size: 18px;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.footer-column h4::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    height: 2px;
+    background-color: #d9a76a;
+}
+
+.footer-column p {
+    margin-bottom: 10px;
+    color: #666;
+    line-height: 1.6;
 }
 
 /* ✅ 讓 `footer-column` 的 `ul` 移除預設點點符號 */
@@ -135,85 +253,103 @@ const subscribe = () => {
 
 /* ✅ 讓 `footer-column` 內的 `li` 具有適當的間距 */
 .footer-column ul li {
-    margin-bottom: 5px;
+    margin-bottom: 12px;
 }
 
-/* ✅ 讓 `footer-content` 水平排列 */
-.footer {
-    background: #007bff;
-    /* ✅ 改成藍色，與 Navbar 一致 */
-    color: white;
-    /* ✅ 文字變白色，提高可讀性 */
-    padding: 40px 20px;
-    width: 100%;
-    max-width: 100%;
-    margin-top: auto;
-    box-sizing: border-box;
-    text-align: center;
+.footer-column a {
+    color: #666;
+    text-decoration: none;
+    transition: color 0.3s;
+    position: relative;
+    padding-left: 5px;
 }
 
-
-/* ✅ 讓 `footer-content` 內容水平排列 */
-.footer-content {
-    display: flex;
-    /* 設置為 flex 佈局 */
-    flex-wrap: wrap;
-    /* 若內容超出可換行 */
-    justify-content: space-around;
-    /* 讓區塊平均分佈 */
-    align-items: flex-start;
-    /* 讓內容頂端對齊 */
-    width: 100%;
-    max-width: 1400px;
-    /* 限制最大寬度 */
-    margin: 0 auto;
-    padding: 20px 0;
-    box-sizing: border-box;
-    text-align: left;
-    /* 讓文字靠左對齊 */
+.footer-column a:hover {
+    color: #d9a76a;
 }
 
-
-.footer-column {
-    flex: 1;
-    /* 讓每個區塊平分空間 */
-    min-width: 200px;
-    /* 最小寬度，避免太窄 */
-    padding: 0 15px;
+.footer-column a:before {
+    content: "›";
+    position: absolute;
+    left: -5px;
+    color: #d9a76a;
+    opacity: 0;
+    transition: all 0.3s;
 }
 
+.footer-column a:hover:before {
+    opacity: 1;
+    left: 0;
+}
 
+/* 付款方式 */
 .payment-methods {
     display: flex;
     justify-content: center;
-    /* 讓付款方式置中 */
     align-items: center;
     gap: 15px;
-    padding-top: 20px;
+    padding: 20px 0;
+    border-top: 1px solid #e6e1d3;
+    margin-top: 20px;
 }
 
-
-/* ✅ 限制付款方式圖片大小 */
 .payment-methods img {
-    max-width: 100px;
-    /* 限制圖片最大寬度 */
-    max-height: 50px;
-    /* 限制圖片最大高度 */
+    max-width: 70px;
+    max-height: 40px;
     height: auto;
     width: auto;
     object-fit: contain;
-    /* 確保圖片不會變形 */
-    filter: brightness(0.9);
+    opacity: 0.7;
+    transition: opacity 0.3s;
 }
 
+.payment-methods img:hover {
+    opacity: 1;
+}
 
-/* ✅ 讓 `footer-bottom` 的版權宣告對齊 */
+/* 版权信息 */
 .footer-bottom {
     text-align: center;
-    padding-top: 15px;
-    border-top: 1px solid #333;
-    font-size: 12px;
-    color: #aaa;
+    padding-top: 20px;
+    border-top: 1px solid #e6e1d3;
+    font-size: 14px;
+    color: #888;
     width: 100%;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .newsletter-input {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .newsletter-input input {
+        width: 100%;
+        max-width: 350px;
+        border-radius: 4px;
+        margin-bottom: 10px;
+    }
+
+    .newsletter-input button {
+        width: 100%;
+        max-width: 350px;
+        border-radius: 4px;
+    }
+
+    .footer-content {
+        flex-direction: column;
+    }
+
+    .footer-column {
+        width: 100%;
+        padding: 0 20px;
+        text-align: center;
+    }
+
+    .footer-column h4::after {
+        left: 50%;
+        transform: translateX(-50%);
+    }
 }
 </style>
