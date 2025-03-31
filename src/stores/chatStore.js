@@ -224,7 +224,7 @@ export const useChatStore = defineStore('chat', () => {
                 stompClient.connect(
                     {
                         Authorization: `Bearer ${authToken.value}`,
-                        'X-User-Id': userId.value
+                        'userId': userId.value // 將 'X-User-Id' 修改為 'userId'
                     },
                     () => {
                         socketManager.value.stompClient = stompClient;

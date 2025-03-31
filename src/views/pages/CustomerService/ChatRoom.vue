@@ -1,10 +1,7 @@
 <template>
-    <!-- 在聊天室容器顶部添加状态提示 -->
     <div class="connection-status" :class="connectionStatus">
         {{ statusText }}
-
     </div>
-    <!-- 先檢查 activeChatRoom 是否存在，若不存在則顯示 loading -->
     <div v-if="!activeChatRoom || !activeChatRoom.chatRoomId || checkingExisting" class="loading-container">
         <div class="loading-spinner"></div>
         <p>{{ loadingText }}</p>
@@ -19,7 +16,7 @@
 
         <div class="messages">
             <transition-group name="message-list" tag="div">
-                <div v-for="msg in displayMessages" :key="msg.id + msg._status" class="message">
+                <div v-for="msg in displayMessages" :key="msg.tempId || msg.id" class="message">
                     <div
                         :class="['message-container', { 'my-message': isMyMessage(msg), 'sending': msg._status === 'sending', 'failed': msg._status === 'failed' }]">
                         <div class="message-state">
@@ -65,6 +62,7 @@ const checkingExisting = ref(false);
 const newMessage = ref("");
 const userId = ref(localStorage.getItem("userId"));
 const authToken = ref(sessionStorage.getItem("authToken"));
+const subs = ref({}); // 用於儲存訂閱的物件，方便後續取消訂閱
 
 // 添加计算属性和方法
 const statusText = computed(() => {
@@ -193,6 +191,12 @@ onUnmounted(() => {
     if (chatStore.socketManager?.value?.stompClient?.connected) {
         chatStore.socketManager.value.disconnect();
     }
+    // 取消所有訂閱
+    if (chatStore.socketManager?.value?.stompClient) {
+        Object.keys(subs.value).forEach(key => {
+            chatStore.socketManager.value.stompClient.unsubscribe(subs.value[key].id);
+        });
+    }
 });
 
 /**
@@ -222,10 +226,16 @@ async function send() {
         const payload = {
             content: newMessage.value.trim(),
             senderId: userId.value,
-            tempId: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+            tempId: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, // 加入 tempId
             type: 'TEXT_MESSAGE'
         };
 
+        chatStore.addMessage({
+            ...payload,
+            sender: { userId: userId.value }, // 模擬 sender 物件
+            timestamp: new Date().getTime(),
+            _status: 'sending' // 標記為發送中
+        });
 
         // 發送訊息
         stompClient.send(
@@ -250,9 +260,13 @@ function setupSubscriptions(chatRoomId) {
     const stompClient = chatStore.socketManager.value.stompClient;
     if (!stompClient) return;
 
-    Object.keys(subs).forEach(subId => {
-        stompClient.unsubscribe(subId);
+    // 取消之前的訂閱
+    Object.keys(subs.value).forEach(key => {
+        if (subs.value[key] && stompClient.connected) { // 確保 stompClient 已連接
+            stompClient.unsubscribe(subs.value[key].id);
+        }
     });
+    subs.value = {}; // 重置 subs 物件
 
     // 訂閱公共聊天頻道
     const mainSub = stompClient.subscribe(
@@ -268,6 +282,7 @@ function setupSubscriptions(chatRoomId) {
         },
         { id: `sub-main-${chatRoomId}` }
     );
+    subs.value[`sub-main-${chatRoomId}`] = mainSub;
 
     // 錯誤訂閱
     const errorSub = stompClient.subscribe(
@@ -278,6 +293,7 @@ function setupSubscriptions(chatRoomId) {
         },
         { id: `error-sub-${chatRoomId}` }
     );
+    subs.value[`error-sub-${chatRoomId}`] = errorSub;
 }
 </script>
 
