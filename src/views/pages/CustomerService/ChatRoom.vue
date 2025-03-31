@@ -56,6 +56,19 @@ import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { storeToRefs } from "pinia";
 import { useChatStore } from '@/stores/chatStore';
+import { Client } from '@stomp/stompjs';
+
+const client = new Client({
+    brokerURL: 'ws://localhost:8081/ws',
+    onConnect: () => {
+        client.subscribe(`/topic/${chatRoomId}`, message =>
+            console.log(`Received: ${message.body}`)
+        );
+        client.publish({ destination: `/topic/${chatRoomId}`, body: 'First Message' });
+    },
+});
+
+client.activate();
 
 // 從 store 中取得相關狀態與方法
 const chatStore = useChatStore();
