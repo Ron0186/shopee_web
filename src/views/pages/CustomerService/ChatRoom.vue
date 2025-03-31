@@ -20,14 +20,8 @@
         <div class="messages">
             <transition-group name="message-list" tag="div">
                 <div v-for="msg in displayMessages" :key="msg.id + msg._status" class="message">
-                    <div :class="[
-                        'message-container',
-                        {
-                            'my-message': isMyMessage(msg),
-                            'sending': msg._status === 'sending',
-                            'failed': msg._status === 'failed'
-                        }
-                    ]">
+                    <div
+                        :class="['message-container', { 'my-message': isMyMessage(msg), 'sending': msg._status === 'sending', 'failed': msg._status === 'failed' }]">
                         <div class="message-state">
                             <span v-if="msg._status === 'sending'">🔄 发送中</span>
                             <span v-if="msg._status === 'failed'">❌ 发送失败</span>
@@ -50,14 +44,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, onUnmounted, watchEffect } from "vue";
+import { ref, watch, computed, onUnmounted, watchEffect } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { storeToRefs } from "pinia";
 import { useChatStore } from '@/stores/chatStore';
-import SockJS from 'sockjs-client/dist/sockjs';
-import { Client } from '@stomp/stompjs';
+
 
 
 // 從 store 中取得相關狀態與方法
@@ -99,30 +92,6 @@ const isMyMessage = computed(() => (msg) => {
     return msg.sender?.userId === currentUser.value?.userId;
 });
 
-// onMounted(async () => {
-
-//     const client = new Client({
-//         webSocketFactory: () => new SockJS('http://localhost:8081/ws'),
-//         reconnectDelay: 5000, // 自動重新連接
-//         debug: (msg) => console.log(msg),
-//         onConnect: (frame) => {
-//             console.log("WebSocket 已連接:", frame);
-//             client.subscribe(`/topic/chat/${route.params.chatRoomId}`, (message) => {
-//                 console.log(`接收到訊息: ${message.body}`);
-//             });
-//         },
-//         onWebSocketError: (error) => {
-//             console.error("WebSocket 錯誤:", error);
-//         },
-//         onStompError: (frame) => {
-//             console.error("STOMP 錯誤:", frame);
-//         }
-//     });
-//     client.activate();
-
-
-
-// });
 
 // 時間格式化函式
 function formatTime(timestamp) {
@@ -243,6 +212,7 @@ async function send() {
         let stompClient = socketManager.value.stompClient;
         if (!stompClient || !stompClient.connected) {
             console.warn("WebSocket 尚未連線，嘗試重新連線...");
+
             await chatStore.connectChatRoom(route.params.chatRoomId);
             stompClient = socketManager.value.stompClient;
             if (!stompClient) {
@@ -256,22 +226,14 @@ async function send() {
             type: 'TEXT_MESSAGE'
         };
 
-        await new Promise((resolve, reject) => {
-            const stompClient = socketManager.value.stompClient;
-            if (!stompClient) {
-                return reject(new Error('未建立 WebSocket 連線'));
-            }
-            // 發送訊息
-            stompClient.send(
-                `/app/chat/${route.params.chatRoomId}/send`,
-                {},
-                JSON.stringify(payload)
-            );
-            // 這裡可以視需求設定發送回覆或超時處理
-            setTimeout(() => {
-                resolve();
-            }, 100); // 如果沒有特別需要等待確認，可以立即 resolve
-        });
+
+        // 發送訊息
+        stompClient.send(
+            `/app/chat/${route.params.chatRoomId}/send`,
+            {},
+            JSON.stringify(payload)
+        );
+
 
         newMessage.value = "";
     } catch (error) {
