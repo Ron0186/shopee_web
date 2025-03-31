@@ -28,7 +28,7 @@
         🏪 賣家中心
       </router-link>
 
-      <router-link to="/profile">👤 會員中心</router-link>
+      <router-link to="/memberCenter">👤 會員中心</router-link>
 
       <!-- ✅ 訂單管理 + 通知角標 -->
       <router-link v-if="userStore.username"
@@ -51,6 +51,8 @@
       <router-link to="/submitReview">📝 評價商品</router-link>
       <router-link v-if="userStore.isSeller" to="/seller-setting">⚙️
         賣家設定</router-link>
+      <router-link v-if="userStore.isSeller" to="/revenue">⚙️
+        營收表現</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
       <span v-if="userStore.username" @click="logout" class="logout-link">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出

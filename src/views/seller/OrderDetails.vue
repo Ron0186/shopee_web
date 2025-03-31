@@ -7,13 +7,15 @@
             <li v-for="order in paginatedData" :key="order.orderId"
                 class="order-item">
                 <p>📦 訂單編號：{{ order.orderId }}</p>
-                <p>🛍 商品：
-                <ul>
-                    <li v-for="item in order.items" :key="item.productId">
-                        {{ item.productName }} × {{ item.quantity }}
-                    </li>
-                </ul>
-                </p>
+                <p>🛍 商品：</p>
+                <div>
+                    <ul>
+                        <li v-for="item in order.items" :key="item.productId">
+                            {{ item.productName }} × {{ item.quantity }}
+                        </li>
+                    </ul>
+                </div>
+
                 <p>💰 總價：{{ order.totalPrice }}</p>
                 <p>👤 買家：{{ order.userName }}</p>
                 <p>💳 付款狀態：{{ order.paid ? '已付款' : '未付款' }}</p>

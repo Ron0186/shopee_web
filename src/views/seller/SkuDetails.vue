@@ -102,7 +102,7 @@ onMounted(async () => {
     try {
         // 取得 SKU 資料
         const [skuRes, productRes] = await Promise.all([
-            axios.get(`http://localhost:8081/api/sku/shop/${shopId}`, {
+            axios.get(`http://localhost:8081/api/byshop/${shopId}`, {
                 headers: { Authorization: `Bearer ${token}` }
             }),
             axios.get(`http://localhost:8081/api/product/byShop?shopId=${shopId}`, {

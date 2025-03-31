@@ -88,21 +88,23 @@ onMounted(async () => {
         userId.value = decoded.userId
         shopId.value = decoded.shopId || 1
 
-        const [shopRes, orderRes, reviewRes
+        const [
+            // shopRes, 
+            orderRes, reviewRes
             , skuRes
         ] = await Promise.all([
-            axios.get(`http://localhost:8081/api/product/byShop?shopId=${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
+            // axios.get(`http://localhost:8081/api/products/byShop?shopId=${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
             axios.get(`http://localhost:8081/api/orders/seller/orders?seller=${userId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
             axios.get(`http://localhost:8081/api/review/shop/${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
             axios.get(`http://localhost:8081/api/sku/shop/${shopId.value}`, { headers: { Authorization: `Bearer ${token}` } }),
         ])
 
-        shopData.value = shopRes.data
+        // shopData.value = shopRes.data
         orderData.value = orderRes.data.data || []
         reviewData.value = reviewRes.data
         skuData.value = skuRes.data
 
-        console.log("📦 shopData", shopRes.data)
+        // console.log("📦 shopData", shopRes.data)
         console.log("📦 orderData", orderRes.data)
         console.log("📦 reviewData", reviewRes.data)
         console.log("📦 skuData", skuRes.data)

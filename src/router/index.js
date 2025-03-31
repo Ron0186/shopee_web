@@ -2,8 +2,6 @@ import SearchResult from "@/components/SearchResult.vue";
 import HelpCenter from "@/views/pages/HelpCenter.vue";
 import UpdateHomeAddress from "@/views/member/UpdateHomeAddress.vue";
 import UpdateCVSAddress from "@/views/member/UpdateCVSAddress.vue";
-import UpdateHomeAddress from '@/views/member/UpdateHomeAddress.vue';
-import UpdateCVSAddress from '@/views/member/UpdateCVSAddress.vue';
 import ProductDetails from '@/views/seller/ProductDetails.vue';
 import OrderDetails from '@/views/seller/OrderDetails.vue'
 import SkuDetails from '@/views/seller/SkuDetails.vue'
@@ -511,53 +509,53 @@ const router = createRouter({
     //   props: true,
     // },
     //會員中心
-    {
-      path: "/memberCenter",
-      name: "memberCenter",
-      component: () => import("@/views/member/MemberCenter.vue"),
-    },
-    {
-      path: "/profile",
-      name: "profile",
-      component: () => import("@/views/member/Profile.vue"),
-    },
-    {
-      path: "/address",
-      name: "address",
-      component: () => import("@/views/member/Address.vue"),
-    },
-    {
-      path: "/HomeAddressCreate",
-      name: "HomeAddressCreate",
-      component: () => import("@/views/member/HomeAddressCreate.vue"),
-    },
-    {
-      path: "/CVSAddressCreate",
-      name: "CVSAddressCreate",
-      component: () => import("@/views/member/CVSAddressCreate.vue"),
-    },
-    {
-      path: "/memberOrders",
-      name: "memberOrders",
-      component: () => import("@/views/member/MemberOrders.vue"),
-    },
-    {
-      path: "/memberCoupons",
-      name: "memberCoupons",
-      component: () => import("@/views/member/MemberCoupons.vue"),
-    },
-    {
-      path: "/updateHomeAddress/:addressId",
-      name: "UpdateHomeAddress",
-      component: UpdateHomeAddress,
-      props: true, // 讓 route 參數能當作 props 傳給元件
-    },
-    {
-      path: "/updateCVSAddress/:addressId",
-      name: "UpdateCVSAddress",
-      component: UpdateCVSAddress,
-      props: true, // 讓 route 參數能當作 props 傳給元件
-    },
+    // {
+    //   path: "/memberCenter",
+    //   name: "memberCenter",
+    //   component: () => import("@/views/member/MemberCenter.vue"),
+    // },
+    // {
+    //   path: "/profile",
+    //   name: "profile",
+    //   component: () => import("@/views/member/Profile.vue"),
+    // },
+    // {
+    //   path: "/address",
+    //   name: "address",
+    //   component: () => import("@/views/member/Address.vue"),
+    // },
+    // {
+    //   path: "/HomeAddressCreate",
+    //   name: "HomeAddressCreate",
+    //   component: () => import("@/views/member/HomeAddressCreate.vue"),
+    // },
+    // {
+    //   path: "/CVSAddressCreate",
+    //   name: "CVSAddressCreate",
+    //   component: () => import("@/views/member/CVSAddressCreate.vue"),
+    // },
+    // {
+    //   path: "/memberOrders",
+    //   name: "memberOrders",
+    //   component: () => import("@/views/member/MemberOrders.vue"),
+    // },
+    // {
+    //   path: "/memberCoupons",
+    //   name: "memberCoupons",
+    //   component: () => import("@/views/member/MemberCoupons.vue"),
+    // },
+    // {
+    //   path: "/updateHomeAddress/:addressId",
+    //   name: "UpdateHomeAddress",
+    //   component: UpdateHomeAddress,
+    //   props: true, // 讓 route 參數能當作 props 傳給元件
+    // },
+    // {
+    //   path: "/updateCVSAddress/:addressId",
+    //   name: "UpdateCVSAddress",
+    //   component: UpdateCVSAddress,
+    //   props: true, // 讓 route 參數能當作 props 傳給元件
+    // },
   ],
 });
 
