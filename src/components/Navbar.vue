@@ -10,70 +10,55 @@
 
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
-      <router-link to="/user/login" v-if="!userStore.username"
-        >🔑 登入</router-link
-      >
-      <router-link to="/user/register" v-if="!userStore.username"
-        >📝 註冊</router-link
-      >
-      <router-link
-        to="/shop/apply"
-        v-if="userStore.token && !userStore.roles.includes('SELLER')"
-        >📝 我要當賣家!!</router-link
-      >
+      <router-link to="/user/login" v-if="!userStore.username">🔑
+        登入</router-link>
+      <router-link to="/user/register" v-if="!userStore.username">📝
+        註冊</router-link>
+      <router-link to="/shop/apply"
+        v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
+        我要當賣家!!</router-link>
 
       <!-- 新增賣家中心按鈕 -->
-      <router-link
-        :to="'/store/' + userStore.shopId"
-        v-if="
-          userStore.token &&
-          userStore.isSeller &&
-          userStore.shopId &&
-          userStore.shopId !== 'undefined'
-        "
-      >
+      <router-link :to="'/store/' + userStore.shopId" v-if="
+        userStore.token &&
+        userStore.isSeller &&
+        userStore.shopId &&
+        userStore.shopId !== 'undefined'
+      ">
         🏪 賣家中心
       </router-link>
 
-      <router-link to="/profile">👤 會員中心</router-link>
+      <router-link to="/memberCenter">👤 會員中心</router-link>
 
       <!-- ✅ 訂單管理 + 通知角標 -->
-      <router-link
-        v-if="userStore.username"
+      <router-link v-if="userStore.username"
         :to="userStore.isSeller ? '/seller/orders' : '/user/orders'"
-        class="position-relative"
-      >
+        class="position-relative">
         📦 訂單管理
         <!-- 賣家：待處理訂單通知 -->
-        <span
-          v-if="userStore.isSeller && pendingCount > 0"
-          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle"
-        >
+        <span v-if="userStore.isSeller && pendingCount > 0"
+          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
           {{ pendingCount }}
         </span>
 
         <!-- 買家：配送中通知 -->
-        <span
-          v-if="userStore.isUser && shippedCount > 0"
-          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle"
-        >
+        <span v-if="userStore.isUser && shippedCount > 0"
+          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
           {{ shippedCount }}
         </span>
       </router-link>
 
       <router-link to="/submitReview">📝 評價商品</router-link>
-      <router-link v-if="userStore.isSeller" to="/seller-setting"
-        >⚙️ 賣家設定</router-link
-      >
+      <router-link v-if="userStore.isSeller" to="/seller-setting">⚙️
+        賣家設定</router-link>
+      <router-link v-if="userStore.isSeller" to="/revenue">⚙️
+        營收表現</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
       <span v-if="userStore.username" @click="logout" class="logout-link">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
       </span>
-      <span
-        v-if="userStore.username"
-        @click="logoutToAdmin"
-        class="logout-link admin-logout"
-      >
+      <span v-if="userStore.username" @click="logoutToAdmin"
+        class="logout-link admin-logout">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
       </span>
     </div>
@@ -88,56 +73,50 @@
         <button @click="toggleCategory">🛍 商城分類 ▼</button>
         <ul v-if="categoryOpen">
           <li>
-            <router-link to="/shop?category=clothing" @click="toggleDrawer"
-              >👕 衣服</router-link
-            >
+            <router-link to="/shop?category=clothing" @click="toggleDrawer">👕
+              衣服</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=electronics" @click="toggleDrawer"
-              >📱 電子產品</router-link
-            >
+            <router-link to="/shop?category=electronics"
+              @click="toggleDrawer">📱 電子產品</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=home" @click="toggleDrawer"
-              >🏠 家用品</router-link
-            >
+            <router-link to="/shop?category=home" @click="toggleDrawer">🏠
+              家用品</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=others" @click="toggleDrawer"
-              >🔹 其他</router-link
-            >
+            <router-link to="/shop?category=others" @click="toggleDrawer">🔹
+              其他</router-link>
           </li>
         </ul>
       </li>
       <li>
-        <router-link to="/discounts" @click="toggleDrawer"
-          >💰 優惠專區</router-link
-        >
+        <router-link to="/discounts" @click="toggleDrawer">💰 優惠專區</router-link>
       </li>
       <li>
-        <router-link to="/notifications" @click="toggleDrawer"
-          >🔔 通知</router-link
-        >
+        <router-link to="/notifications" @click="toggleDrawer">🔔
+          通知</router-link>
       </li>
       <li>
-        <router-link to="/helpCenter" @click="toggleDrawer"
-          >📞 客服 & 幫助中心</router-link
-        >
+        <router-link to="/helpCenter" @click="toggleDrawer">📞 客服 &
+          幫助中心</router-link>
       </li>
       <li>
-        <router-link to="/address" @click="toggleDrawer"
-          >📍 地址管理</router-link
-        >
+        <router-link to="/address" @click="toggleDrawer">📍 地址管理</router-link>
       </li>
       <li>
-        <router-link to="/payment-methods" @click="toggleDrawer"
-          >💳 付款方式</router-link
-        >
+        <router-link to="/payment-methods" @click="toggleDrawer">💳
+          付款方式</router-link>
       </li>
       <li>
-        <router-link to="/privacy" @click="toggleDrawer"
-          >📜 隱私政策 & 使用者條款</router-link
-        >
+        <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
+          使用者條款</router-link>
+      </li>
+      <li v-if="userStore.username" @click="logoutToAdmin">
+        <a class="admin-link">🔐 前往後台</a>
+      </li>
+      <li v-if="userStore.username" @click="logoutToAdmin">
+        <a class="admin-link">🔐 前往後台</a>
       </li>
       <li v-if="userStore.username" @click="logoutToAdmin">
         <a class="admin-link">🔐 前往後台</a>
@@ -251,7 +230,7 @@ async function logout() {
   box-sizing: border-box;
 }
 
-.title > a {
+.title>a {
   color: #000;
   text-decoration: none;
   font-weight: 600;
