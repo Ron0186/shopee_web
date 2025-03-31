@@ -10,19 +10,71 @@
 
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
-      <router-link to="/user/login" v-if="!userStore.username">🔑
-        登入</router-link>
-      <router-link to="/user/register" v-if="!userStore.username">📝
-        註冊</router-link>
-      <router-link to="/shop/apply" v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
-        我要當賣家!!</router-link>
-      <router-link to="/profile">👤 會員中心</router-link>
-      <router-link v-if="userStore.username" :to="userStore.isSeller ? '/seller/orders' : '/user/orders'">
-        📦 訂單管理
+      <router-link to="/user/login" v-if="!userStore.username"
+        >🔑 登入</router-link
+      >
+      <router-link to="/user/register" v-if="!userStore.username"
+        >📝 註冊</router-link
+      >
+      <router-link
+        to="/shop/apply"
+        v-if="userStore.token && !userStore.roles.includes('SELLER')"
+        >📝 我要當賣家!!</router-link
+      >
+
+      <!-- 新增賣家中心按鈕 -->
+      <router-link
+        :to="'/store/' + userStore.shopId"
+        v-if="
+          userStore.token &&
+          userStore.isSeller &&
+          userStore.shopId &&
+          userStore.shopId !== 'undefined'
+        "
+      >
+        🏪 賣家中心
       </router-link>
+
+      <router-link to="/profile">👤 會員中心</router-link>
+
+      <!-- ✅ 訂單管理 + 通知角標 -->
+      <router-link
+        v-if="userStore.username"
+        :to="userStore.isSeller ? '/seller/orders' : '/user/orders'"
+        class="position-relative"
+      >
+        📦 訂單管理
+        <!-- 賣家：待處理訂單通知 -->
+        <span
+          v-if="userStore.isSeller && pendingCount > 0"
+          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle"
+        >
+          {{ pendingCount }}
+        </span>
+
+        <!-- 買家：配送中通知 -->
+        <span
+          v-if="userStore.isUser && shippedCount > 0"
+          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle"
+        >
+          {{ shippedCount }}
+        </span>
+      </router-link>
+
+      <router-link to="/submitReview">📝 評價商品</router-link>
+      <router-link v-if="userStore.isSeller" to="/seller-setting"
+        >⚙️ 賣家設定</router-link
+      >
       <router-link to="/cart">🛒 購物車</router-link>
       <span v-if="userStore.username" @click="logout" class="logout-link">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
+      </span>
+      <span
+        v-if="userStore.username"
+        @click="logoutToAdmin"
+        class="logout-link admin-logout"
+      >
+        <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
       </span>
     </div>
   </nav>
@@ -36,61 +88,74 @@
         <button @click="toggleCategory">🛍 商城分類 ▼</button>
         <ul v-if="categoryOpen">
           <li>
-            <router-link to="/shop?category=clothing" @click="toggleDrawer">👕
-              衣服</router-link>
+            <router-link to="/shop?category=clothing" @click="toggleDrawer"
+              >👕 衣服</router-link
+            >
           </li>
           <li>
-            <router-link to="/shop?category=electronics" @click="toggleDrawer">📱 電子產品</router-link>
+            <router-link to="/shop?category=electronics" @click="toggleDrawer"
+              >📱 電子產品</router-link
+            >
           </li>
           <li>
-            <router-link to="/shop?category=home" @click="toggleDrawer">🏠
-              家用品</router-link>
+            <router-link to="/shop?category=home" @click="toggleDrawer"
+              >🏠 家用品</router-link
+            >
           </li>
           <li>
-            <router-link to="/shop?category=others" @click="toggleDrawer">🔹
-              其他</router-link>
+            <router-link to="/shop?category=others" @click="toggleDrawer"
+              >🔹 其他</router-link
+            >
           </li>
         </ul>
       </li>
       <li>
-        <router-link to="/discounts" @click="toggleDrawer">💰 優惠專區</router-link>
+        <router-link to="/discounts" @click="toggleDrawer"
+          >💰 優惠專區</router-link
+        >
       </li>
       <li>
-        <router-link to="/notifications" @click="toggleDrawer">🔔
-          通知</router-link>
+        <router-link to="/notifications" @click="toggleDrawer"
+          >🔔 通知</router-link
+        >
       </li>
       <li>
-        <router-link to="/helpCenter" @click="toggleDrawer">📞 客服 &
-          幫助中心</router-link>
+        <router-link to="/helpCenter" @click="toggleDrawer"
+          >📞 客服 & 幫助中心</router-link
+        >
       </li>
       <li>
-        <router-link to="/address" @click="toggleDrawer">📍 地址管理</router-link>
+        <router-link to="/address" @click="toggleDrawer"
+          >📍 地址管理</router-link
+        >
       </li>
       <li>
-        <router-link to="/payment-methods" @click="toggleDrawer">💳
-          付款方式</router-link>
+        <router-link to="/payment-methods" @click="toggleDrawer"
+          >💳 付款方式</router-link
+        >
       </li>
       <li>
-        <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
-          使用者條款</router-link>
+        <router-link to="/privacy" @click="toggleDrawer"
+          >📜 隱私政策 & 使用者條款</router-link
+        >
+      </li>
+      <li v-if="userStore.username" @click="logoutToAdmin">
+        <a class="admin-link">🔐 前往後台</a>
       </li>
     </ul>
   </div>
 </template>
 
 <script setup>
-import { ref, } from "vue";
-import { useUserStore } from '@/stores/user';
+import { ref, onMounted } from "vue";
+import { useUserStore } from "@/stores/user";
 import Swal from "sweetalert2";
 import router from "@/router/index";
+import axios from "@/plugins/axios";
 
 const userStore = useUserStore();
 const drawerOpen = ref(false);
 const categoryOpen = ref(false);
-
-
-
-
 
 const toggleDrawer = () => {
   drawerOpen.value = !drawerOpen.value;
@@ -99,6 +164,8 @@ const toggleDrawer = () => {
 const toggleCategory = () => {
   categoryOpen.value = !categoryOpen.value;
 };
+const pendingCount = ref(0); // 賣家通知數
+const shippedCount = ref(0); // 買家通知數
 
 // ✅ 登出功能
 async function logout() {
@@ -109,16 +176,63 @@ async function logout() {
     confirmButtonText: "OK",
   });
   if (response.isConfirmed) {
-    router.push('/shop');
+    router.push("/shop");
+    // ✅ 通知角標查詢
+    const fetchNotificationCount = async () => {
+      if (!userStore.token) return;
+
+      try {
+        if (userStore.isSeller) {
+          const res = await axios.get(
+            `/api/orders/notification/pending-count/seller`
+          );
+          pendingCount.value = res.data;
+        } else if (userStore.isUser) {
+          const res = await axios.get(
+            `/api/orders/notification/shipped-count/user`
+          );
+          shippedCount.value = res.data;
+        }
+      } catch (err) {
+        console.error("🔴 無法取得訂單通知數量", err);
+      }
+    };
+
+    // ✅ 初始化時查詢一次
+    onMounted(() => {
+      if (userStore.token) {
+        fetchNotificationCount(); // 回傳通知列
+      }
+    });
+
+    // ✅ 登出並跳轉至後台登入頁
+    async function logoutToAdmin() {
+      userStore.clearUserData();
+      const response = await Swal.fire({
+        title: "已登出前台",
+        text: "正在前往後台登入頁面",
+        icon: "success",
+        confirmButtonText: "OK",
+      });
+      if (response.isConfirmed) {
+        window.location.href = "/admin/login";
+      }
+    }
+
+    // 當通知元件點擊時，導向相應聊天室頁面
+    const handleNotificationClick = (chatRoomId) => {
+      console.log("即將導向聊天室：", chatRoomId);
+      router.push(`/chat/${chatRoomId}`);
+    };
+
+    // ✅ 初始化時查詢一次
+    onMounted(() => {
+      if (userStore.token) {
+        fetchNotificationCount(); // 回傳通知列
+      }
+    });
   }
 }
-
-// 當通知元件點擊時，導向相應聊天室頁面
-const handleNotificationClick = (chatRoomId) => {
-  console.log("即將導向聊天室：", chatRoomId)
-  router.push(`/chat/${chatRoomId}`);
-};
-
 </script>
 
 <style scoped>
@@ -137,7 +251,7 @@ const handleNotificationClick = (chatRoomId) => {
   box-sizing: border-box;
 }
 
-.title>a {
+.title > a {
   color: #000;
   text-decoration: none;
   font-weight: 600;
@@ -147,7 +261,6 @@ const handleNotificationClick = (chatRoomId) => {
   background: #ff9b20;
 }
 
-/* 📌 會員中心 & 購物車 */
 .nav-icons {
   display: flex;
   gap: 10px;
@@ -163,7 +276,6 @@ const handleNotificationClick = (chatRoomId) => {
   text-decoration: underline;
 }
 
-/* 📌 漢堡選單 (側邊欄) */
 .sidebar {
   position: fixed;
   left: -250px;
@@ -197,7 +309,6 @@ const handleNotificationClick = (chatRoomId) => {
   display: block;
 }
 
-/* 📌 商城分類選單 */
 .dropdown button {
   background: none;
   border: none;
@@ -225,15 +336,40 @@ const handleNotificationClick = (chatRoomId) => {
   display: block;
 }
 
-/*登出相關 */
 .logout-link {
   color: #000;
   text-decoration: none;
-  font-size: 16px
+  font-size: 16px;
 }
 
 .logout-link:hover {
   cursor: pointer;
   text-decoration: underline;
+}
+
+/* 後台登入按鈕樣式 */
+.admin-logout {
+  margin-left: 10px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.admin-link {
+  cursor: pointer;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.admin-link:hover {
+  text-decoration: underline;
+}
+
+.badge {
+  background-color: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  margin-left: 4px;
+  font-size: 12px;
 }
 </style>
