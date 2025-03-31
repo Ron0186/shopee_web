@@ -22,18 +22,8 @@
     <!-- 商品區塊  這是搜尋商品跟上架商品-->
     <div class="product-section">
       <div class="section-header">
-        <input
-          type="text"
-          class="search-bar"
-          placeholder="🔍 搜尋商品..."
-          v-model="searchQuery"
-          @input="filterProducts"
-        />
-        <button
-          class="btn btn-add-product"
-          v-if="isOwner"
-          @click="goToMyProducts"
-        >
+        <input type="text" class="search-bar" placeholder="🔍 搜尋商品..." v-model="searchQuery" @input="filterProducts" />
+        <button class="btn btn-add-product" v-if="isOwner" @click="goToMyProducts">
           ➕ 上架商品
         </button>
       </div>
@@ -48,39 +38,23 @@
         <div v-else-if="filteredProducts.length === 0" class="no-products">
           <p v-if="searchQuery">沒有符合「{{ searchQuery }}」的商品</p>
           <p v-else>商店目前沒有任何商品</p>
-          <button
-            v-if="isOwner"
-            class="btn btn-add-first"
-            @click="goToMyProducts"
-          >
+          <button v-if="isOwner" class="btn btn-add-first" @click="goToMyProducts">
             立即上架第一個商品
           </button>
         </div>
 
         <div v-else class="product-list">
-          <div
-            class="product-card"
-            v-for="product in filteredProducts"
-            :key="product.productId"
-            @click="viewProductDetail(product.productId)"
-          >
-            <img
-              :src="
-                product.primaryImageUrl
-                  ? product.primaryImageUrl.startsWith('http')
-                    ? product.primaryImageUrl
-                    : `${baseUrl}${product.primaryImageUrl}`
-                  : defaultImage
-              "
-              class="product-img"
-              alt="商品圖片"
-            />
+          <div class="product-card" v-for="product in filteredProducts" :key="product.productId"
+            @click="viewProductDetail(product.productId)">
+            <img :src="product.primaryImageUrl
+              ? product.primaryImageUrl.startsWith('http')
+                ? product.primaryImageUrl
+                : `${baseUrl}${product.primaryImageUrl}`
+              : defaultImage
+              " class="product-img" alt="商品圖片" />
             <div class="product-info">
               <p class="product-title">{{ product.productName }}</p>
-              <p
-                class="product-price"
-                v-if="product.minPrice === product.maxPrice"
-              >
+              <p class="product-price" v-if="product.minPrice === product.maxPrice">
                 $ {{ formatPrice(product.minPrice) }}
               </p>
               <p class="product-price" v-else>
@@ -94,16 +68,10 @@
               <p v-if="!product.active" class="not-active">未上架</p>
             </div>
             <div class="product-actions" v-if="isOwner" @click.stop>
-              <button
-                class="btn btn-edit"
-                @click="editProduct(product.productId)"
-              >
+              <button class="btn btn-edit" @click="editProduct(product.productId)">
                 ✏️ 編輯
               </button>
-              <button
-                class="btn btn-delete"
-                @click="confirmDeleteProduct(product.productId)"
-              >
+              <button class="btn btn-delete" @click="confirmDeleteProduct(product.productId)">
                 🗑️ 刪除
               </button>
             </div>
@@ -111,11 +79,16 @@
         </div>
       </div>
     </div>
+
+    <!-- 商品詳情彈窗 -->
+    <ProductDetail v-model:visible="showProductDetail" :productId="selectedProductId" @close="handleProductModalClose"
+      @add-to-cart="handleAddToCart" @buy-now="handleBuyNow" />
   </div>
 </template>
 
 <script setup>
 import SellerStoreInfo from "@/components/SellerStore/SellerStoreInfo.vue";
+import ProductDetail from "@/components/product.components/ProductDetail.vue";
 import { ref, onMounted, watch, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "@/plugins/axios";
@@ -137,6 +110,10 @@ const errorMessage = ref("");
 const loading = ref(true);
 const baseUrl = ref(import.meta.env.VITE_API_URL);
 const defaultImage = "/src/assets/default-image.png"; // 預設商品圖片路徑
+
+// 商品詳情彈窗相關
+const showProductDetail = ref(false);
+const selectedProductId = ref(null);
 
 // 根據搜尋條件過濾商品
 const filteredProducts = computed(() => {
@@ -237,8 +214,33 @@ const goToMyProducts = () => {
 
 // 查看商品詳情
 const viewProductDetail = (productId) => {
-  // 這裡應該導向商品詳情頁面，目前先使用 alert 示範
-  router.push(`/products/${productId}`);
+  // 使用彈窗顯示商品詳情
+  selectedProductId.value = productId;
+  showProductDetail.value = true;
+};
+
+// 處理商品彈窗關閉
+const handleProductModalClose = () => {
+  showProductDetail.value = false;
+};
+
+// 處理加入購物車
+const handleAddToCart = (data) => {
+  console.log('加入購物車:', data);
+  // 實現加入購物車的邏輯
+};
+
+// 處理立即購買
+const handleBuyNow = (data) => {
+  console.log('立即購買:', data);
+  // 實現立即購買的邏輯，例如跳轉到結帳頁面
+  router.push({
+    path: '/checkout',
+    query: {
+      productId: data.productId,
+      quantity: data.quantity
+    }
+  });
 };
 
 // 編輯商品
@@ -506,6 +508,7 @@ onMounted(async () => {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }
