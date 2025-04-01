@@ -86,7 +86,7 @@
                 ⭐ {{ product.rating || "暫無評分" }} 已售出
                 {{ product.soldCount || 0 }}
               </p>
-              <p v-if="!product.active" class="not-active">未上架</p>
+              <p v-if="!isProductActive(product)" class="not-active">未上架</p>
             </div>
             <div class="product-actions" v-if="isOwner" @click.stop>
               <button
@@ -216,7 +216,6 @@ const fetchProducts = async () => {
   loading.value = true;
 
   try {
-    // 使用新的分頁 API
     const res = await axios.get(`/api/products/public/shop/${shopId}`, {
       params: {
         page: currentPage.value,
@@ -226,7 +225,23 @@ const fetchProducts = async () => {
     });
 
     if (res.data && res.data.content) {
-      products.value = res.data.content;
+      // 標準化數據，確保所有商品的active屬性為布爾值
+      products.value = res.data.content.map((product) => {
+        // 計算正確的上架狀態
+        const normalizedActive =
+          product.active === true ||
+          (typeof product.active === "string" &&
+            product.active.toLowerCase() === "true") ||
+          product.isActive === true ||
+          product.status === "ACTIVE";
+
+        return {
+          ...product,
+          // 覆蓋原始的active屬性
+          active: normalizedActive,
+        };
+      });
+
       totalPages.value = res.data.totalPages;
     } else {
       products.value = [];
@@ -352,6 +367,21 @@ watch(searchQuery, (newVal, oldVal) => {
     fetchProducts();
   }
 });
+
+const isProductActive = (product) => {
+  // 如果product為undefined或null，直接返回false
+  if (!product) {
+    return false;
+  }
+
+  return (
+    product.active === true ||
+    product.isActive === true ||
+    product.status === "ACTIVE" ||
+    (typeof product.active === "string" &&
+      product.active.toLowerCase() === "true")
+  );
+};
 
 // 組件掛載時請求商店資訊 & 檢查擁有者 & 獲取商品列表
 onMounted(async () => {

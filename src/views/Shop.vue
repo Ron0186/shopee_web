@@ -78,6 +78,9 @@
             分類：{{ product.category1Name }} / {{ product.category2Name }}
           </p>
           <button @click="addToCart(product)">🛒 加入購物車</button>
+          <button @click="viewProductDetail(product)" class="view-details-btn">
+            👁️ 查看詳情
+          </button>
         </div>
       </div>
 
@@ -104,8 +107,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from "vue";
-import axios from "axios";
+import { ref, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import axios from "@/plugins/axios"; // 使用插件封裝的 axios
+
+const router = useRouter();
 
 // 🔹 商品和分類資料
 const products = ref([]);
@@ -123,11 +129,33 @@ const selectedCategory1 = ref(null);
 const selectedCategory2 = ref(null);
 
 // 🔹 API URL 前綴 (根據實際環境可調整)
-const apiBaseUrl = "http://localhost:8081/api";
+const apiBaseUrl = import.meta.env.VITE_API_URL || "http://localhost:8081";
+
+// ✅ 測試 API 連接和配置
+const testApiConnection = async () => {
+  try {
+    console.log("測試 API 連接...");
+    console.log("環境變數 VITE_API_URL:", import.meta.env.VITE_API_URL);
+    console.log("使用的 apiBaseUrl:", apiBaseUrl);
+
+    // 嘗試一個簡單的 API 請求
+    const testUrl = `${apiBaseUrl}/api/health`;
+    console.log("測試 URL:", testUrl);
+
+    const testResponse = await axios.get(testUrl);
+    console.log("API 連接測試成功:", testResponse.data);
+    return true;
+  } catch (error) {
+    console.error("API 連接測試失敗:", error);
+    return false;
+  }
+};
 
 // ✅ 從後端 API 抓商品資料
 const fetchProducts = async () => {
+  console.log("獲取商品列表...");
   loading.value = true;
+
   try {
     const params = {
       page: currentPage.value,
@@ -145,14 +173,72 @@ const fetchProducts = async () => {
       params.nameKeyword = searchQuery.value;
     }
 
-    const res = await axios.get(`${apiBaseUrl}/products/public`, { params });
+    console.log("商品查詢參數:", params);
+
+    // 構建正確的 API URL
+    const url = `${apiBaseUrl}/api/products/public`;
+    console.log("商品 API URL:", url);
+
+    const res = await axios.get(url, { params });
+    console.log("商品 API 返回數據:", res.data);
 
     // 處理分頁數據
-    products.value = res.data.content;
-    totalPages.value = res.data.totalPages;
+    if (res.data && res.data.content) {
+      products.value = res.data.content;
+      totalPages.value = res.data.totalPages;
+      console.log(`成功載入 ${products.value.length} 個商品`);
+    } else {
+      console.warn("商品 API 返回的數據格式不符合預期:", res.data);
+
+      // 嘗試備用 API 端點
+      console.log("嘗試備用 API 端點...");
+      const backupUrl = `${apiBaseUrl}/api/products/public/shop/0`;
+      console.log("備用 URL:", backupUrl);
+
+      const backupRes = await axios.get(backupUrl, { params });
+      console.log("備用 API 返回數據:", backupRes.data);
+
+      if (backupRes.data && backupRes.data.content) {
+        products.value = backupRes.data.content;
+        totalPages.value = backupRes.data.totalPages;
+        console.log(`成功從備用 API 載入 ${products.value.length} 個商品`);
+      } else {
+        products.value = [];
+        totalPages.value = 0;
+      }
+    }
   } catch (error) {
     console.error("❌ 取得商品失敗：", error);
-    products.value = [];
+    console.log("錯誤詳情:", error.response || error.message);
+
+    try {
+      // 嘗試備用 API 端點
+      console.log("主 API 失敗，嘗試備用 API...");
+      const backupUrl = `${apiBaseUrl}/api/products/public/shop/0`;
+      console.log("備用 URL:", backupUrl);
+
+      const backupRes = await axios.get(backupUrl, {
+        params: {
+          page: currentPage.value,
+          size: pageSize.value,
+        },
+      });
+
+      console.log("備用 API 返回數據:", backupRes.data);
+
+      if (backupRes.data && backupRes.data.content) {
+        products.value = backupRes.data.content;
+        totalPages.value = backupRes.data.totalPages;
+        console.log(`成功從備用 API 載入 ${products.value.length} 個商品`);
+      } else {
+        products.value = [];
+        totalPages.value = 0;
+      }
+    } catch (backupError) {
+      console.error("備用 API 也失敗:", backupError);
+      products.value = [];
+      totalPages.value = 0;
+    }
   } finally {
     loading.value = false;
   }
@@ -160,35 +246,63 @@ const fetchProducts = async () => {
 
 // ✅ 獲取所有一級分類
 const fetchCategory1 = async () => {
+  console.log("獲取一級分類...");
   try {
-    const res = await axios.get(`${apiBaseUrl}/category1/all`);
-    category1List.value = res.data;
+    const url = `${apiBaseUrl}/api/category1/all`;
+    console.log("一級分類 API URL:", url);
+
+    const res = await axios.get(url);
+    console.log("一級分類 API 返回數據:", res.data);
+
+    if (Array.isArray(res.data)) {
+      category1List.value = res.data;
+      console.log(`成功載入 ${category1List.value.length} 個一級分類`);
+    } else {
+      console.error("一級分類 API 返回的數據不是數組:", res.data);
+      category1List.value = [];
+    }
   } catch (error) {
     console.error("❌ 取得一級分類失敗：", error);
+    console.log("錯誤詳情:", error.response || error.message);
     category1List.value = [];
   }
 };
 
 // ✅ 根據一級分類ID獲取對應的二級分類
 const fetchCategory2ByCategory1 = async (category1Id) => {
+  console.log("獲取二級分類...");
   if (!category1Id) {
     filteredCategory2List.value = [];
     return;
   }
 
   try {
-    const res = await axios.get(`${apiBaseUrl}/category2/byC1`, {
+    const url = `${apiBaseUrl}/api/category2/byC1`;
+    console.log("二級分類 API URL:", url);
+
+    const res = await axios.get(url, {
       params: { category1Id },
     });
-    filteredCategory2List.value = res.data;
+
+    console.log("二級分類 API 返回數據:", res.data);
+
+    if (Array.isArray(res.data)) {
+      filteredCategory2List.value = res.data;
+      console.log(`成功載入 ${filteredCategory2List.value.length} 個二級分類`);
+    } else {
+      console.error("二級分類 API 返回的數據不是數組:", res.data);
+      filteredCategory2List.value = [];
+    }
   } catch (error) {
     console.error("❌ 取得二級分類失敗：", error);
+    console.log("錯誤詳情:", error.response || error.message);
     filteredCategory2List.value = [];
   }
 };
 
 // 🔍 選擇一級分類
 const selectCategory1 = async (id) => {
+  console.log("選擇一級分類:", id);
   selectedCategory1.value = id;
   selectedCategory2.value = null; // 重置二級分類選擇
   currentPage.value = 0; // 重置分頁
@@ -204,6 +318,7 @@ const selectCategory1 = async (id) => {
 
 // 🔍 選擇二級分類
 const selectCategory2 = async (id) => {
+  console.log("選擇二級分類:", id);
   selectedCategory2.value = id;
   currentPage.value = 0; // 重置分頁
   await fetchProducts();
@@ -211,12 +326,14 @@ const selectCategory2 = async (id) => {
 
 // 🔍 執行搜尋
 const searchProduct = () => {
+  console.log("執行搜尋:", searchQuery.value);
   currentPage.value = 0; // 重置分頁
   fetchProducts();
 };
 
 // 📄 分頁控制
 const changePage = (newPage) => {
+  console.log("切換頁面:", newPage);
   if (newPage >= 0 && newPage < totalPages.value) {
     currentPage.value = newPage;
     fetchProducts();
@@ -225,21 +342,26 @@ const changePage = (newPage) => {
 
 // 🛒 加入購物車
 const addToCart = (product) => {
+  console.log("加入購物車:", product);
   alert(`${product.productName} 已加入購物車！`);
   // 這裡可以實現實際的購物車邏輯
 };
 
+// 👁️ 查看商品詳情
+const viewProductDetail = (product) => {
+  console.log("查看商品詳情:", product);
+  router.push(`/products/${product.productId}`);
+};
+
 // 🖼️ 圖片處理
 const getImageUrl = (url) => {
-  if (!url) return "/uploads/default-product-image.jpg";
-  return url.startsWith("http")
-    ? url
-    : `${apiBaseUrl.replace("/api", "")}${url}`;
+  if (!url) return `${apiBaseUrl}/uploads/default-product-image.jpg`;
+  return url.startsWith("http") ? url : `${apiBaseUrl}${url}`;
 };
 
 // 👀 監聽搜尋關鍵字變化
 watch(searchQuery, (newVal, oldVal) => {
-  if (newVal === "") {
+  if (newVal === "" && oldVal !== "") {
     // 當清空搜尋框時自動刷新商品列表
     fetchProducts();
   }
@@ -247,6 +369,8 @@ watch(searchQuery, (newVal, oldVal) => {
 
 // 🔁 初始化時呼叫
 onMounted(async () => {
+  console.log("===== 商城頁面初始化 =====");
+  await testApiConnection();
   await fetchCategory1();
   await fetchProducts();
 });
@@ -482,10 +606,21 @@ body {
   border-radius: 5px;
   transition: background 0.3s ease-in-out;
   width: 100%;
+  margin-bottom: 5px;
 }
 
 .product-card button:hover {
   background: #e05b50;
+}
+
+/* 查看詳情按鈕 */
+.view-details-btn {
+  background: #007bff !important;
+  margin-top: 5px;
+}
+
+.view-details-btn:hover {
+  background: #0069d9 !important;
 }
 
 /* 分頁控制 */
