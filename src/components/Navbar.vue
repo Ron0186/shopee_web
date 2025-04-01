@@ -41,7 +41,7 @@
         <span v-if="userStore.isUser && shippedCount > 0"
           class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
           {{ shippedCount }}
-        </span>
+        </span> 
       </router-link>
 
       <router-link to="/submitReview">📝 評價商品</router-link>
