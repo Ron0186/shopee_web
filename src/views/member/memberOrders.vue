@@ -3,7 +3,7 @@
         <h2>我的訂單管理</h2>
 
         <!-- 訂單篩選 -->
-        <OrderFilter @filter="applyFilter" />
+        <!-- <OrderFilter @filter="applyFilter" /> -->
 
         <!-- 訂單表格 -->
         <div class="table-container">
@@ -35,15 +35,15 @@
         </div>
 
         <!-- 訂單詳情 (彈跳視窗) -->
-        <OrderDetails v-if="selectedOrder" :order="selectedOrder"
-            @close="selectedOrder = null" />
+        <!-- <OrderDetails v-if="selectedOrder" :order="selectedOrder" -->
+        <!-- @close="selectedOrder = null" /> -->
     </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
-import OrderFilter from "@/components/order.components/OrderFilter.vue";
-import OrderDetails from "@/components/order.components/OrderDetails.vue";
+// import OrderFilter from "@/components/order.components/OrderFilter.vue";
+// import OrderDetails from "@/components/order.components/OrderDetails.vue";
 import { fetchSellerOrders } from "@/api/orders";
 
 const orders = ref([]);
