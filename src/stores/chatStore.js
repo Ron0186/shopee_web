@@ -655,10 +655,24 @@ export const useChatStore = defineStore('chat', () => {
         const finalId = message.id || message.messageId || message.tempId; // 確保有唯一 ID
         if (!finalId) { console.error("[ChatStore addMessage] 訊息缺少 ID (id, messageId, tempId):", message); return; }
 
-        const existingIndex = messages.value.findIndex(m =>
-            (m.id && m.id === finalId) || // 優先匹配後端 ID
-            (m.tempId && m.tempId === message.tempId && m.id === finalId) // 也考慮 tempId 匹配 (用於更新狀態)
-        );
+        // --- 修改查找邏輯 ---
+        const existingIndex = messages.value.findIndex(m => {
+            // 1. 如果收到的訊息有 tempId (很可能是伺服器確認)，優先用 tempId 查找已存在的訊息
+            if (message.tempId && m.tempId === message.tempId) {
+                return true; // 找到了要更新的訊息
+            }
+            // 2. 如果收到的訊息沒有 tempId (來自他人或歷史)，或者上面的 tempId 沒找到，
+            //    則嘗試用最終 ID (非 temp-) 查找 (避免將 tempId 誤判為最終 ID)
+            if (!message.tempId && m.id && m.id === finalId && !m.id.toString().startsWith('temp-')) {
+                return true; // 找到了已存在的訊息 (例如重新載入)
+            }
+            // 特殊處理：如果收到的訊息有最終 ID，也檢查是否已有帶此 ID 的訊息（即使它之前是 temp）
+            if (message.id && !message.id.toString().startsWith('temp-') && m.id === message.id) {
+                return true;
+            }
+
+            return false; // 都沒找到
+        });
 
         // 標準化收到的訊息物件
         const processedMessage = {
@@ -677,25 +691,31 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         if (existingIndex !== -1) {
-            console.log(`[ChatStore addMessage] 更新現有訊息於索引 ${existingIndex} (ID: ${finalId})`);
-            // 更新現有訊息，特別是 id, timestamp, _status, isRead
+            console.log(`[ChatStore addMessage] 更新現有訊息於索引 ${existingIndex} (ID: ${finalId}) - Server確認`);
+            // 執行更新邏輯
             messages.value[existingIndex] = {
-                ...messages.value[existingIndex], // 保留可能存在的本地狀態
-                ...processedMessage, // 用處理過的伺服器數據覆蓋
-                _status: 'sent' // 標記為已送達
+                // 可以考慮只更新必要欄位，而不是完全覆蓋
+                ...messages.value[existingIndex], // 保留舊狀態 (例如 _status: 'sending' 會被覆蓋)
+                ...processedMessage,           // 應用伺服器數據 (含真實 id, timestamp)
+                _status: 'sent'                // 明確設置狀態為 sent
             };
+            console.log('[ChatStore addMessage] 更新後的訊息:', messages.value[existingIndex]);
         } else {
-            console.log(`[ChatStore addMessage] 添加新訊息 (ID: ${finalId})`);
-            messages.value.push(processedMessage);
+            // *** 只有在確實找不到時才添加 ***
+            // 檢查是否是因為 tempId 剛被真實 ID 覆蓋導致找不到
+            const alreadyHasFinalId = messages.value.some(m => m.id === finalId && !m.id.toString().startsWith('temp-'));
+            if (!alreadyHasFinalId) {
+                console.log(`[ChatStore addMessage] 添加新訊息 (ID: ${finalId})`);
+                messages.value.push(processedMessage);
+            } else {
+                console.warn(`[ChatStore addMessage] 欲添加的訊息 (ID: ${finalId}) 已存在，可能重複處理，已忽略。`);
+            }
         }
 
-        // 保持訊息按時間排序
+        // 保持排序
         messages.value.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
-        // 確保 Vue 偵測到陣列變化 (雖然 push 和直接修改索引應該會觸發)
-        // messages.value = [...messages.value];
         console.log('[ChatStore addMessage] 訊息列表已更新。數量:', messages.value.length);
     };
-
 
 
 
