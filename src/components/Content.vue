@@ -237,6 +237,13 @@ const sellerChat = async (shopId) => {
         authToken.value = sessionStorage.getItem('authToken');
         if (!authToken.value) throw new Error('未登录');
 
+        // --- 新增 Log ---
+        console.log(`Attempting seller chat for shopId: ${shopId}`);
+        console.log(`Current user ID from store: ${userStore.userId}`);
+        console.log(`Current user isSeller: ${userStore.isSeller}`);
+        console.log(`Token being sent: Bearer ${authToken.value}`);
+        // --- 結束 Log ---
+
         // ✅ 卖家专属进入流程
         const response = await axios.get(
             `http://localhost:8081/api/chat/seller/enter/${Number(shopId)}`,
@@ -289,20 +296,44 @@ const handleChatError = (error) => {
 
 const loadUnreadCounts = async () => {
     try {
-        if (!userStore.shopId) return;
+        // 1. 應該檢查 userId 是否存在 (如果 API 基於 userId 驗證)
+        if (!userStore.userId) {
+            console.warn("User ID not available in userStore yet.");
+            return; // 或者等待 userId 加載完成
+        }
 
+        // 添加 Log 確認傳遞的 ID
+        console.log(`Calling fetchUnreadCounts with userId from store: ${userStore.userId}`);
 
-        const response = await fetchUnreadCounts(userStore.shopId);
-        console.log('未讀訊息計數:', response.data);
+        // 2. 將 userStore.userId 傳遞給 fetchUnreadCounts
+        const response = await fetchUnreadCounts(userStore.userId);
 
-        // 更新商店数据
-        stores.value = stores.value.map(store => ({
-            ...store,
-            unreadCount: response[store.shopId] || 0,
-            hasActiveChat: response[store.shopId] > 0
-        }));
+        // 3. 處理回傳值 (fetchUnreadCounts 成功時直接回傳後端數據，失敗時回傳 {success: false, ...})
+        if (response && typeof response === 'object' && !(response.success === false)) {
+            console.log('未讀訊息計數 (Raw Response):', response); // 打印實際的 Map
+            const unreadData = response; // 成功時 response 就是後端的 Map
+
+            // 使用 shopId 作為 key 更新 unreadCount (這部分邏輯是正確的)
+            stores.value = stores.value.map(store => ({
+                ...store,
+                unreadCount: unreadData[store.shopId] || 0, // 假設 unreadData 的 key 是 shopId
+                hasActiveChat: (unreadData[store.shopId] || 0) > 0
+            }));
+            console.log('Updated stores with unread counts:', stores.value);
+        } else {
+            // API 呼叫失敗或回傳了錯誤標誌
+            console.warn('Failed to get unread counts or received error response:', response);
+            // 清空未讀計數
+            stores.value = stores.value.map(store => ({
+                ...store,
+                unreadCount: 0,
+                hasActiveChat: false
+            }));
+        }
+
     } catch (error) {
-        console.error('載入未讀訊息計數失敗:', error);
+        // 這個 catch 可能不會被觸發，因為 fetchUnreadCounts 內部處理了錯誤
+        console.error('載入未讀訊息計數失敗 (Error caught in component):', error);
     }
 };
 
