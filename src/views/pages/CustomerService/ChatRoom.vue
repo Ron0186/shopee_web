@@ -240,6 +240,7 @@ async function send() {
 
         chatStore.addMessage({
             ...payload,
+            senderName: currentUser?.username || '我', // **立即填入當前使用者的名字**
             sender: { userId: userId.value }, // 模擬 sender 物件
             timestamp: new Date().getTime(),
             _status: 'sending' // 標記為發送中
