@@ -18,32 +18,21 @@ export const useUserStore = defineStore("user", () => {
   const isSuperAdmin = computed(() => roles.value.includes("SUPER_ADMIN"));
   const isUser = computed(() => roles.value.includes("USER"));
   shopId.value = localStorage.getItem("shopId") || ""; // 讀取賣場ID
+  const isLoggedIn = computed(() => !!userId.value && !!token.value);
 
   console.log(isSeller.value)
 
-  const logout = async () => {
-    try {
-      // ✅ 清理所有认证相关数据
-      sessionStorage.removeItem('sessionToken');
-      localStorage.removeItem('authToken');
+  async function logout() {
+    console.log("[UserStore] 執行登出...");
+    // 清理本地資料
+    clearUserData();
+    // 通知後端 (可選)
+    // try { await axios.post('/api/auth/logout'); } catch (e) { console.error("後端登出失敗:", e); }
+    // 斷開 WebSocket (應由 App.vue 或登出元件觸發 chatStore.disconnectWebSocket())
+    console.log("✅ [UserStore] 登出完成。");
+    router.push('/user/login'); // 導向登入頁
+  }
 
-      // ✅ 强制断开 WebSocket
-      const chatStore = useChatStore();
-      if (chatStore.stompClient) {
-        chatStore.stompClient.disconnect();
-        chatStore.stompClient = null;
-      }
-
-      // ✅ 重置用户状态
-      this.clearUserData();
-
-      console.log("✅ 用户登出完成");
-      router.push('/user/login');
-    } catch (error) {
-      console.error('登出错误:', error);
-      Swal.fire('错误', '登出过程中发生异常', 'error');
-    }
-  };
 
   function loadUserData() {
     username.value = localStorage.getItem('username') || '';
@@ -110,33 +99,46 @@ export const useUserStore = defineStore("user", () => {
     shopId.value = localStorage.getItem("shopId") || ""; // 重新讀取賣場ID
   }
 
-  function setUserData(newUsername, newUserId, newToken, newRoles = []) {
-    username.value = newUsername;
+  function setUserData(userData) {
+    console.log("🚀 [UserStore] 設定使用者資料:", userData);
+
+    const newUserId = Number(userData.userId);
+    const newUsername = userData.username || '';
+    const newToken = userData.token || ''; // JWT Token
+    const newRoles = Array.isArray(userData.roles) ? userData.roles : [];
+    const newShopId = userData.shopId ? Number(userData.shopId) : null;
+
+    // 更新 Pinia State
     userId.value = newUserId;
-    token.value = newToken;
-    roles.value = Array.isArray(newRoles) ? newRoles : [newRoles]; // ✅ 確保是陣列
+    username.value = newUsername;
+    token.value = newToken; // 更新 token ref
+    roles.value = newRoles;
+    shopId.value = newShopId;
 
-    saveUserData(newUsername, newUserId, newToken, newRoles);
+    // --- 持久化到指定的儲存空間 ---
+    // 核心身份資訊存 localStorage
+    if (newUserId) localStorage.setItem('userId', String(newUserId)); else localStorage.removeItem('userId');
+    if (newUsername) localStorage.setItem('username', newUsername); else localStorage.removeItem('username');
+    localStorage.setItem('roles', JSON.stringify(newRoles));
+    if (newShopId) localStorage.setItem('shopId', String(newShopId)); else localStorage.removeItem('shopId');
+    localStorage.removeItem('token'); // 確保 localStorage 不存 token
+    localStorage.removeItem('userData'); // 移除舊的組合鍵
 
-    // 同步存储
-
-    sessionStorage.setItem('roles', JSON.stringify(newRoles)); // 新增這行
-
-    localStorage.setItem('userData', JSON.stringify({ username, userId, roles }));
-    sessionStorage.setItem('sessionToken', token);
-
-
-    console.log("🚀 設定用戶角色:", roles.value);
-
-    // ✅ 角色變更後確保 UI 反應正確
-    if (isSeller.value) {
-      console.log("✅ 使用者是 SELLER，導向 /seller/orders");
-      router.push("/seller/orders");
+    // Token 【只】存 sessionStorage
+    if (newToken) {
+      sessionStorage.setItem('authToken', newToken);
+      // 立刻更新 Axios 全域設定 (如果 axios 是在這裡引入的話)
+      axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
+      console.log("[UserStore] Axios 標頭已設定新 Token。");
     } else {
-      console.log("✅ 使用者是 USER，導向 /user/orders");
-      router.push("/user/orders");
+      sessionStorage.removeItem('authToken');
+      delete axios.defaults.headers.common['Authorization'];
+      console.log("[UserStore] Axios 標頭已清除。");
     }
+
+    console.log("✅ [UserStore] 使用者資料已儲存至 state、localStorage(身份)、sessionStorage(Token)。");
   }
+
 
   // 新增：更新賣場ID的函數
   function updateShopId(newShopId) {
@@ -152,24 +154,37 @@ export const useUserStore = defineStore("user", () => {
     }
   }
 
+  /**
+     * 清除使用者資料（登出時呼叫）
+     */
   function clearUserData() {
-    username.value = "";
-    userId.value = "";
-    token.value = "";
+    console.log("🗑️ [UserStore] 清除使用者資料...");
+    // 清除 Pinia State
+    userId.value = null;
+    username.value = '';
+    token.value = ''; // 清除 token ref
     roles.value = [];
-    shopId.value = ""; // 清除賣場ID
+    shopId.value = null;
 
-    localStorage.removeItem("username");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("token");
-    localStorage.removeItem("roles");
-    localStorage.removeItem("shopId"); // 從 localStorage 中移除
-
-    // 清除所有存储
+    // 清除 localStorage
+    localStorage.removeItem('userId');
+    localStorage.removeItem('username');
+    localStorage.removeItem('roles');
+    localStorage.removeItem('shopId');
+    localStorage.removeItem('token'); // 確保清除
     localStorage.removeItem('userData');
-    sessionStorage.removeItem('sessionToken');
-    console.log("🗑️ 清除用戶數據");
 
+    // 清除 sessionStorage
+    sessionStorage.removeItem('authToken'); // 清除 token
+    // 你可能還存了其他 session 資料也一併清除
+    sessionStorage.removeItem('userId');
+    sessionStorage.removeItem('username');
+    sessionStorage.removeItem('roles');
+
+
+    // 清除 Axios 標頭
+    delete axios.defaults.headers.common['Authorization'];
+    console.log("✅ [UserStore] 使用者資料已清除。");
   }
 
   // ✅ 監聽角色變更，確保 UI 更新
@@ -204,6 +219,45 @@ export const useUserStore = defineStore("user", () => {
     }
   }
 
+  /**
+       * Store 初始化時從儲存空間載入資料
+       */
+  function loadUserFromStorage() {
+    console.log("--- [UserStore] 從儲存空間載入使用者資料 ---");
+    // 從 localStorage 載入核心身份
+    const localUserId = localStorage.getItem('userId');
+    const localUsername = localStorage.getItem('username');
+    const localRoles = localStorage.getItem('roles');
+    const localShopId = localStorage.getItem('shopId');
+    console.log(`[UserStore] 從 localStorage 讀取: userId=${localUserId}, username=${localUsername}, roles=${localRoles}, shopId=${localShopId}`);
+
+    userId.value = localUserId ? Number(localUserId) : null;
+    username.value = localUsername || '';
+    try {
+      roles.value = localRoles ? JSON.parse(localRoles) : [];
+    } catch (e) {
+      console.error("解析 localStorage 中的 roles 失敗", e);
+      roles.value = [];
+    }
+    shopId.value = localShopId ? Number(localShopId) : null;
+
+    // 從 sessionStorage 載入 Token
+    const sessionToken = sessionStorage.getItem('authToken');
+    console.log(`[UserStore] 從 sessionStorage 讀取 authToken: 是否存在? ${!!sessionToken}`);
+    token.value = sessionToken || '';
+
+    // 根據載入的 Token 設定 Axios 標頭
+    if (token.value) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`;
+      console.log("[UserStore] Axios 標頭已根據初始 Token 設定。");
+    } else {
+      delete axios.defaults.headers.common['Authorization'];
+      console.log("[UserStore] 未找到初始 Token，Axios 標頭已清除。");
+    }
+
+    console.log("📌 [UserStore] 初始化狀態完成:", { userId: userId.value, username: username.value, token: !!token.value, roles: roles.value, shopId: shopId.value });
+  }
+
   loadUserData();
 
   return {
@@ -223,5 +277,8 @@ export const useUserStore = defineStore("user", () => {
     updateShopId, // 暴露更新賣場ID的方法
     fetchCurrentUser, // 🔴 暴露 fetchCurrentUser 函式
     currentUser, // 🔴 暴露 currentUser ref
+    logout,
+    isLoggedIn,
+    loadUserFromStorage,
   };
 });

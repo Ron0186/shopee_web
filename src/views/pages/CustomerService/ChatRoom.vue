@@ -63,7 +63,7 @@ const loadingText = ref("載入中...");
 const checkingExisting = ref(false);
 const newMessage = ref("");
 const userId = ref(localStorage.getItem("userId"));
-const authToken = ref(sessionStorage.getItem("authToken"));
+
 const subs = ref({}); // 用於儲存訂閱的物件，方便後續取消訂閱
 // 獲取 userStore 實例
 const userStore = useUserStore(); // 新增這行
@@ -93,8 +93,8 @@ const isMyMessage = computed(() => {
 
     return (msg) => {
         // *** 使用正確的屬性：msg.senderId ***
-        const messageSenderIdRaw = msg?.senderId; // 從 msg 物件直接讀取 senderId
-        const messageSenderId = Number(messageSenderIdRaw); // 轉換為數字
+        const messageSenderIdRaw = msg?.senderId; // 讀取原始值
+        const messageSenderId = Number(msg?.senderId);
 
         // (可選) 保留日誌以便測試階段驗證
         console.log(
@@ -125,26 +125,19 @@ function formatTime(timestamp) {
     });
 }
 
-// 自動同步 token
-watchEffect(() => {
-    sessionStorage.setItem("authToken", authToken.value);
-    axios.defaults.headers.common["Authorization"] = `Bearer ${authToken.value}`;
-});
+
 
 // 載入聊天室資料與連線
 async function loadChatRoom(chatRoomId) {
     try {
-        authToken.value = sessionStorage.getItem("authToken");
-        const response = await axios.get(`http://localhost:8081/api/chat/${chatRoomId}`, {
-            headers: { Authorization: `Bearer ${authToken.value}` },
-        });
+
+        const response = await axios.get(`http://localhost:8081/api/chat/${chatRoomId}`);
 
         // 若有店鋪資訊則檢查擁有權
         if (response.data.shop) {
-            authToken.value = sessionStorage.getItem("authToken");
+
             const isOwner = await axios.get(
-                `http://localhost:8081/api/chat/${response.data.shop.shopId}/check-ownership`,
-                { headers: { Authorization: `Bearer ${authToken.value}` } }
+                `http://localhost:8081/api/chat/${response.data.shop.shopId}/check-ownership`
             );
             if (isOwner.data.isOwner) {
                 response.data.isOwner = true;
@@ -183,10 +176,8 @@ async function checkChatActivity(chatRoomId) {
 
 async function loadMessages(chatRoomId) {
     try {
-        authToken.value = sessionStorage.getItem("authToken");
-        const response = await axios.get(`http://localhost:8081/api/chat/${chatRoomId}/messages`, {
-            headers: { Authorization: `Bearer ${authToken.value}` },
-        });
+
+        const response = await axios.get(`http://localhost:8081/api/chat/${chatRoomId}/messages`);
         chatStore.messages = response.data;
     } catch (error) {
         console.error("歷史訊息載入失敗:", error);
@@ -235,55 +226,99 @@ onUnmounted(() => {
  * 發送訊息：加入臨時訊息後送出，待回應後更新狀態
  */
 async function send() {
-    try {
-        if (!newMessage.value.trim()) return;
+    // 函數開始時記錄關鍵狀態
+    console.log('send(): 開始執行。');
+    console.log('  - UserStore:', { userId: userStore.userId, username: userStore.username });
+    console.log('  - ChatStore:', { connectionStatus: connectionStatus.value, isConnecting: socketManager.value?.isConnecting, stompClientConnected: socketManager.value?.stompClient?.connected });
+    console.log('  - ActiveChatRoom ID:', activeChatRoom.value?.chatRoomId);
+    console.log('  - Route Params ChatRoom ID:', route.params.chatRoomId);
 
-        // 檢查 socketManager 是否已初始化
-        if (!socketManager.value) {
-            throw new Error('聊天系统未初始化，请刷新页面');
+    try {
+        const messageContent = newMessage.value.trim();
+        if (!messageContent) {
+            console.log('send(): 訊息內容為空，已取消發送。');
+            return;
         }
 
-        // 取得 stompClient
-        let stompClient = socketManager.value.stompClient;
-        if (!stompClient || !stompClient.connected) {
-            console.warn("WebSocket 尚未連線，嘗試重新連線...");
+        // 1. 再次確認使用者 ID 是否存在 (從 userStore)
+        const currentUserId = userStore.userId;
+        const currentUsername = userStore.username;
+        if (!currentUserId) {
+            // 如果 userId 為空，立即拋出錯誤，阻止後續執行
+            throw new Error("無法獲取使用者 ID，請重新登入。");
+        }
 
-            await chatStore.connectChatRoom(route.params.chatRoomId);
-            stompClient = socketManager.value.stompClient;
-            if (!stompClient) {
-                throw new Error('未建立 WebSocket 連線');
+        // 2. 檢查並確保 WebSocket 連接
+        // 使用 chatStore 的 connectionStatus 和 socketManager 進行判斷
+        if (connectionStatus.value !== 'connected' || !socketManager.value?.stompClient?.connected) {
+            console.warn("send(): WebSocket 未連接或狀態異常，嘗試重新連接...");
+            try {
+                // 呼叫 Store 中統一的連接方法
+                await chatStore.connectWebSocket(); // 等待連接嘗試完成
+                // 再次檢查連接狀態
+                if (connectionStatus.value !== 'connected' || !socketManager.value?.stompClient?.connected) {
+                    // 如果重連後仍然失敗，拋出錯誤
+                    throw new Error('WebSocket 重新連接失敗。');
+                }
+                console.log("send(): WebSocket 重新連接成功。");
+            } catch (connectError) {
+                console.error("send(): WebSocket 連接/重連過程中斷:", connectError);
+                // 將連接錯誤包裝後拋出，讓 handleSendError 處理
+                throw new Error(`WebSocket 連接失敗，無法發送訊息 (${connectError.message || connectError})`);
             }
         }
+
+        // --- 到這裡，可以假設連接是成功的 ---
+        const stompClient = socketManager.value.stompClient; // 現在可以安全獲取
+        const currentChatRoomId = activeChatRoom.value?.chatRoomId || route.params.chatRoomId; // 確保有 chatRoomId
+
+        if (!currentChatRoomId) {
+            throw new Error("無法確定當前聊天室 ID。");
+        }
+
+        // 3. 構建 Payload
         const payload = {
-            content: newMessage.value.trim(),
-            senderId: userId.value,
-            tempId: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, // 加入 tempId
+            content: messageContent,
+            senderId: String(currentUserId), // 使用來自 userStore 的 ID
+            tempId: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
             type: 'TEXT_MESSAGE'
         };
+        console.log("send(): 準備發送的 Payload:", JSON.stringify(payload));
 
-        chatStore.addMessage({
+        // 4. 即時顯示 (Optimistic Update)
+        const messageToAdd = {
             ...payload,
-            senderName: currentUser?.username || '我', // **立即填入當前使用者的名字**
-            sender: { userId: userId.value }, // 模擬 sender 物件
-            timestamp: new Date().getTime(),
-            _status: 'sending' // 標記為發送中
-        });
+            senderName: currentUsername || '我', // 使用 userStore 的 username
+            // sender: { userId: currentUserId }, // 根據 addMessage 決定是否需要
+            timestamp: new Date().toISOString(),
+            _status: 'sending'
+        };
+        console.log("send(): 添加即時顯示訊息:", JSON.stringify(messageToAdd));
+        // 確保 addMessage 能處理此結構，且不會拋錯
+        chatStore.addMessage(messageToAdd);
 
-        // 發送訊息
+        // 5. 透過 WebSocket 發送
+        const destination = `/app/chat/${currentChatRoomId}/send`;
+        console.log(`send(): 使用 stompClient 發送到 ${destination}`);
         stompClient.send(
-            `/app/chat/${route.params.chatRoomId}/send`,
+            destination,
             {},
             JSON.stringify(payload)
         );
+        console.log("send(): 訊息已透過 WebSocket 發送。");
 
-        newMessage.value = "";
+        newMessage.value = ""; // 清空輸入框
+
     } catch (error) {
+        // 統一由 handleSendError 處理並記錄詳細錯誤
         handleSendError(error);
     }
 }
-// 錯誤處理函數
+
 function handleSendError(error) {
-    console.error("消息發送失敗:", error);
+    // 記錄完整的錯誤物件、訊息和堆疊追蹤
+    console.error("消息發送失敗 (handleSendError):", error, error?.message, error?.stack);
+    // 顯示給使用者的提示
     Swal.fire("錯誤", error.message || "無法發送訊息", "error");
 }
 

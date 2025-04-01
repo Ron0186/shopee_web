@@ -5,25 +5,14 @@
       <form @submit.prevent="login" class="login-form">
         <div class="form-group">
           <label for="username">使用者名稱</label>
-          <input
-            type="text"
-            id="username"
-            v-model="username"
-            class="form-input"
-            placeholder="請輸入使用者名稱"
-          />
+          <input type="text" id="username" v-model="username" class="form-input" placeholder="請輸入使用者名稱" />
         </div>
 
         <div class="form-group">
           <label for="password">密碼</label>
           <div class="password-container">
-            <input
-              :type="showPassword ? 'text' : 'password'"
-              id="password"
-              v-model="password"
-              class="form-input"
-              placeholder="請輸入密碼"
-            />
+            <input :type="showPassword ? 'text' : 'password'" id="password" v-model="password" class="form-input"
+              placeholder="請輸入密碼" />
             <span class="eye-icon" @click="togglePasswordVisibility">
               <i v-if="showPassword" class="bi bi-eye"></i>
               <i v-else class="bi bi-eye-slash"></i>
@@ -33,11 +22,7 @@
 
         <!-- reCAPTCHA v2 勾選框 -->
         <div class="form-group recaptcha-container">
-          <div
-            ref="recaptchaContainer"
-            class="g-recaptcha"
-            :data-sitekey="recaptchaSiteKey"
-          ></div>
+          <div ref="recaptchaContainer" class="g-recaptcha" :data-sitekey="recaptchaSiteKey"></div>
           <div v-if="captchaError" class="captcha-error">
             請勾選「我不是機器人」
           </div>
@@ -75,18 +60,10 @@
         <div class="quick-login">
           <h3 class="quick-login-title">快速登入</h3>
           <div class="quick-login-buttons">
-            <button
-              type="button"
-              @click="quickLogin('Waylay')"
-              class="quick-login-btn"
-            >
+            <button type="button" @click="quickLogin('Waylay')" class="quick-login-btn">
               <i class="bi bi-lightning-charge"></i> Waylay
             </button>
-            <button
-              type="button"
-              @click="quickLogin('Cypher')"
-              class="quick-login-btn"
-            >
+            <button type="button" @click="quickLogin('Cypher')" class="quick-login-btn">
               <i class="bi bi-shield-lock"></i> Cypher
             </button>
           </div>
@@ -256,7 +233,7 @@ async function login() {
   axios.defaults.headers.common["Authorization"] = ``;
   try {
     const response = await axios.post("/api/auth/login", data);
-
+    console.log("[Login] 收到後端 API 回應:", response); // *** 記錄完整的後端回應 ***
     if (response.data.success) {
       const decodedToken = jwtDecode(response.data.token);
       // 設定 token
@@ -281,7 +258,8 @@ async function login() {
         response.data.token,
         decodedToken.roles
       );
-
+      console.log("[Login] 更新後 userStore 狀態:", { userId: userStore.userId, username: userStore.username, roles: JSON.stringify(userStore.roles), token: userStore.token });
+      // ** 檢查這裡的 userId 是否變成了 44 **
       // 如果用戶是賣家，獲取他們的商店 ID
       if (decodedToken.roles && decodedToken.roles.includes("SELLER")) {
         try {
@@ -299,7 +277,7 @@ async function login() {
         }
       }
 
-      userStore.reloadUserData();
+
       if (result.isConfirmed) {
         router.push("/shop");
       }
@@ -375,8 +353,10 @@ window.addEventListener("storage", (event) => {
 
 <style scoped>
 :root {
-  --primary-color: #ff9b20; /* 修改為橙色，與註冊頁面一致 */
-  --primary-hover: #e7840b; /* 修改為深橙色 */
+  --primary-color: #ff9b20;
+  /* 修改為橙色，與註冊頁面一致 */
+  --primary-hover: #e7840b;
+  /* 修改為深橙色 */
   --error-color: #dc3545;
   --success-color: #28a745;
   --warning-color: #ffc107;
@@ -395,23 +375,28 @@ window.addEventListener("storage", (event) => {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 85vh; /* 從100vh改為85vh，考慮到navbar和footer的空間 */
+  min-height: 85vh;
+  /* 從100vh改為85vh，考慮到navbar和footer的空間 */
   background-color: var(--bg-color);
-  padding: 15px; /* 減少內邊距 */
+  padding: 15px;
+  /* 減少內邊距 */
 }
 
 .login-card {
   width: 100%;
-  max-width: 420px; /* 略微縮小最大寬度 */
+  max-width: 420px;
+  /* 略微縮小最大寬度 */
   background-color: var(--card-bg);
   border-radius: var(--border-radius);
   box-shadow: var(--shadow);
-  padding: 20px; /* 減少內邊距 */
+  padding: 20px;
+  /* 減少內邊距 */
 }
 
 .login-title {
   text-align: center;
-  margin-bottom: 20px; /* 減少下邊距 */
+  margin-bottom: 20px;
+  /* 減少下邊距 */
   color: var(--primary-color);
   font-weight: 600;
 }
@@ -419,7 +404,8 @@ window.addEventListener("storage", (event) => {
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 15px; /* 減少表單元素間距 */
+  gap: 15px;
+  /* 減少表單元素間距 */
 }
 
 /* 表單元素 */
@@ -430,10 +416,12 @@ window.addEventListener("storage", (event) => {
 
 .form-input {
   width: 100%;
-  padding: 10px 12px; /* 減少輸入框內邊距 */
+  padding: 10px 12px;
+  /* 減少輸入框內邊距 */
   border: 1px solid var(--border-color);
   border-radius: var(--input-radius);
-  font-size: 15px; /* 略微縮小字體 */
+  font-size: 15px;
+  /* 略微縮小字體 */
   transition: all 0.2s ease;
 }
 
@@ -445,7 +433,8 @@ window.addEventListener("storage", (event) => {
 
 .form-group label {
   display: block;
-  margin-bottom: 5px; /* 減少標籤下邊距 */
+  margin-bottom: 5px;
+  /* 減少標籤下邊距 */
   font-weight: 500;
   color: var(--text-color);
 }
@@ -458,7 +447,8 @@ window.addEventListener("storage", (event) => {
 
 .password-container input {
   width: 100%;
-  padding-right: 40px; /* 為眼睛圖標預留空間 */
+  padding-right: 40px;
+  /* 為眼睛圖標預留空間 */
 }
 
 .eye-icon {
@@ -472,8 +462,10 @@ window.addEventListener("storage", (event) => {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 30px; /* 減小尺寸 */
-  height: 30px; /* 減小尺寸 */
+  width: 30px;
+  /* 減小尺寸 */
+  height: 30px;
+  /* 減小尺寸 */
   color: var(--text-light);
   transition: color 0.2s;
 }
@@ -487,35 +479,43 @@ window.addEventListener("storage", (event) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 8px 0; /* 減少上下間距 */
+  margin: 8px 0;
+  /* 減少上下間距 */
 }
 
 .captcha-error {
   color: var(--error-color);
-  font-size: 12px; /* 略微縮小字體 */
-  margin-top: 3px; /* 減少上邊距 */
+  font-size: 12px;
+  /* 略微縮小字體 */
+  margin-top: 3px;
+  /* 減少上邊距 */
 }
 
 /* 按鈕樣式 */
 .submit-button {
-  background-color: #ff9b20; /* 使用橙色，與註冊頁面一致 */
+  background-color: #ff9b20;
+  /* 使用橙色，與註冊頁面一致 */
   color: white;
   border: none;
   border-radius: var(--input-radius);
-  padding: 10px 15px; /* 減少內邊距 */
-  font-size: 15px; /* 略微縮小字體 */
+  padding: 10px 15px;
+  /* 減少內邊距 */
+  font-size: 15px;
+  /* 略微縮小字體 */
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px; /* 減少圖標與文字間距 */
+  gap: 6px;
+  /* 減少圖標與文字間距 */
   width: 100%;
 }
 
 .submit-button:hover {
-  background-color: #e7840b; /* 懸停時的深橙色 */
+  background-color: #e7840b;
+  /* 懸停時的深橙色 */
 }
 
 .submit-button:disabled {
@@ -532,17 +532,21 @@ window.addEventListener("storage", (event) => {
 
 .forgot-password {
   justify-content: flex-end;
-  margin-top: -5px; /* 減少上邊距 */
-  margin-bottom: 5px; /* 減少下邊距 */
+  margin-top: -5px;
+  /* 減少上邊距 */
+  margin-bottom: 5px;
+  /* 減少下邊距 */
 }
 
 .form-links a {
   color: var(--primary-color);
   text-decoration: none;
-  font-size: 13px; /* 略微縮小字體 */
+  font-size: 13px;
+  /* 略微縮小字體 */
   display: inline-flex;
   align-items: center;
-  gap: 4px; /* 減少圖標與文字間距 */
+  gap: 4px;
+  /* 減少圖標與文字間距 */
   transition: color 0.2s;
 }
 
@@ -555,7 +559,8 @@ window.addEventListener("storage", (event) => {
 .divider {
   position: relative;
   text-align: center;
-  margin: 15px 0; /* 減少上下間距 */
+  margin: 15px 0;
+  /* 減少上下間距 */
 }
 
 .divider::before {
@@ -580,28 +585,34 @@ window.addEventListener("storage", (event) => {
 .social-login {
   display: flex;
   justify-content: center;
-  margin-bottom: 8px; /* 減少下邊距 */
+  margin-bottom: 8px;
+  /* 減少下邊距 */
 }
 
 /* 快速登入區塊 */
 .quick-login {
-  margin-top: 15px; /* 減少上邊距 */
+  margin-top: 15px;
+  /* 減少上邊距 */
   border-top: 1px solid var(--border-color);
-  padding-top: 15px; /* 減少上內邊距 */
+  padding-top: 15px;
+  /* 減少上內邊距 */
 }
 
 .quick-login-title {
-  font-size: 15px; /* 略微縮小字體 */
+  font-size: 15px;
+  /* 略微縮小字體 */
   font-weight: 600;
   color: var(--text-color);
-  margin-bottom: 10px; /* 減少下邊距 */
+  margin-bottom: 10px;
+  /* 減少下邊距 */
   text-align: center;
 }
 
 .quick-login-buttons {
   display: flex;
   justify-content: center;
-  gap: 12px; /* 減少按鈕間距 */
+  gap: 12px;
+  /* 減少按鈕間距 */
 }
 
 .quick-login-btn {
@@ -609,13 +620,16 @@ window.addEventListener("storage", (event) => {
   color: white;
   border: none;
   border-radius: var(--input-radius);
-  padding: 8px 12px; /* 減少內邊距 */
-  font-size: 13px; /* 略微縮小字體 */
+  padding: 8px 12px;
+  /* 減少內邊距 */
+  font-size: 13px;
+  /* 略微縮小字體 */
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 4px; /* 減少圖標與文字間距 */
+  gap: 4px;
+  /* 減少圖標與文字間距 */
 }
 
 .quick-login-btn:hover {
@@ -624,7 +638,8 @@ window.addEventListener("storage", (event) => {
 
 .register-link {
   justify-content: center;
-  margin-top: 8px; /* 減少上邊距 */
+  margin-top: 8px;
+  /* 減少上邊距 */
 }
 
 /* 響應式設計 */
