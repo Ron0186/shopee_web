@@ -443,6 +443,12 @@ const router = createRouter({
           component: () => import("@/views/admin/Administrators.vue"),
         },
         {
+          // 管理員商品頁面
+          path: "/product-review",
+          name: "ProductReview",
+          component: () => import("@/views/admin/ProductReview.vue"),
+        },
+        {
           // 分類管理頁面
           path: "category-management",
           name: "categoryManagement",
