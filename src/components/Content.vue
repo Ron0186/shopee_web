@@ -15,11 +15,9 @@
 
         <p class="mb-4">
             感謝您來到我們的幫助中心！這裡是您獲取支援、尋找解決方案和學習如何更有效使用我們產品與服務的最佳場所。無論您是新用戶，還是已經熟悉我們平台的資深使用者，幫助中心都能為您提供有價值的資訊，協助您快速解決各種問題，讓您的使用體驗更加順暢，如果有和賣家相關問題，請由此路徑進入
-            <!-- 聊天客服按鈕 -->
             <button class="btn btn-primary" @click="openModal">聊天客服</button>
         </p>
 
-        <!-- 商店列表 Modal -->
         <div v-if="showStoreList" class="modal fade show d-block" tabindex="-1"
             style="background-color: rgba(0,0,0,0.5)">
             <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
@@ -33,20 +31,13 @@
                             <div class="col" v-for="store in stores" :key="store.id">
                                 <div class="card h-100">
                                     <div class="card-body d-flex align-items-center">
-                                        <img :src="store.logo" class="rounded-circle me-3" width="80" height="80">
                                         <div class="flex-grow-1">
                                             <h5 class="card-title mb-1">{{ store.name }}</h5>
-                                            <p class="card-text text-muted mb-1">
-                                                <i class="bi bi-star-fill text-warning"></i> 評價: {{ store.rating }}/5
-                                            </p>
                                         </div>
-                                        <!-- 買家按鈕：僅非當前店鋪所有者顯示 -->
                                         <button v-if="!store.isCurrentUserStore" class="btn btn-primary"
                                             @click.stop="buyerChat(store.shopId)">
                                             買家聊天
                                         </button>
-
-                                        <!-- 賣家按鈕：僅當前店鋪所有者顯示 -->
                                         <button v-else-if="isShopOwner" class="btn btn-primary"
                                             :disabled="!store.hasActiveChat" @click.stop="sellerChat(store.shopId)">
                                             <template v-if="store.hasActiveChat">
@@ -61,13 +52,11 @@
                             </div>
                         </div>
                     </div>
-                    <!-- 可選的 Modal Footer -->
                 </div>
             </div>
         </div>
     </div>
 </template>
-
 
 <script setup>
 import { computed, ref, watch, onMounted, onUnmounted } from 'vue';
@@ -78,6 +67,7 @@ import { fetchStores, fetchUnreadCounts } from '../stores/chatApi';
 import axios from 'axios';
 import Swal from "sweetalert2";
 import SockJS from "sockjs-client/dist/sockjs";
+
 
 const authToken = ref(sessionStorage.getItem("authToken"));
 const route = useRoute();
@@ -106,27 +96,54 @@ const syncUserInfoToSession = () => {
 };
 
 
+// Content.vue 修改 loadStores 方法
 const loadStores = async () => {
     try {
-        const { data } = await fetchStores();
-        const storesData = data.data || data.stores || data || [];
+        const response = await fetchStores();
 
-        // ✅ 为每个店铺加载聊天室状态
-        const enrichedStores = await Promise.all(
-            storesData.map(async store => ({
-                ...store,
-                // 強制轉換 sellerId 和 shopId 為數字
-                sellerId: Number(store.sellerId),
-                shopId: Number(store.shopId),
-                // 使用轉換後的 sellerId 進行比較
-                isCurrentUserStore: Number(store.sellerId) === Number(userStore.userId)
-            }))
-        );
+        // ✅ 直接使用 response.data，因為 API 回應已經是商店列表
+        const storesData = response.data || [];
 
-        stores.value = enrichedStores;
+        // ✅ 类型安全检查
+        if (!Array.isArray(storesData)) {
+            throw new Error('API返回数据格式异常');
+        }
+
+        // ✅ 数据标准化
+        stores.value = storesData.map(store => ({
+            id: Number(store.shopId),
+            name: store.shopName?.trim() || '未命名店铺',
+            sellerId: Number(store.userId),
+            shopId: Number(store.shopId),
+            isCurrentUserStore: Number(store.userId) === Number(userStore.userId),
+            hasActiveChat: false,
+            unreadCount: 0,
+        }));
+
     } catch (error) {
-        console.error('載入商店失敗:', error);
+        console.error('商店加载失败:', error);
         stores.value = [];
+
+        Swal.fire({
+            title: '数据加载失败',
+            html: `
+        <div class="text-start">
+          <p>可能原因：</p>
+          <ul>
+            <li>网络连接不稳定</li>
+            <li>服务暂时不可用</li>
+            <li>数据格式异常</li>
+          </ul>
+          <button
+            class="btn btn-primary mt-3"
+            @click="loadStores"
+          >
+            点击重试
+          </button>
+        </div>
+      `,
+            icon: 'error'
+        });
     }
 };
 
@@ -146,7 +163,7 @@ const checkStoreChatStatus = async (shopId) => {
 const openModal = () => {
     showStoreList.value = true;
     loadStores();
-    loadUnreadCounts();
+    loadUnreadCounts(); // 在打開 Modal 時載入未讀訊息計數
 };
 
 const closeModal = () => {
@@ -257,7 +274,7 @@ const handleChatError = (error) => {
                 icon: 'info',
                 showCancelButton: true,
                 confirmButtonText: '查看其他聊天室',
-                cancelButtonText: '返回帮助中心'
+                cancelButtonText: '返回幫助中心'
             }).then((result) => {
                 if (result.isConfirmed) {
                     router.push('/chat/list'); // 假设有聊天室列表页
@@ -270,19 +287,12 @@ const handleChatError = (error) => {
 };
 
 
-
-
 const loadUnreadCounts = async () => {
     try {
-        if (!userStore.userId) return;
-        // 添加加载状态
-        const loading = Swal.fire({
-            title: '加载未读消息...',
-            allowOutsideClick: false,
-            didOpen: () => Swal.showLoading()
-        });
+        if (!userStore.shopId) return;
 
-        const response = await fetchUnreadCounts(userStore.userId);
+
+        const response = await fetchUnreadCounts(userStore.shopId);
         console.log('未讀訊息計數:', response.data);
 
         // 更新商店数据
@@ -291,7 +301,6 @@ const loadUnreadCounts = async () => {
             unreadCount: response[store.shopId] || 0,
             hasActiveChat: response[store.shopId] > 0
         }));
-        loading.close();
     } catch (error) {
         console.error('載入未讀訊息計數失敗:', error);
     }
@@ -300,21 +309,15 @@ const loadUnreadCounts = async () => {
 onMounted(() => {
     // 同步 userId 與 userName 至 sessionStorage
     syncUserInfoToSession();
+    console.log('Content.vue Mounted - Current shop ID:', userStore.shopId); // 加入這行
     if (userStore.isSeller) {
         subscribeSellerNotifications(userStore.userId);
-
     }
 });
 </script>
 
 <style scoped>
-h3 {
-    margin-bottom: 10px;
-    font-size: 30px;
-}
-
-p {
-    line-height: 2.5;
-    font-size: 20px;
+.help-center {
+    text-align: center;
 }
 </style>

@@ -1,10 +1,7 @@
 <template>
-    <!-- 在聊天室容器顶部添加状态提示 -->
     <div class="connection-status" :class="connectionStatus">
         {{ statusText }}
-
     </div>
-    <!-- 先檢查 activeChatRoom 是否存在，若不存在則顯示 loading -->
     <div v-if="!activeChatRoom || !activeChatRoom.chatRoomId || checkingExisting" class="loading-container">
         <div class="loading-spinner"></div>
         <p>{{ loadingText }}</p>
@@ -19,15 +16,9 @@
 
         <div class="messages">
             <transition-group name="message-list" tag="div">
-                <div v-for="msg in displayMessages" :key="msg.id + msg._status" class="message">
-                    <div :class="[
-                        'message-container',
-                        {
-                            'my-message': isMyMessage(msg),
-                            'sending': msg._status === 'sending',
-                            'failed': msg._status === 'failed'
-                        }
-                    ]">
+                <div v-for="msg in displayMessages" :key="msg.tempId || msg.id" class="message">
+                    <div
+                        :class="['message-container', { 'my-message': isMyMessage(msg), 'sending': msg._status === 'sending', 'failed': msg._status === 'failed' }]">
                         <div class="message-state">
                             <span v-if="msg._status === 'sending'">🔄 发送中</span>
                             <span v-if="msg._status === 'failed'">❌ 发送失败</span>
@@ -50,16 +41,16 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, computed, onUnmounted, watchEffect } from "vue";
+import { ref, watch, computed, onUnmounted, watchEffect, onMounted } from "vue"; // 確保引入 onMounted
 import { useRoute, useRouter } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { storeToRefs } from "pinia";
 import { useChatStore } from '@/stores/chatStore';
-
+import { useUserStore } from '@/stores/user'; // 新增這行
 // 從 store 中取得相關狀態與方法
 const chatStore = useChatStore();
-const { currentUser, activeChatRoom, displayMessages, connectionStatus } = storeToRefs(chatStore);
+const { currentUser, activeChatRoom, displayMessages, connectionStatus, socketManager } = storeToRefs(chatStore);
 
 const route = useRoute();
 const router = useRouter();
@@ -69,6 +60,10 @@ const checkingExisting = ref(false);
 const newMessage = ref("");
 const userId = ref(localStorage.getItem("userId"));
 const authToken = ref(sessionStorage.getItem("authToken"));
+const subs = ref({}); // 用於儲存訂閱的物件，方便後續取消訂閱
+// 獲取 userStore 實例
+const userStore = useUserStore(); // 新增這行
+
 
 // 添加计算属性和方法
 const statusText = computed(() => {
@@ -79,8 +74,6 @@ const statusText = computed(() => {
     }[connectionStatus.value];
 });
 
-
-
 const reconnect = async () => {
     try {
         await chatStore.connectChatRoom(chatStore.activeChatRoom.chatRoomId);
@@ -88,8 +81,6 @@ const reconnect = async () => {
         Swal.fire('错误', '重新连接失败', 'error');
     }
 };
-
-
 
 // 判斷是否為本人發送
 const isMyMessage = computed(() => (msg) => {
@@ -163,6 +154,7 @@ async function checkChatActivity(chatRoomId) {
         }
     } catch (error) {
         console.error("活动检查失败:", error);
+        // 您可以在這裡添加錯誤處理邏輯，例如顯示錯誤訊息給使用者
     }
 }
 
@@ -190,47 +182,17 @@ watch(
     { immediate: true }
 );
 
-onMounted(async () => {
-    try {
-        authToken.value = sessionStorage.getItem("authToken");
-        if (!authToken.value) {
-            Swal.fire("错误", "登录状态已过期", "error");
-            router.push("/user/login");
-            return;
-        }
-        axios.defaults.headers.common["Authorization"] = `Bearer ${authToken.value}`;
-        await chatStore.fetchCurrentUser();
-        if (route.params.chatRoomId) {
-            await loadChatRoom(route.params.chatRoomId);
-            if (chatStore.activeChatRoom.chatRoomId && chatStore.socketManager?.value?.stompClient?.connected) {
-                setupSubscriptions(chatStore.activeChatRoom.chatRoomId);
-            }
-        } else if (route.query.shopId) {
-            checkingExisting.value = true;
-            authToken.value = sessionStorage.getItem("authToken");
-            const response = await axios.post(
-                "http://localhost:8081/api/chat/create",
-                { shopId: route.query.shopId },
-                { headers: { Authorization: `Bearer ${authToken.value}` } }
-            );
-            if (response.data.alreadyExists) {
-                await loadChatRoom(response.data.chatRoomId);
-            } else {
-                router.replace({
-                    path: `/chat/${response.data.chatRoomId}`,
-                    query: { from: "new" },
-                });
-            }
-        }
-    } catch (error) {
-        Swal.fire({
-            title: "錯誤",
-            text: error.response?.data?.message || "聊天室處理失敗",
-            icon: "error",
-        });
-        router.push("/user/login");
-    } finally {
-        checkingExisting.value = false;
+onMounted(async () => { // 使用 onMounted
+
+    const userStoreInstance = useUserStore(); // 獲取 userStore 實例
+    if (!currentUser.value) {
+        // 這裡假設您的 userStore 中有獲取 currentUser 的方法
+        await userStoreInstance.fetchCurrentUser();
+    }
+
+    // 如果 activeChatRoom 和 currentUser 都存在，則連接 WebSocket
+    if (activeChatRoom.value && activeChatRoom.value.chatRoomId && currentUser.value) {
+        chatStore.connectChatRoom(activeChatRoom.value.chatRoomId);
     }
 });
 
@@ -238,49 +200,80 @@ onUnmounted(() => {
     if (chatStore.socketManager?.value?.stompClient?.connected) {
         chatStore.socketManager.value.disconnect();
     }
+    // 取消所有訂閱
+    if (chatStore.socketManager?.value?.stompClient) {
+        Object.keys(subs.value).forEach(key => {
+            chatStore.socketManager.value.stompClient.unsubscribe(subs.value[key].id);
+        });
+    }
 });
 
 /**
  * 發送訊息：加入臨時訊息後送出，待回應後更新狀態
  */
 async function send() {
-    if (!newMessage.value.trim()) return;
-    let messageId; // 將 messageId 宣告移到 try 區塊外
-
     try {
-        // 確保連線正常
-        if (!chatStore.socketManager.value?.stompClient?.connected) {
-            await chatStore.connectChatRoom(chatStore.activeChatRoom.chatRoomId);
+        if (!newMessage.value.trim()) return;
+
+        // 檢查 socketManager 是否已初始化
+        if (!socketManager.value) {
+            throw new Error('聊天系统未初始化，请刷新页面');
         }
 
-        const messageId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        // 添加臨時訊息
-        const tempMessage = {
-            id: messageId,
-            content: newMessage.value.trim(),
-            sender: { userId: userId.value },
-            timestamp: new Date().toISOString(),
-            _status: "sending",
-        };
-        chatStore.addTempMessage(tempMessage);
+        // 取得 stompClient
+        let stompClient = socketManager.value.stompClient;
+        if (!stompClient || !stompClient.connected) {
+            console.warn("WebSocket 尚未連線，嘗試重新連線...");
 
-        // 透過 WebSocket 發送訊息
-        chatStore.sendMessage(newMessage.value.trim(), messageId);
+            await chatStore.connectChatRoom(route.params.chatRoomId);
+            stompClient = socketManager.value.stompClient;
+            if (!stompClient) {
+                throw new Error('未建立 WebSocket 連線');
+            }
+        }
+        const payload = {
+            content: newMessage.value.trim(),
+            senderId: userId.value,
+            tempId: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`, // 加入 tempId
+            type: 'TEXT_MESSAGE'
+        };
+
+        chatStore.addMessage({
+            ...payload,
+            sender: { userId: userId.value }, // 模擬 sender 物件
+            timestamp: new Date().getTime(),
+            _status: 'sending' // 標記為發送中
+        });
+
+        // 發送訊息
+        stompClient.send(
+            `/app/chat/${route.params.chatRoomId}/send`,
+            {},
+            JSON.stringify(payload)
+        );
 
         newMessage.value = "";
     } catch (error) {
-        console.error("發送失敗:", error);
-        chatStore.updateMessageStatus(messageId, 'failed');
+        handleSendError(error);
     }
+}
+// 錯誤處理函數
+function handleSendError(error) {
+    console.error("消息發送失敗:", error);
+    Swal.fire("錯誤", error.message || "無法發送訊息", "error");
 }
 
 function setupSubscriptions(chatRoomId) {
     const stompClient = chatStore.socketManager.value.stompClient;
     if (!stompClient) return;
 
-    Object.keys(subs).forEach(subId => {
-        stompClient.unsubscribe(subId);
+    // 取消之前的訂閱
+    Object.keys(subs.value).forEach(key => {
+        if (subs.value[key] && stompClient.connected) { // 確保 stompClient 已連接
+            stompClient.unsubscribe(subs.value[key].id);
+        }
     });
+    subs.value = {}; // 重置 subs 物件
 
     // 訂閱公共聊天頻道
     const mainSub = stompClient.subscribe(
@@ -296,6 +289,7 @@ function setupSubscriptions(chatRoomId) {
         },
         { id: `sub-main-${chatRoomId}` }
     );
+    subs.value[`sub-main-${chatRoomId}`] = mainSub;
 
     // 錯誤訂閱
     const errorSub = stompClient.subscribe(
@@ -306,6 +300,7 @@ function setupSubscriptions(chatRoomId) {
         },
         { id: `error-sub-${chatRoomId}` }
     );
+    subs.value[`error-sub-${chatRoomId}`] = errorSub;
 }
 </script>
 
