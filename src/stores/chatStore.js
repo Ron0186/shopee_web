@@ -7,37 +7,8 @@ import { useUserStore } from './user';
 import { storeToRefs } from 'pinia'; // 引入 storeToRefs
 import Swal from "sweetalert2";
 
-class SocketManager {
-    constructor() {
-        this.stompClient = null;
-        this.subscriptions = new Map();
-        this.isConnecting = false;
-    }
-    connect(chatRoomId, messageHandler) {
-        const socket = new SockJS('http://localhost:8081/ws');
-        this.stompClient = Stomp.over(socket);
-        this.stompClient.connect(
-            {
-                Authorization: `Bearer ${authToken.value}`,
-                'userId': userId.value // 確保這裡的 header 名稱是 'userId'
-            },
-            () => {
-                // 只訂閱公共頻道
-                this.subscribe(`/topic/chat/${chatRoomId}`, messageHandler);
-            }
-        );
-    }
-    subscribe(destination, callback) {
-        const sub = this.stompClient.subscribe(destination, (message) => {
-            callback(JSON.parse(message.body));
-        });
-        this.subscriptions.set(destination, sub);
-    }
-    disconnect() {
-        this.subscriptions.forEach(sub => sub.unsubscribe());
-        this.stompClient?.disconnect();
-    }
-}
+
+
 
 export const useChatStore = defineStore('chat', () => {
     // state
@@ -55,15 +26,13 @@ export const useChatStore = defineStore('chat', () => {
     });
 
     const displayMessages = computed(() => {
-        const finalMessages = [...messages.value];
-        tempMessages.value.forEach(temp => {
-            if (!finalMessages.some(m => m.id === temp.id)) {
-                finalMessages.push(temp);
-            }
-        });
-        return finalMessages.sort((a, b) =>
+        // 直接使用 messages.value，因為 addMessage 已經處理了所有狀態
+        // 確保 addMessage 內部維持了排序，或者在這裡排序
+        return [...messages.value].sort((a, b) =>
             new Date(a.timestamp) - new Date(b.timestamp)
         );
+        // 如果 addMessage 能保證順序，甚至可以更簡單：
+        // return messages.value;
     });
 
 
@@ -93,12 +62,41 @@ export const useChatStore = defineStore('chat', () => {
             // 2. 獲取初始未讀數 API
             let initialUnreadData = {};
             try {
-                const unreadResponse = await axios.get(`/api/chat/unread?sellerId=${userId.value}`);
-                initialUnreadData = unreadResponse.data || {};
-                console.log("[ChatStore] 初始未讀數 API 回應:", initialUnreadData);
+                // *** 從 sessionStorage 或 userStore 獲取當前的 Auth Token ***
+                const currentAuthToken = sessionStorage.getItem('authToken'); // 或者從 userStore 獲取 (如果有的話)
+
+                if (!currentAuthToken) {
+                    // 如果沒有 token，可以選擇拋出錯誤或直接返回空數據
+                    console.warn("[ChatStore] 無法獲取未讀數：缺少 Auth Token。");
+                    // throw new Error("缺少 Auth Token 無法獲取未讀數"); // 或者讓後續流程使用空數據
+                } else {
+                    // *** 在 axios.get 的第二個參數中傳入 headers ***
+                    const unreadResponse = await axios.get(
+                        `/api/chat/unread?sellerId=${userId.value}`,
+                        { // <-- 加入 axios 配置物件
+                            headers: {
+                                'Authorization': `Bearer ${currentAuthToken}`
+                            }
+                        }
+                    );
+                    initialUnreadData = unreadResponse.data || {};
+                    console.log("[ChatStore] 初始未讀數 API 回應:", initialUnreadData);
+                }
             } catch (unreadError) {
                 console.error("[ChatStore] 獲取初始未讀數失敗:", unreadError);
-                // 可以選擇忽略錯誤，未讀數會是 0
+                // *** 建議加入更詳細的錯誤日誌 ***
+                if (unreadError.response) {
+                    // 請求已發出，伺服器回應了非 2xx 的狀態碼
+                    console.error("錯誤狀態碼:", unreadError.response.status);
+                    console.error("錯誤回應數據:", unreadError.response.data);
+                } else if (unreadError.request) {
+                    // 請求已發出，但沒有收到回應
+                    console.error("未收到伺服器回應:", unreadError.request);
+                } else {
+                    // 設定請求時發生錯誤
+                    console.error('請求設定錯誤:', unreadError.message);
+                }
+                // 保持原有邏輯：忽略錯誤，未讀數會是 0
             }
 
             // 3. 合併數據並更新 stores 狀態
@@ -544,10 +542,11 @@ export const useChatStore = defineStore('chat', () => {
             const sub = stompClient.subscribe(errorDest, (error) => {
                 try {
                     const errorData = JSON.parse(error.body);
-                    Swal.fire('後端錯誤', errorData.message || '發生未知錯誤', 'error');
+                    console.error("解析後的後端錯誤數據:", errorData); // 打印解析後的 JSON 內容
+                    Swal.fire('錯誤', errorData.message || '收到未知的後端錯誤', 'error');
                 } catch (e) {
-                    console.error("[ChatStore] 處理錯誤隊列訊息時出錯:", e, error.body);
-                    Swal.fire('錯誤', '收到無法解析的錯誤訊息', 'error');
+                    console.error("解析後端錯誤訊息失敗:", parseError, error.body); // 如果 JSON 解析失敗，打印原始 body
+                    Swal.fire('錯誤', '收到無法解析的後端錯誤訊息', 'error');
                 }
             }, { id: subId });
             socketManager.value.subscriptions.set(errorDest, sub);
@@ -602,8 +601,17 @@ export const useChatStore = defineStore('chat', () => {
         messages.value = []; // 清空上一聊天室的訊息
 
         try {
+
+            // --- 獲取 Token 和設定 Axios Config ---
+            const currentAuthToken = sessionStorage.getItem('authToken');
+            if (!currentAuthToken) {
+                throw new Error("缺少認證 Token，無法載入聊天室資料");
+            }
+            const axiosConfig = {
+                headers: { 'Authorization': `Bearer ${currentAuthToken}` }
+            };
             // 載入歷史訊息
-            const messagesResponse = await axios.get(`/api/chat/${chatRoomId}/messages`);
+            const messagesResponse = await axios.get(`/api/chat/${chatRoomId}/messages`, axiosConfig);
             // 載入後進行排序並更新狀態
             messages.value = messagesResponse.data.map(msg => ({
                 ...msg,
@@ -613,6 +621,9 @@ export const useChatStore = defineStore('chat', () => {
                 timestamp: msg.timestamp || msg.createdAt
             })).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
             console.log(`[ChatStore] 聊天室 ${chatRoomId} 的歷史訊息已載入並排序。`);
+
+            const detailsResponse = await axios.get(`/api/chat/${chatRoomId}`, axiosConfig); // <--- 添加 Config
+            activeChatRoom.value = detailsResponse.data; // 直接賦值或在 Store 內部處理
 
             // 確保 WebSocket 已連接 (如果未連接則嘗試連接)
             if (!socketManager.value.stompClient?.connected) {
@@ -685,8 +696,7 @@ export const useChatStore = defineStore('chat', () => {
         console.log('[ChatStore addMessage] 訊息列表已更新。數量:', messages.value.length);
     };
 
-    const tempMessages = ref([]);
-    const messageIds = ref(new Set());
+
 
 
     const syncMessages = () => {
@@ -699,31 +709,9 @@ export const useChatStore = defineStore('chat', () => {
     };
     syncMessages();
 
-    const addTempMessage = (message) => {
-        if (!messageIds.value.has(message.id)) {
-            tempMessages.value.push({ ...message, _status: 'sending' });
-            tempMessages.value = [...tempMessages.value];
-            messageIds.value.add(message.id);
-        }
-    };
 
-    const removeTempMessage = (messageId) => {
-        tempMessages.value = tempMessages.value.filter(msg => msg.id !== messageId);
-        messageIds.value.delete(messageId);
-    };
 
-    const updateMessageStatus = (tempId, newStatus, serverMessage = {}) => {
-        const index = tempMessages.value.findIndex(msg => msg.id === tempId);
-        if (index !== -1) {
-            tempMessages.value[index] = {
-                ...tempMessages.value[index],
-                _status: newStatus,
-                id: serverMessage.id || serverMessage.messageId || tempId,
-                timestamp: serverMessage.timestamp || serverMessage.createdAt || new Date().toISOString()
-            };
-            tempMessages.value = [...tempMessages.value];
-        }
-    };
+
 
 
     const messageState = ref({
@@ -765,11 +753,6 @@ export const useChatStore = defineStore('chat', () => {
         fetchUnreadCounts,
         connectChatRoom,
         fetchCurrentUser,
-        addTempMessage,
-        removeTempMessage,
-        displayMessages,
-        addMessage,
-        updateMessageStatus,
         messageState,
         updateMessageState,
         enterSellerChat,
