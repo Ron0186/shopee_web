@@ -68,6 +68,12 @@ const subs = ref({}); // 用於儲存訂閱的物件，方便後續取消訂閱
 // 獲取 userStore 實例
 const userStore = useUserStore(); // 新增這行
 
+console.log('ChatRoom Setup: chatStore instance:', chatStore); // 檢查 chatStore 是否有實例
+if (!chatStore) {
+    console.error('！！！！ chatStore 實例未定義 ！！！！');
+}
+console.log('ChatRoom Setup: connectionStatus ref:', connectionStatus); // 檢查是否為 Ref 物件
+console.log('ChatRoom Setup: socketManager ref:', socketManager);     // 檢查是否為 Ref 物件
 
 // 添加计算属性和方法
 const statusText = computed(() => {

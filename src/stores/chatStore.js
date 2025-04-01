@@ -776,6 +776,6 @@ export const useChatStore = defineStore('chat', () => {
         updateReadStatus,
         setupSubscriptions,
         checkConnection, // 新增 checkConnection 方法
-
+        socketManager,
     };
 });
