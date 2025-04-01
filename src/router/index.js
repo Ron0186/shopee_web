@@ -444,7 +444,7 @@ const router = createRouter({
         },
         {
           // 管理員商品頁面
-          path: "/product-review",
+          path: "product-review",
           name: "ProductReview",
           component: () => import("@/views/admin/ProductReview.vue"),
         },

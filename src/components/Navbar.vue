@@ -14,9 +14,7 @@
         登入</router-link>
       <router-link to="/user/register" v-if="!userStore.username">📝
         註冊</router-link>
-      <router-link to="/shop/apply"
-        v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
-        我要當賣家!!</router-link>
+
 
       <!-- 新增賣家中心按鈕 -->
       <router-link :to="'/store/' + userStore.shopId" v-if="
@@ -27,8 +25,6 @@
       ">
         🏪 賣家中心
       </router-link>
-
-      <router-link to="/memberCenter">👤 會員中心</router-link>
 
       <!-- ✅ 訂單管理 + 通知角標 -->
       <router-link v-if="userStore.username"
@@ -54,9 +50,21 @@
       <router-link v-if="userStore.isSeller" to="/revenue">⚙️
         營收表現</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
-      <span v-if="userStore.username" @click="logout" class="logout-link">
-        <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
-      </span>
+
+      <!-- 使用者名稱下拉選單 -->
+      <div v-if="userStore.username" class="user-dropdown">
+        <button class="username-btn" @click="toggleUserMenu">
+           {{ userStore.username }} <span class="dropdown-icon">▼</span>
+        </button>
+        <div class="user-dropdown-content" v-if="userMenuOpen">
+          <router-link to="/memberCenter" @click="userMenuOpen = false">👤 會員中心</router-link>
+          <router-link to="/shop/apply" 
+        v-if="userStore.token && !userStore.roles.includes('SELLER')" @click="userMenuOpen = false">📝
+        申請成為賣家</router-link>
+          <div @click="logout" class="dropdown-item">登出</div>
+        </div>
+      </div>
+
       <span v-if="userStore.username" @click="logoutToAdmin"
         class="logout-link admin-logout">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
@@ -112,21 +120,12 @@
         <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
           使用者條款</router-link>
       </li>
-      <li v-if="userStore.username" @click="logoutToAdmin">
-        <a class="admin-link">🔐 前往後台</a>
-      </li>
-      <li v-if="userStore.username" @click="logoutToAdmin">
-        <a class="admin-link">🔐 前往後台</a>
-      </li>
-      <li v-if="userStore.username" @click="logoutToAdmin">
-        <a class="admin-link">🔐 前往後台</a>
-      </li>
     </ul>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { useUserStore } from "@/stores/user";
 import Swal from "sweetalert2";
 import router from "@/router/index";
@@ -135,6 +134,7 @@ import axios from "@/plugins/axios";
 const userStore = useUserStore();
 const drawerOpen = ref(false);
 const categoryOpen = ref(false);
+const userMenuOpen = ref(false);
 
 const toggleDrawer = () => {
   drawerOpen.value = !drawerOpen.value;
@@ -143,6 +143,32 @@ const toggleDrawer = () => {
 const toggleCategory = () => {
   categoryOpen.value = !categoryOpen.value;
 };
+
+const toggleUserMenu = () => {
+  userMenuOpen.value = !userMenuOpen.value;
+};
+
+// 點擊其他地方關閉使用者選單
+const handleClickOutside = (event) => {
+  const userDropdown = document.querySelector('.user-dropdown');
+  if (userDropdown && !userDropdown.contains(event.target) && userMenuOpen.value) {
+    userMenuOpen.value = false;
+  }
+};
+
+// 監聽全局點擊事件
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+  if (userStore.token) {
+    fetchNotificationCount(); // 回傳通知列
+  }
+});
+
+// 清理事件監聽器
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+
 const pendingCount = ref(0); // 賣家通知數
 const shippedCount = ref(0); // 買家通知數
 
@@ -170,6 +196,7 @@ const fetchNotificationCount = async () => {
 // ✅ 登出功能
 async function logout() {
   userStore.clearUserData();
+  userMenuOpen.value = false; // 關閉下拉選單
   const response = await Swal.fire({
     title: "您已成功登出",
     icon: "success",
@@ -183,6 +210,7 @@ async function logout() {
 // ✅ 登出並跳轉至後台登入頁
 async function logoutToAdmin() {
   userStore.clearUserData();
+  userMenuOpen.value = false; // 關閉下拉選單
   const response = await Swal.fire({
     title: "已登出前台",
     text: "正在前往後台登入頁面",
@@ -199,13 +227,6 @@ const handleNotificationClick = (chatRoomId) => {
   console.log("即將導向聊天室：", chatRoomId);
   router.push(`/chat/${chatRoomId}`);
 };
-
-// ✅ 初始化時查詢一次
-onMounted(() => {
-  if (userStore.token) {
-    fetchNotificationCount(); // 回傳通知列
-  }
-});
 </script>
 
 <style scoped>
@@ -237,6 +258,7 @@ onMounted(() => {
 .nav-icons {
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
 .nav-icons a {
@@ -247,6 +269,61 @@ onMounted(() => {
 
 .nav-icons a:hover {
   text-decoration: underline;
+}
+
+/* 使用者下拉選單樣式 */
+.user-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.username-btn {
+  background-color: #f7e9d2;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: #000000;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dropdown-icon {
+  font-size: 10px;
+}
+
+.user-dropdown-content {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1001;
+  border-radius: 4px;
+  margin-top: 5px;
+}
+
+.user-dropdown-content a,
+.user-dropdown-content .dropdown-item {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.user-dropdown-content a:hover,
+.user-dropdown-content .dropdown-item:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+
+.user-dropdown-content .dropdown-item:last-child {
+  border-bottom: none;
 }
 
 .sidebar {
@@ -313,10 +390,10 @@ onMounted(() => {
   color: #000;
   text-decoration: none;
   font-size: 16px;
+  cursor: pointer;
 }
 
 .logout-link:hover {
-  cursor: pointer;
   text-decoration: underline;
 }
 
