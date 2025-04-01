@@ -473,7 +473,7 @@ button:hover {
 .message-bubble {
     padding: 8px 12px;
     border-radius: 15px;
-    max-width: 70%;
+    max-width: 100%;
     word-wrap: break-word;
     position: relative;
     /* 相對定位，如果需要放狀態指示 */
@@ -497,19 +497,29 @@ button:hover {
 /* 其他樣式 (header, username, content, timestamp, state) */
 .message-header {
     display: flex;
-    justify-content: space-between;
+
+    align-items: baseline;
+    /* 建議保留，讓文字基線對齊 */
     margin-bottom: 4px;
+    /* 如果是自己的訊息，可能需要反轉方向 */
+    /* 例如：.sent-by-me .message-header { flex-direction: row-reverse; } */
 }
 
 .username {
     font-weight: bold;
     font-size: 0.8em;
     color: #555;
+    margin-left: 15px;
 }
 
 .timestamp {
-    font-size: 0.75em;
+
     color: #999;
+    /* *** 加入這一行來增加左邊距 *** */
+
+    /* 8px 是一個參考值，你可以調整大小直到滿意為止 */
+    /* 如果你的 .sent-by-me .message-header 使用了 row-reverse，
+     那麼對於你自己的訊息，可能需要設定 margin-right 而不是 margin-left */
 }
 
 .message-content {
@@ -521,14 +531,5 @@ button:hover {
     color: #888;
     text-align: right;
     margin-top: 2px;
-}
-
-/* 可以為自己的訊息微調顏色 */
-.sent-by-me .username {
-    color: #1d5c1d;
-}
-
-.sent-by-me .timestamp {
-    color: #7f8c8d;
 }
 </style>
