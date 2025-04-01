@@ -307,11 +307,13 @@ const loadUnreadCounts = async () => {
 
         // 2. 將 userStore.userId 傳遞給 fetchUnreadCounts
         const response = await fetchUnreadCounts(userStore.userId);
+        console.log('Response from fetchUnreadCounts:', JSON.stringify(response)); // 打印從後端收到的原始數據
 
         // 3. 處理回傳值 (fetchUnreadCounts 成功時直接回傳後端數據，失敗時回傳 {success: false, ...})
         if (response && typeof response === 'object' && !(response.success === false)) {
             console.log('未讀訊息計數 (Raw Response):', response); // 打印實際的 Map
             const unreadData = response; // 成功時 response 就是後端的 Map
+            console.log('Processing unreadData:', JSON.stringify(unreadData)); // 打印用於更新的 Map
 
             // 使用 shopId 作為 key 更新 unreadCount (這部分邏輯是正確的)
             stores.value = stores.value.map(store => ({
