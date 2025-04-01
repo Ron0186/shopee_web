@@ -4,6 +4,47 @@
     <main class="main-content">
       <h1>🛒 商品商城</h1>
 
+      <!-- 📌 分類選單 -->
+      <div class="category-menu">
+        <div class="categories">
+          <button
+            class="category-btn"
+            :class="{ active: selectedCategory1 === null }"
+            @click="selectCategory1(null)"
+          >
+            所有分類
+          </button>
+          <button
+            v-for="cat1 in category1List"
+            :key="cat1.id"
+            class="category-btn"
+            :class="{ active: selectedCategory1 === cat1.id }"
+            @click="selectCategory1(cat1.id)"
+          >
+            {{ cat1.name }}
+          </button>
+        </div>
+
+        <div class="subcategories" v-if="selectedCategory1">
+          <button
+            class="subcategory-btn"
+            :class="{ active: selectedCategory2 === null }"
+            @click="selectCategory2(null)"
+          >
+            全部
+          </button>
+          <button
+            v-for="cat2 in filteredCategory2List"
+            :key="cat2.id"
+            class="subcategory-btn"
+            :class="{ active: selectedCategory2 === cat2.id }"
+            @click="selectCategory2(cat2.id)"
+          >
+            {{ cat2.name }}
+          </button>
+        </div>
+      </div>
+
       <!-- 📌 搜尋欄 -->
       <div class="search-bar">
         <input v-model="searchQuery" type="text" placeholder="搜尋商品..." />
@@ -11,68 +52,204 @@
       </div>
 
       <!-- 📌 商品列表 -->
-      <div class="products-grid">
+      <div v-if="loading" class="loading">載入中...請稍候</div>
+      <div v-else-if="products.length === 0" class="no-products">
+        沒有符合條件的商品
+      </div>
+      <div v-else class="products-grid">
         <div
           class="product-card"
-          v-for="product in filteredProducts"
+          v-for="product in products"
           :key="product.productId"
         >
           <img
-            :src="getImageUrl(product.imageUrls[0])"
+            :src="
+              getImageUrl(
+                product.primaryImageUrl ||
+                  (product.imageUrls && product.imageUrls[0])
+              )
+            "
             :alt="product.productName"
           />
           <h3>{{ product.productName }}</h3>
-          <p>💰 {{ product.lowestPrice }} 元</p>
-          <p>👤 賣家：{{ product.sellerName }}</p>
+          <p class="product-price">💰 {{ product.lowestPrice }} 元</p>
+          <p class="product-seller">👤 賣家：{{ product.sellerName }}</p>
+          <p v-if="product.category1Name" class="category-tag">
+            分類：{{ product.category1Name }} / {{ product.category2Name }}
+          </p>
           <button @click="addToCart(product)">🛒 加入購物車</button>
         </div>
+      </div>
+
+      <!-- 📌 分頁控制 -->
+      <div class="pagination" v-if="totalPages > 1">
+        <button
+          :disabled="currentPage === 0"
+          @click="changePage(currentPage - 1)"
+          class="page-btn prev"
+        >
+          上一頁
+        </button>
+        <span class="page-info">{{ currentPage + 1 }} / {{ totalPages }}</span>
+        <button
+          :disabled="currentPage >= totalPages - 1"
+          @click="changePage(currentPage + 1)"
+          class="page-btn next"
+        >
+          下一頁
+        </button>
       </div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import axios from "axios";
-import imagePath from "@/assets/image.png";
-// 🔹 假資料 (可改成 API 取得)
+
+// 🔹 商品和分類資料
 const products = ref([]);
+const category1List = ref([]);
+const category2List = ref([]);
+const filteredCategory2List = ref([]);
+
+// 🔹 UI 狀態
 const searchQuery = ref("");
+const loading = ref(true);
+const currentPage = ref(0);
+const pageSize = ref(12);
+const totalPages = ref(0);
+const selectedCategory1 = ref(null);
+const selectedCategory2 = ref(null);
+
+// 🔹 API URL 前綴 (根據實際環境可調整)
+const apiBaseUrl = "http://localhost:8081/api";
 
 // ✅ 從後端 API 抓商品資料
 const fetchProducts = async () => {
+  loading.value = true;
   try {
-    const res = await axios.get("http://localhost:8081/api/products/public");
-    products.value = res.data;
+    const params = {
+      page: currentPage.value,
+      size: pageSize.value,
+    };
+
+    // 添加過濾參數
+    if (selectedCategory1.value) {
+      params.category1Id = selectedCategory1.value;
+    }
+    if (selectedCategory2.value) {
+      params.category2Id = selectedCategory2.value;
+    }
+    if (searchQuery.value) {
+      params.nameKeyword = searchQuery.value;
+    }
+
+    const res = await axios.get(`${apiBaseUrl}/products/public`, { params });
+
+    // 處理分頁數據
+    products.value = res.data.content;
+    totalPages.value = res.data.totalPages;
   } catch (error) {
     console.error("❌ 取得商品失敗：", error);
+    products.value = [];
+  } finally {
+    loading.value = false;
   }
 };
 
-// 🔍 依據搜尋關鍵字篩選商品
-const filteredProducts = computed(() => {
-  return products.value.filter((product) =>
-    product.productName.includes(searchQuery.value)
-  );
-});
+// ✅ 獲取所有一級分類
+const fetchCategory1 = async () => {
+  try {
+    const res = await axios.get(`${apiBaseUrl}/category1/all`);
+    category1List.value = res.data;
+  } catch (error) {
+    console.error("❌ 取得一級分類失敗：", error);
+    category1List.value = [];
+  }
+};
 
-// 🛒 加入購物車
-const addToCart = (product) => {
-  alert(`${product.productName} 已加入購物車！`);
+// ✅ 根據一級分類ID獲取對應的二級分類
+const fetchCategory2ByCategory1 = async (category1Id) => {
+  if (!category1Id) {
+    filteredCategory2List.value = [];
+    return;
+  }
+
+  try {
+    const res = await axios.get(`${apiBaseUrl}/category2/byC1`, {
+      params: { category1Id },
+    });
+    filteredCategory2List.value = res.data;
+  } catch (error) {
+    console.error("❌ 取得二級分類失敗：", error);
+    filteredCategory2List.value = [];
+  }
+};
+
+// 🔍 選擇一級分類
+const selectCategory1 = async (id) => {
+  selectedCategory1.value = id;
+  selectedCategory2.value = null; // 重置二級分類選擇
+  currentPage.value = 0; // 重置分頁
+
+  if (id) {
+    await fetchCategory2ByCategory1(id);
+  } else {
+    filteredCategory2List.value = [];
+  }
+
+  await fetchProducts();
+};
+
+// 🔍 選擇二級分類
+const selectCategory2 = async (id) => {
+  selectedCategory2.value = id;
+  currentPage.value = 0; // 重置分頁
+  await fetchProducts();
 };
 
 // 🔍 執行搜尋
 const searchProduct = () => {
-  alert(`搜尋商品：${searchQuery.value}`);
+  currentPage.value = 0; // 重置分頁
+  fetchProducts();
 };
 
-// 圖片處理
-const getImageUrl = (url) => {
-  return url.startsWith("http") ? url : `http://localhost:8080/uploads/${url}`;
+// 📄 分頁控制
+const changePage = (newPage) => {
+  if (newPage >= 0 && newPage < totalPages.value) {
+    currentPage.value = newPage;
+    fetchProducts();
+  }
 };
+
+// 🛒 加入購物車
+const addToCart = (product) => {
+  alert(`${product.productName} 已加入購物車！`);
+  // 這裡可以實現實際的購物車邏輯
+};
+
+// 🖼️ 圖片處理
+const getImageUrl = (url) => {
+  if (!url) return "/uploads/default-product-image.jpg";
+  return url.startsWith("http")
+    ? url
+    : `${apiBaseUrl.replace("/api", "")}${url}`;
+};
+
+// 👀 監聽搜尋關鍵字變化
+watch(searchQuery, (newVal, oldVal) => {
+  if (newVal === "") {
+    // 當清空搜尋框時自動刷新商品列表
+    fetchProducts();
+  }
+});
 
 // 🔁 初始化時呼叫
-onMounted(fetchProducts);
+onMounted(async () => {
+  await fetchCategory1();
+  await fetchProducts();
+});
 </script>
 
 <style>
@@ -131,9 +308,62 @@ body {
   box-sizing: border-box;
 }
 
+/* 🎯 分類選單 */
+.category-menu {
+  width: 100%;
+  margin-bottom: 20px;
+}
+
+.categories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+  justify-content: center;
+}
+
+.subcategories {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+  padding-left: 20px;
+  justify-content: center;
+}
+
+.category-btn,
+.subcategory-btn {
+  padding: 8px 15px;
+  background: #f1f1f1;
+  border: 1px solid #ddd;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.category-btn:hover,
+.subcategory-btn:hover {
+  background: #e0e0e0;
+}
+
+.category-btn.active {
+  background: #007bff;
+  color: white;
+  border-color: #0069d9;
+}
+
+.subcategory-btn.active {
+  background: #28a745;
+  color: white;
+  border-color: #218838;
+}
+
 /* 🎯 搜尋欄 */
 .search-bar {
   margin-bottom: 20px;
+  width: 100%;
+  display: flex;
+  justify-content: center;
 }
 
 .search-bar input {
@@ -153,10 +383,20 @@ body {
   margin-left: 5px;
 }
 
+/* 載入中和沒有商品的提示 */
+.loading,
+.no-products {
+  margin: 30px 0;
+  font-size: 18px;
+  color: #666;
+  text-align: center;
+  width: 100%;
+}
+
 /* 🎯 商品網格 */
 .products-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 30px;
   width: 100%;
   max-width: 1400px;
@@ -172,10 +412,16 @@ body {
   /* 確保商品卡片不會變得過大 */
   width: 100%;
   overflow: hidden;
+  transition: transform 0.3s ease;
+  border: 1px solid #eee;
+  border-radius: 10px;
+  padding: 10px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .product-card:hover {
   transform: scale(1.05);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
 }
 
 .product-card img {
@@ -187,14 +433,41 @@ body {
 }
 
 .product-card h3 {
-  font-size: 20px;
+  font-size: 16px;
   margin: 10px 0;
   font-weight: bold;
+  height: 40px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .product-card p {
-  font-size: 16px;
+  font-size: 14px;
   color: #444;
+  margin-bottom: 8px;
+}
+
+.product-price {
+  font-size: 16px !important;
+  color: #e84118 !important;
+  font-weight: bold;
+}
+
+.product-seller {
+  font-size: 12px !important;
+  color: #666 !important;
+}
+
+/* 分類標籤 */
+.category-tag {
+  font-size: 12px;
+  color: #666;
+  background-color: #f8f9fa;
+  padding: 2px 5px;
+  border-radius: 3px;
   margin-bottom: 10px;
 }
 
@@ -208,9 +481,39 @@ body {
   cursor: pointer;
   border-radius: 5px;
   transition: background 0.3s ease-in-out;
+  width: 100%;
 }
 
 .product-card button:hover {
   background: #e05b50;
+}
+
+/* 分頁控制 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.page-btn {
+  padding: 8px 15px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 0 10px;
+}
+
+.page-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 16px;
+  color: #666;
 }
 </style>

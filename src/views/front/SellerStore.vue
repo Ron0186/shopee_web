@@ -19,7 +19,7 @@
       <a href="#">配件 / 飾品</a>
     </nav>
 
-    <!-- 商品區塊  這是搜尋商品跟上架商品-->
+    <!-- 商品區塊 - 搜尋商品跟上架商品-->
     <div class="product-section">
       <div class="section-header">
         <input
@@ -27,7 +27,7 @@
           class="search-bar"
           placeholder="🔍 搜尋商品..."
           v-model="searchQuery"
-          @input="filterProducts"
+          @keyup.enter="searchProduct"
         />
         <button
           class="btn btn-add-product"
@@ -38,14 +38,14 @@
         </button>
       </div>
 
-      <!-- 商品區塊  都是商品資訊相關 是商店擁有者的話你會看到編輯&刪除-->
+      <!-- 商品區塊 - 商品資訊相關，是商店擁有者的話會看到編輯&刪除 -->
       <div class="product-wrapper">
         <div v-if="loading" class="loading-spinner">
           <div class="spinner"></div>
           <p>載入商品中...</p>
         </div>
 
-        <div v-else-if="filteredProducts.length === 0" class="no-products">
+        <div v-else-if="products.length === 0" class="no-products">
           <p v-if="searchQuery">沒有符合「{{ searchQuery }}」的商品</p>
           <p v-else>商店目前沒有任何商品</p>
           <button
@@ -60,32 +60,27 @@
         <div v-else class="product-list">
           <div
             class="product-card"
-            v-for="product in filteredProducts"
+            v-for="product in products"
             :key="product.productId"
             @click="viewProductDetail(product.productId)"
           >
             <img
               :src="
-                product.primaryImageUrl
-                  ? product.primaryImageUrl.startsWith('http')
-                    ? product.primaryImageUrl
-                    : `${baseUrl}${product.primaryImageUrl}`
-                  : defaultImage
+                getImageUrl(
+                  product.primaryImageUrl ||
+                    (product.imageUrls && product.imageUrls[0])
+                )
               "
               class="product-img"
               alt="商品圖片"
             />
             <div class="product-info">
               <p class="product-title">{{ product.productName }}</p>
-              <p
-                class="product-price"
-                v-if="product.minPrice === product.maxPrice"
-              >
-                $ {{ formatPrice(product.minPrice) }}
+              <p class="product-price">
+                $ {{ formatPrice(product.lowestPrice) }}
               </p>
-              <p class="product-price" v-else>
-                $ {{ formatPrice(product.minPrice) }} -
-                {{ formatPrice(product.maxPrice) }}
+              <p class="product-categories" v-if="product.category1Name">
+                {{ product.category1Name }} / {{ product.category2Name }}
               </p>
               <p class="product-rating">
                 ⭐ {{ product.rating || "暫無評分" }} 已售出
@@ -110,6 +105,25 @@
           </div>
         </div>
       </div>
+
+      <!-- 分頁控制 -->
+      <div class="pagination" v-if="totalPages > 1">
+        <button
+          :disabled="currentPage === 0"
+          @click="changePage(currentPage - 1)"
+          class="btn page-btn prev"
+        >
+          上一頁
+        </button>
+        <span class="page-info">{{ currentPage + 1 }} / {{ totalPages }}</span>
+        <button
+          :disabled="currentPage >= totalPages - 1"
+          @click="changePage(currentPage + 1)"
+          class="btn page-btn next"
+        >
+          下一頁
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -129,26 +143,20 @@ const userStore = useUserStore();
 // 取得用戶資訊
 const token = userStore.token;
 
+// 狀態變數
 const isOwner = ref(false);
 const shop = ref({});
 const products = ref([]);
 const searchQuery = ref("");
 const errorMessage = ref("");
 const loading = ref(true);
-const baseUrl = ref(import.meta.env.VITE_API_URL);
+const baseUrl = ref(import.meta.env.VITE_API_URL || "");
 const defaultImage = "/src/assets/default-image.png"; // 預設商品圖片路徑
 
-// 根據搜尋條件過濾商品
-const filteredProducts = computed(() => {
-  if (!searchQuery.value) return products.value;
-
-  const query = searchQuery.value.toLowerCase();
-  return products.value.filter(
-    (product) =>
-      product.productName.toLowerCase().includes(query) ||
-      (product.description && product.description.toLowerCase().includes(query))
-  );
-});
+// 分頁控制
+const currentPage = ref(0);
+const pageSize = ref(12);
+const totalPages = ref(0);
 
 // 取得商店資訊
 const fetchShopData = async () => {
@@ -157,6 +165,11 @@ const fetchShopData = async () => {
     const response = await axios.get(`/api/shop/${shopId}`);
     if (response.data.success && response.data.shopDTO) {
       shop.value = response.data.shopDTO;
+
+      // 將商店 ID 存入 userStore (如果是店主)
+      if (isOwner.value) {
+        userStore.updateShopId(shopId);
+      }
     } else {
       errorMessage.value = response.data.message || "商店資訊獲取失敗";
     }
@@ -186,46 +199,59 @@ const checkOwner = async () => {
   try {
     const response = await axios.get(`/api/shop/${shopId}/is-owner`);
     isOwner.value = response.data.isOwner;
+
+    // 如果是店主，存儲 shopId
+    if (isOwner.value) {
+      userStore.updateShopId(shopId);
+    }
   } catch (error) {
     console.error("檢查擁有者錯誤:", error);
     isOwner.value = false;
   }
 };
 
-// 獲取商店的所有商品
+// 獲取商店的所有商品 - 使用新的 API 端點
 const fetchProducts = async () => {
   const shopId = route.params.shopId;
   loading.value = true;
 
   try {
-    const response = await axios.get(`/api/products`, {
+    // 使用新的分頁 API
+    const res = await axios.get(`/api/products/public/shop/${shopId}`, {
       params: {
-        shopId: shopId,
-        page: 0,
-        size: 100,
+        page: currentPage.value,
+        size: pageSize.value,
+        nameKeyword: searchQuery.value || undefined,
       },
     });
 
-    if (response.data && response.data.content) {
-      products.value = response.data.content;
-    } else if (Array.isArray(response.data)) {
-      products.value = response.data;
-    } else if (response.data && Array.isArray(response.data.products)) {
-      products.value = response.data.products;
+    if (res.data && res.data.content) {
+      products.value = res.data.content;
+      totalPages.value = res.data.totalPages;
     } else {
       products.value = [];
+      totalPages.value = 0;
     }
   } catch (error) {
-    console.error("獲取商品失敗:", error);
+    console.error("❌ 取得商品失敗：", error);
     products.value = [];
   } finally {
     loading.value = false;
   }
 };
 
+// 分頁控制
+const changePage = (newPage) => {
+  if (newPage >= 0 && newPage < totalPages.value) {
+    currentPage.value = newPage;
+    fetchProducts();
+  }
+};
+
 // 搜尋功能
-const filterProducts = () => {
-  // 使用 computed 屬性自動更新，這裡可以放其他邏輯
+const searchProduct = () => {
+  currentPage.value = 0; // 重置為第一頁
+  fetchProducts();
 };
 
 // 導航到「我的商品」頁面，並攜帶 shopId 作為路由參數
@@ -237,14 +263,15 @@ const goToMyProducts = () => {
 
 // 查看商品詳情
 const viewProductDetail = (productId) => {
-  // 這裡應該導向商品詳情頁面，目前先使用 alert 示範
   router.push(`/products/${productId}`);
 };
 
 // 編輯商品
 const editProduct = (productId) => {
   router.push(
-    `/seller/shops/${shop.value.shopId || route.params.shopId}/products`
+    `/seller/shops/${
+      shop.value.shopId || route.params.shopId
+    }/products/edit/${productId}`
   );
 };
 
@@ -298,7 +325,13 @@ const deleteProduct = async (productId) => {
 // 格式化價格
 const formatPrice = (price) => {
   if (!price && price !== 0) return "未定價";
-  return price.toLocaleString("zh-TW");
+  return typeof price === "number" ? price.toLocaleString("zh-TW") : price;
+};
+
+// 圖片處理
+const getImageUrl = (url) => {
+  if (!url) return defaultImage;
+  return url.startsWith("http") ? url : `${baseUrl.value}${url}`;
 };
 
 // 監聽 shopId 變化
@@ -311,6 +344,14 @@ watch(
     await fetchProducts();
   }
 );
+
+// 監聽搜尋關鍵字變化
+watch(searchQuery, (newVal, oldVal) => {
+  if (newVal === "" && oldVal !== "") {
+    // 當清空搜尋框時自動刷新商品列表
+    fetchProducts();
+  }
+});
 
 // 組件掛載時請求商店資訊 & 檢查擁有者 & 獲取商品列表
 onMounted(async () => {
@@ -390,6 +431,7 @@ onMounted(async () => {
   box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
   transition: transform 0.2s ease-in-out;
   cursor: pointer;
+  position: relative;
 }
 
 .product-card:hover {
@@ -421,6 +463,12 @@ onMounted(async () => {
   color: #e84118;
   font-weight: bold;
   margin: 8px 0;
+}
+
+.product-categories {
+  font-size: 12px;
+  color: #666;
+  margin: 5px 0;
 }
 
 .product-rating {
@@ -540,5 +588,34 @@ onMounted(async () => {
   font-size: 12px;
   display: inline-block;
   margin-top: 5px;
+}
+
+/* 分頁控制 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+
+.page-btn {
+  padding: 8px 15px;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  margin: 0 10px;
+}
+
+.page-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.page-info {
+  font-size: 16px;
+  color: #666;
 }
 </style>
