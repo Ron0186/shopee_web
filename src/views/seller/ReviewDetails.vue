@@ -1,164 +1,256 @@
 <template>
     <div class="list-page">
-        <h1>🌟 收到評論</h1>
-        <p>評論數量：{{ reviewData.length }}</p>
-
-        <ul>
-            <li v-for="review in paginatedData" :key="review.reviewId"
-                class="review-item">
-                <p>評論內容：{{ review.reviewContent }}</p>
-                <p>評分：{{ formatRating(review.rating) }} ⭐</p>
-                <p>評論商品：{{ review.productName }}</p>
-                <!-- <p>評論者：{{ review.reviewId
-                }}</p>
-                <p>評論者：{{ getUserName(review.userId) }}</p> -->
-                <p>評論狀態：{{ review.status
-                }}</p>
-                <p>評論時間：{{ formatDate(review.createdAt) }}</p>
-            </li>
-        </ul>
-
-        <!-- 分頁按鈕 -->
-        <div class="pagination">
-            <button @click="prevPage" :disabled="currentPage === 1">上一頁</button>
-            <span>第 {{ currentPage }} / {{ totalPages }} 頁</span>
-            <button @click="nextPage"
-                :disabled="currentPage === totalPages">下一頁</button>
-        </div>
-
-        <!-- 返回上一頁按鈕 -->
-        <button @click="goBack" class="back-btn">返回上一頁</button>
+      <h1>🌟 收到評論</h1>
+  
+      <!-- 上方資訊統一樣式 -->
+      <p class="info-row">評論數量：{{ reviewData.length }}</p>
+      <p class="info-row">
+        平均評分：
+        <font-awesome-icon
+          v-for="(type, index) in renderStarIcons(parseFloat(averageRating))"
+          :key="index"
+          :icon="getIcon(type)"
+          class="star-icon"
+        />
+        （{{ averageRating }}）
+      </p>
+  
+      <!-- 排序選單 -->
+      <div class="info-row sort-control">
+        <label>排序依據：</label>
+        <select v-model="sortBy">
+          <option value="time">🕒 時間</option>
+          <option value="rating">⭐ 評分</option>
+        </select>
+  
+        <label>排序方向：</label>
+        <select v-if="sortBy === 'rating'" v-model="sortOrder">
+          <option value="desc">↓ 由高到低</option>
+          <option value="asc">↑ 由低到高</option>
+        </select>
+  
+        <select v-else v-model="timeOrderDirection">
+          <option value="desc">📅 由近至遠</option>
+          <option value="asc">📅 由遠至近</option>
+        </select>
+      </div>
+  
+      <!-- 評論列表 -->
+      <ul>
+        <li v-for="review in paginatedData" :key="review.reviewId" class="review-item">
+          <p class="label-row">
+            <span class="label">評論內容：</span>{{ review.reviewContent }}
+          </p>
+          <p class="label-row">
+            <span class="label">評分：</span>
+            <span class="star-group">
+                <font-awesome-icon v-for="(type, index) in renderStarIcons(review.rating)" :key="index" :icon="getIcon(type)" class="star-icon" />
+            （{{ formatRating(review.rating) }}）
+                </span>
+            </p>
+          <p class="label-row">
+            <span class="label">評論商品：</span>{{ review.productName }}
+          </p>
+          <p class="label-row">
+            <span class="label">評論狀態：</span>{{ review.status }}
+          </p>
+          <p class="label-row">
+            <span class="label">評論時間：</span>{{ formatDate(review.createdAt) }}
+          </p>
+        </li>
+      </ul>
+  
+      <!-- 分頁按鈕 -->
+      <div class="pagination">
+        <button @click="prevPage" :disabled="currentPage === 1">上一頁</button>
+        <span>第 {{ currentPage }} / {{ totalPages }} 頁</span>
+        <button @click="nextPage" :disabled="currentPage === totalPages">下一頁</button>
+      </div>
+  
+      <button @click="goBack" class="back-btn">返回上一頁</button>
     </div>
-</template>
-
-
-
-
-<script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import axios from 'axios'
-
-const reviewData = ref<any[]>([]) // 存放評論資料
-const pageSize = ref(5) // 每頁顯示 5 筆
-const currentPage = ref(1) // 當前頁數
-const router = useRouter() // 用於返回上一頁
-const userCache = ref<Record<number, string>>({}) // 快取 username
-
-// ✅ 格式化評分為 1 位小數
-const formatRating = (rating: any) => {
-    // 確保是數字，如果不是，嘗試轉換
-    const numRating = typeof rating === 'number' ? rating : parseFloat(rating)
-
-    // 轉換成 1 位小數
-    if (!isNaN(numRating)) {
-        return numRating.toFixed(1) // 轉換為 1 位小數
-    }
-    return '0.0' // 如果出錯顯示 0.0
-}
-
-
-// ✅ 計算總頁數
-const totalPages = computed(() => {
-    return Math.ceil(reviewData.value.length / pageSize.value)
-})
-
-// ✅ 取得目前分頁的資料
-const paginatedData = computed(() => {
+  </template>
+  
+  <script setup lang="ts">
+  import { ref, computed, onMounted, watch } from 'vue'
+  import { useRouter } from 'vue-router'
+  import axios from 'axios'
+  import { jwtDecode } from 'jwt-decode'
+  
+  // Token & Router
+  const token = localStorage.getItem('token')
+  const router = useRouter()
+  
+  const userId = ref<number | null>(null)
+  const shopId = ref<number | null>(null)
+  
+  const reviewData = ref<any[]>([])
+  const sortedReviewData = ref<any[]>([])
+  const pageSize = ref(5)
+  const currentPage = ref(1)
+  
+  const sortBy = ref<'time' | 'rating'>('time')
+  const sortOrder = ref<'asc' | 'desc'>('desc')
+  const timeOrderDirection = ref<'asc' | 'desc'>('desc')
+  
+  // ⭐ 平均分數
+  const averageRating = computed(() => {
+    if (reviewData.value.length === 0) return '0.0'
+    const total = reviewData.value.reduce((sum, r) => sum + parseFloat(r.rating || 0), 0)
+    return (total / reviewData.value.length).toFixed(1)
+  })
+  
+  // 📌 星星工具
+  const renderStarIcons = (rating: number) => {
+    const full = Math.floor(rating)
+    const hasHalf = rating % 1 >= 0.25 && rating % 1 <= 0.75
+    const empty = 5 - full - (hasHalf ? 1 : 0)
+    return [
+      ...Array(full).fill('full'),
+      ...(hasHalf ? ['half'] : []),
+      ...Array(empty).fill('empty')
+    ]
+  }
+  const getIcon = (type: string) => {
+    if (type === 'full') return ['fas', 'star']
+    if (type === 'half') return ['far', 'star-half-stroke']
+    return ['far', 'star']
+  }
+  
+  const formatRating = (rating: any) => {
+    const num = typeof rating === 'number' ? rating : parseFloat(rating)
+    return isNaN(num) ? '0.0' : num.toFixed(1)
+  }
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('zh-TW', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    })
+  }
+  
+  // 🔁 排序
+  const sortReviews = () => {
+    sortedReviewData.value = [...reviewData.value].sort((a, b) => {
+      if (sortBy.value === 'time') {
+        const tA = new Date(a.createdAt).getTime()
+        const tB = new Date(b.createdAt).getTime()
+        return timeOrderDirection.value === 'asc' ? tA - tB : tB - tA
+      } else {
+        const rA = parseFloat(a.rating || 0)
+        const rB = parseFloat(b.rating || 0)
+        return sortOrder.value === 'asc' ? rA - rB : rB - rA
+      }
+    })
+  }
+  watch([sortBy, sortOrder, timeOrderDirection], sortReviews)
+  
+  // 分頁
+  const totalPages = computed(() =>
+    Math.ceil(sortedReviewData.value.length / pageSize.value)
+  )
+  const paginatedData = computed(() => {
     const start = (currentPage.value - 1) * pageSize.value
-    const end = start + pageSize.value
-    return reviewData.value.slice(start, end)
-})
-
-// ✅ 分頁操作
-const prevPage = () => {
-    if (currentPage.value > 1) {
-        currentPage.value--
+    return sortedReviewData.value.slice(start, start + pageSize.value)
+  })
+  const prevPage = () => { if (currentPage.value > 1) currentPage.value-- }
+  const nextPage = () => { if (currentPage.value < totalPages.value) currentPage.value++ }
+  const goBack = () => router.go(-1)
+  
+  // 🔰 onMounted
+  onMounted(async () => {
+    if (!token) {
+      console.warn("⚠️ 尚未登入")
+      return
     }
-}
-const nextPage = () => {
-    if (currentPage.value < totalPages.value) {
-        currentPage.value++
-    }
-}
-
-// ✅ 返回上一頁
-const goBack = () => {
-    router.go(-1)
-}
-
-// ✅ 格式化日期
-const formatDate = (dateString: string) => {
-    const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: '2-digit', day: '2-digit' }
-    return new Date(dateString).toLocaleDateString('zh-TW', options)
-}
-
-// ✅ 根據 userId 取得 username
-const getUserName = async (userId: number) => {
-    // 檢查快取
-    if (userCache.value[userId]) {
-        return userCache.value[userId]
-    }
-
+  
+    const decoded = jwtDecode<any>(token)
+    userId.value = decoded.userId
+  
     try {
-        const res = await axios.get(`http://localhost:8081/api/user/check/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-        const userName = res.data.username
-        userCache.value[userId] = userName // 快取用戶名
-        return userName
+      // 🔎 拿 shopId
+      const shopRes = await axios.get(`http://localhost:8081/api/shop/user/${userId.value}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      shopId.value = shopRes.data.shopId
+  
+      if (!shopId.value) {
+        console.warn("⚠️ 尚未開店")
+        return
+      }
+  
+      // ⭐ 拿評論
+      const reviewRes = await axios.get(`http://localhost:8081/api/review/shop/${shopId.value}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      reviewData.value = reviewRes.data || []
+      sortReviews()
     } catch (error) {
-        console.error(`❌ 無法取得 userId=${userId} 的使用者資料`, error)
-        return '未知用戶'
+      console.error("❌ 錯誤：", error)
     }
-}
-
-// ✅ 取得 shopId 和 token（根據實際情況調整）
-const shopId = 1 // 假設是 shopId = 1，可根據情況改動
-const token = localStorage.getItem('token')
-
-// ✅ 請求評論資料
-onMounted(async () => {
-    try {
-        const res = await axios.get(`http://localhost:8081/api/review/shop/${shopId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        })
-        reviewData.value = res.data
-        console.log('🌟 reviewData', reviewData.value)
-    } catch (error) {
-        console.error('❌ 無法獲取評論資料：', error)
-    }
-})
-</script>
-
-<style scoped>
-.list-page {
+  })
+  </script>
+  
+  
+  <style scoped>
+  .list-page {
     max-width: 600px;
     margin: auto;
     padding: 30px;
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 0 10px #ccc;
-}
-
-.review-item {
+  }
+  
+  .info-row {
+    font-size: 15px;
+    margin-bottom: 8px;
+    color: #333;
+  }
+  
+  .sort-control {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+    font-size: 14px;
+  }
+  
+  .review-item {
     list-style-type: none;
     padding: 10px 15px;
     border-bottom: 1px solid #ddd;
     margin-bottom: 10px;
     background-color: #f9f9f9;
     border-radius: 6px;
-}
-
-/* 分頁樣式 */
-.pagination {
+  }
+  
+  .label-row {
+    display: flex;
+    margin-bottom: 4px;
+  }
+  
+  .label {
+    display: inline-block;
+    width: 90px;
+    font-weight: bold;
+    flex-shrink: 0;
+  }
+  
+  .star-icon {
+    color: #f5a623;
+    margin-right: 2px;
+    font-size: 16px;
+  }
+  
+  .pagination {
     display: flex;
     justify-content: center;
     align-items: center;
     margin-top: 15px;
-}
-
-.pagination button {
+  }
+  
+  .pagination button {
     background-color: #04aa6d;
     color: white;
     border: none;
@@ -166,20 +258,14 @@ onMounted(async () => {
     border-radius: 5px;
     cursor: pointer;
     margin: 0 5px;
-}
-
-.pagination button:disabled {
+  }
+  
+  .pagination button:disabled {
     background-color: #ccc;
     cursor: not-allowed;
-}
-
-.pagination span {
-    font-size: 14px;
-    margin: 0 10px;
-}
-
-/* 返回按鈕樣式 */
-.back-btn {
+  }
+  
+  .back-btn {
     margin-top: 20px;
     padding: 8px 15px;
     background-color: #f44336;
@@ -191,9 +277,14 @@ onMounted(async () => {
     width: fit-content;
     margin-left: auto;
     margin-right: auto;
+  }
+
+  .star-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  line-height: 1.6;
 }
 
-.back-btn:hover {
-    background-color: #d32f2f;
-}
-</style>
+  </style>
+  

@@ -146,14 +146,14 @@ const router = createRouter({
           component: () => import('@/views/member/CVSAddressCreate.vue')
         },
         {
-          path: '/memberOrders',
-          name: 'memberOrders',
-          component: () => import('@/views/member/MemberOrders.vue')
-        },
-        {
           path: '/memberCoupons',
           name: 'memberCoupons',
-          component: () => import('@/views/member/MemberCoupons.vue')
+          component: () => import('@/views/member/MemberCoupon.vue')
+        },
+        {
+          path: '/memberOrders',
+          name: 'memberOrders',
+          component: () => import('@/views/member/MemberOrder.vue')
         },
         {
           path: '/updateHomeAddress/:addressId',
@@ -201,6 +201,11 @@ const router = createRouter({
           name: 'review-details',
           component: ReviewDetails,
           props: true
+        },
+        {
+          path: '/revenueSummary',
+          name: 'revenueSummary',
+          component: () => import('@/views/seller/RevenueSummary.vue')
         },
 
         //下單頁面
