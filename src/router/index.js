@@ -2,11 +2,10 @@ import SearchResult from "@/components/SearchResult.vue";
 import HelpCenter from "@/views/pages/HelpCenter.vue";
 import UpdateHomeAddress from "@/views/member/UpdateHomeAddress.vue";
 import UpdateCVSAddress from "@/views/member/UpdateCVSAddress.vue";
-import ProductDetails from '@/views/seller/ProductDetails.vue';
-import OrderDetails from '@/views/seller/OrderDetails.vue'
-import SkuDetails from '@/views/seller/SkuDetails.vue'
-import ReviewDetails from '@/views/seller/ReviewDetails.vue'
-
+import ProductDetails from "@/views/seller/ProductDetails.vue";
+import OrderDetails from "@/views/seller/OrderDetails.vue";
+import SkuDetails from "@/views/seller/SkuDetails.vue";
+import ReviewDetails from "@/views/seller/ReviewDetails.vue";
 
 import { createRouter, createWebHistory } from "vue-router";
 
@@ -121,86 +120,86 @@ const router = createRouter({
         },
         //會員中心
         {
-          path: '/memberCenter',
-          name: 'memberCenter',
-          component: () => import('@/views/member/MemberCenter.vue')
+          path: "/memberCenter",
+          name: "memberCenter",
+          component: () => import("@/views/member/MemberCenter.vue"),
         },
         {
-          path: '/profile',
-          name: 'profile',
-          component: () => import('@/views/member/Profile.vue')
+          path: "/profile",
+          name: "profile",
+          component: () => import("@/views/member/Profile.vue"),
         },
         {
-          path: '/address',
-          name: 'address',
-          component: () => import('@/views/member/Address.vue')
+          path: "/address",
+          name: "address",
+          component: () => import("@/views/member/Address.vue"),
         },
         {
-          path: '/HomeAddressCreate',
-          name: 'HomeAddressCreate',
-          component: () => import('@/views/member/HomeAddressCreate.vue')
+          path: "/HomeAddressCreate",
+          name: "HomeAddressCreate",
+          component: () => import("@/views/member/HomeAddressCreate.vue"),
         },
         {
-          path: '/CVSAddressCreate',
-          name: 'CVSAddressCreate',
-          component: () => import('@/views/member/CVSAddressCreate.vue')
+          path: "/CVSAddressCreate",
+          name: "CVSAddressCreate",
+          component: () => import("@/views/member/CVSAddressCreate.vue"),
         },
         {
-          path: '/memberOrders',
-          name: 'memberOrders',
-          component: () => import('@/views/member/MemberOrders.vue')
+          path: "/memberOrders",
+          name: "memberOrders",
+          component: () => import("@/views/member/MemberOrders.vue"),
         },
         {
-          path: '/memberCoupons',
-          name: 'memberCoupons',
-          component: () => import('@/views/member/MemberCoupons.vue')
+          path: "/memberCoupons",
+          name: "memberCoupons",
+          component: () => import("@/views/member/MemberCoupons.vue"),
         },
         {
-          path: '/updateHomeAddress/:addressId',
-          name: 'UpdateHomeAddress',
+          path: "/updateHomeAddress/:addressId",
+          name: "UpdateHomeAddress",
           component: UpdateHomeAddress,
-          props: true // 讓 route 參數能當作 props 傳給元件
+          props: true, // 讓 route 參數能當作 props 傳給元件
         },
         {
-          path: '/updateCVSAddress/:addressId',
-          name: 'UpdateCVSAddress',
+          path: "/updateCVSAddress/:addressId",
+          name: "UpdateCVSAddress",
           component: UpdateCVSAddress,
-          props: true // 讓 route 參數能當作 props 傳給元件
+          props: true, // 讓 route 參數能當作 props 傳給元件
         },
         {
-          path: '/changePassword',
-          name: 'changePassword',
-          component: () => import('@/views/member/ChangePassword.vue')
+          path: "/changePassword",
+          name: "changePassword",
+          component: () => import("@/views/member/ChangePassword.vue"),
         },
         //賣家營收
         {
-          path: '/revenue',
-          name: 'revenue',
-          component: () => import('@/views/seller/RevenueDetails.vue')
+          path: "/revenue",
+          name: "revenue",
+          component: () => import("@/views/seller/RevenueDetails.vue"),
         },
         {
-          path: '/product-details',
-          name: 'product-details',
+          path: "/product-details",
+          name: "product-details",
           component: ProductDetails,
-          props: true
+          props: true,
         },
         {
-          path: '/order-details',
-          name: 'order-details',
+          path: "/order-details",
+          name: "order-details",
           component: OrderDetails,
-          props: true
+          props: true,
         },
         {
-          path: '/sku-details',
-          name: 'sku-details',
+          path: "/sku-details",
+          name: "sku-details",
           component: SkuDetails,
-          props: true
+          props: true,
         },
         {
-          path: '/review-details',
-          name: 'review-details',
+          path: "/review-details",
+          name: "review-details",
           component: ReviewDetails,
-          props: true
+          props: true,
         },
 
         //下單頁面
@@ -502,7 +501,7 @@ const router = createRouter({
           props: true,
         },
         // {
-        //   //test add selector 
+        //   //test add selector
         //   path: '/add/test',
         //   name: 'add-test',
         //   component: () => import("@/views/member/test.vue"),
