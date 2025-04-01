@@ -2,9 +2,7 @@
   <div class="container mt-4">
     <h2>我的商品</h2>
     <div class="d-flex justify-content-between mb-3">
-      <button class="btn btn-success" @click="showAddModal = true">
-        新增商品
-      </button>
+      <button class="btn btn-success" @click="openAddModal">新增商品</button>
       <div class="btn-group">
         <button
           class="btn"
@@ -373,18 +371,26 @@
     </nav>
 
     <!-- 新增商品 Modal -->
-    <product-add-modal
+    <!-- <product-add-modal
       :isOpen="showAddModal"
       :shopId="Number(shopId)"
       @close="showAddModal = false"
       @refresh="fetchProducts"
-    />
+    /> -->
 
     <!-- 編輯商品 Modal -->
-    <product-edit-modal
+    <!-- <product-edit-modal
       :isOpen="showEditModal"
       :theData="selectedElement"
       @close="showEditModal = false"
+      @refresh="fetchProducts"
+    /> -->
+
+    <IntegratedProductModal
+      :isOpen="showProductModal"
+      :productData="currentProduct"
+      :isEdit="isEditMode"
+      @close="showProductModal = false"
       @refresh="fetchProducts"
     />
   </div>
@@ -396,12 +402,18 @@ import { useRoute, useRouter } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
-import ProductAddModal from "@/components/product.components/ProductAddModal.vue";
-import ProductEditModal from "@/components/product.components/ProductEditModal.vue";
+// import ProductAddModal from "@/components/product.components/ProductAddModal.vue";
+// import ProductEditModal from "@/components/product.components/ProductEditModal.vue";
+import IntegratedProductModal from "@/components/product.components/IntegratedProductModal.vue";
 
 const route = useRoute();
 const router = useRouter();
 const shopId = parseInt(route.params.shopId) || null;
+
+// 整合後的模態框狀態
+const showProductModal = ref(false);
+const currentProduct = ref(null);
+const isEditMode = ref(false);
 
 // 視圖狀態
 const viewMode = ref("table"); // 'table' 或 'card'
@@ -721,10 +733,18 @@ const processProductData = async () => {
   }
 };
 
+// 開啟新增 Modal
+const openAddModal = () => {
+  currentProduct.value = null;
+  isEditMode.value = false;
+  showProductModal.value = true;
+};
+
 // 開啟編輯 Modal
 const openEditModal = (e) => {
-  selectedElement.value = { ...e }; // 複製物件，避免影響原資料
-  showEditModal.value = true;
+  currentProduct.value = { ...e }; // 複製物件，避免影響原資料
+  isEditMode.value = true;
+  showProductModal.value = true;
 };
 
 // 跳轉到 SKU 管理頁面
