@@ -17,17 +17,21 @@
         <div class="messages">
             <transition-group name="message-list" tag="div">
                 <div v-for="msg in displayMessages" :key="msg.tempId || msg.id" class="message">
-                    <div
-                        :class="['message-container', { 'my-message': isMyMessage(msg), 'sending': msg._status === 'sending', 'failed': msg._status === 'failed' }]">
-                        <div class="message-state">
-                            <span v-if="msg._status === 'sending'">🔄 发送中</span>
-                            <span v-if="msg._status === 'failed'">❌ 发送失败</span>
+                    <div class="message-wrapper" :class="{
+                        'sent-by-me': isMyMessage(msg),
+                        'sent-by-other': !isMyMessage(msg)
+                    }">
+                        <div class="message-bubble">
+                            <div class="message-header">
+                                <span class="username">{{ msg.senderName || '未知用户' }}</span>
+                                <span class="timestamp">{{ formatTime(msg.timestamp) }}</span>
+                            </div>
+                            <div class="message-content">{{ msg.content }}</div>
+                            <div class="message-state">
+                                <span v-if="msg._status === 'sending'">🔄 发送中</span>
+                                <span v-if="msg._status === 'failed'">❌ 发送失败</span>
+                            </div>
                         </div>
-                        <div class="message-header">
-                            <span class="username">{{ msg.senderName || '未知用户' }}</span>
-                            <span class="timestamp">{{ formatTime(msg.timestamp) }}</span>
-                        </div>
-                        <div class="message-content">{{ msg.content }}</div>
                     </div>
                 </div>
             </transition-group>
@@ -83,8 +87,27 @@ const reconnect = async () => {
 };
 
 // 判斷是否為本人發送
-const isMyMessage = computed(() => (msg) => {
-    return msg.sender?.userId === currentUser.value?.userId;
+const isMyMessage = computed(() => {
+    // 在 computed 工廠函數外部獲取一次 userId，確保響應性
+    const loggedInUserId = computed(() => Number(userStore.userId)); // 從 userStore 獲取登入者 ID (數字)
+
+    return (msg) => {
+        // *** 使用正確的屬性：msg.senderId ***
+        const messageSenderIdRaw = msg?.senderId; // 從 msg 物件直接讀取 senderId
+        const messageSenderId = Number(messageSenderIdRaw); // 轉換為數字
+
+        // (可選) 保留日誌以便測試階段驗證
+        console.log(
+            `比較訊息: ID=${msg?.messageId || msg?.tempId}, ` +
+            `原始 msg.senderId=${messageSenderIdRaw} (類型 ${typeof messageSenderIdRaw}), ` + // 記錄正確的原始值
+            `轉換後 senderId=${messageSenderId}, ` +
+            `登入者ID=${loggedInUserId.value}, ` +
+            `是否匹配=${loggedInUserId.value && !isNaN(messageSenderId) && messageSenderId === loggedInUserId.value}`
+        );
+
+        // 使用從 msg.senderId 獲取的值進行比較
+        return loggedInUserId.value && !isNaN(messageSenderId) && messageSenderId === loggedInUserId.value;
+    };
 });
 
 // 時間格式化函式
@@ -429,5 +452,83 @@ button:hover {
     font-size: 0.8em;
     margin-bottom: 4px;
     color: #666;
+}
+
+.message-wrapper {
+    display: flex;
+    /* 使用 flex 來控制左右對齊 */
+    margin-bottom: 10px;
+}
+
+.sent-by-me {
+    justify-content: flex-end;
+    /* 自己的訊息靠右 */
+}
+
+.sent-by-other {
+    justify-content: flex-start;
+    /* 對方的訊息靠左 */
+}
+
+.message-bubble {
+    padding: 8px 12px;
+    border-radius: 15px;
+    max-width: 70%;
+    word-wrap: break-word;
+    position: relative;
+    /* 相對定位，如果需要放狀態指示 */
+}
+
+/* 對方訊息氣泡樣式 */
+.sent-by-other .message-bubble {
+    background-color: #ffffff;
+    /* 範例：白色 */
+    border: 1px solid #eee;
+    /* 可以添加 border-bottom-left-radius: 5px; */
+}
+
+/* 自己訊息氣泡樣式 */
+.sent-by-me .message-bubble {
+    background-color: #dcf8c6;
+    /* 範例：淺綠色 */
+    /* 可以添加 border-bottom-right-radius: 5px; */
+}
+
+/* 其他樣式 (header, username, content, timestamp, state) */
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+
+.username {
+    font-weight: bold;
+    font-size: 0.8em;
+    color: #555;
+}
+
+.timestamp {
+    font-size: 0.75em;
+    color: #999;
+}
+
+.message-content {
+    margin: 0;
+}
+
+.message-state {
+    font-size: 0.75em;
+    color: #888;
+    text-align: right;
+    margin-top: 2px;
+}
+
+/* 可以為自己的訊息微調顏色 */
+.sent-by-me .username {
+    color: #1d5c1d;
+}
+
+.sent-by-me .timestamp {
+    color: #7f8c8d;
 }
 </style>
