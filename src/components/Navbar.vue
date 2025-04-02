@@ -106,7 +106,7 @@
         <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
           使用者條款</router-link>
       </li>
-      <li v-if="userStore.isSeller && userStore.shopId">
+      <li v-if="userStore.username">
         <router-link to="/seller/coupon/apply" @click="toggleDrawer">🎟️ 優惠券申請</router-link>
       </li>
       <li v-if="userStore.username" @click="logoutToAdmin">

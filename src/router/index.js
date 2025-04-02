@@ -336,6 +336,12 @@ const router = createRouter({
             requiresAuth: false, // 此頁面不需要身份驗證
           },
         },
+        {
+          path: "seller/coupon/apply", // 注意這是相對路徑
+          name: "CouponApply",
+          component: () => import("@/views/front/CouponApplicationForm.vue"),
+          meta: { requiresAuth: true, role: "SELLER" } // 設定路由元信息
+        }
       ],
     },
 

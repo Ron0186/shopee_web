@@ -234,7 +234,7 @@ async function submitApplication() {
                 confirmButtonText: '好的'
             });
             // 提交成功後可以考慮跳轉頁面或清空表單
-            router.push(`/store/${shopId.value}`); // 例如跳回賣家商店頁
+            router.push(`/shop`); // 例如跳回賣家商店頁
             // resetForm(); // 或者只清空表單
         } else {
             throw new Error(response.data?.message || '提交失敗，未知錯誤');
