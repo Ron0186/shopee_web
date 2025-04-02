@@ -653,6 +653,33 @@ watch(
   { immediate: true }
 );
 
+// 监听标签切换
+watch(
+  () => activeTab.value,
+  async (newTab) => {
+    if (
+      newTab === "sku" &&
+      props.isEdit &&
+      generatedSkus.value.length === 0 &&
+      productData.productId
+    ) {
+      console.log("在标签切换时获取 SKU 数据");
+      await fetchSkuData();
+    }
+  }
+);
+
+// 监听 productId 变化
+watch(
+  () => productData.productId,
+  async (newId, oldId) => {
+    if (newId && newId !== oldId && props.isEdit && activeTab.value === "sku") {
+      console.log("产品 ID 变化，重新获取 SKU 数据");
+      await fetchSkuData();
+    }
+  }
+);
+
 // 數據加載方法
 const loadProductData = async () => {
   if (!props.productData) {
@@ -685,7 +712,7 @@ const loadProductData = async () => {
   // 載入資料
   if (productData.category1Id) await fetchCategory2(productData.category1Id);
 
-  // 确保获取产品图片 - 即使props中有图片数据，也尝试从API获取更完整的图片信息
+  // 确保获取产品图片
   if (productData.productId) {
     console.log("加载商品图片, ID:", productData.productId);
     await fetchProductImages(productData.productId);
@@ -718,8 +745,21 @@ const loadProductData = async () => {
     console.log("从props提取的图片:", existingImages.value);
   }
 
-  if (props.productData.skus?.length > 0)
-    reconstructSkuData(props.productData.skus);
+  // 尝试从多个来源获取 SKU 数据
+  if (props.isEdit) {
+    console.log("编辑模式，尝试获取 SKU 数据");
+
+    // 首先尝试从 props 中获取
+    if (props.productData.skus?.length > 0) {
+      console.log("从 props 中发现 SKU 数据，开始重构");
+      reconstructSkuData(props.productData.skus);
+    }
+    // 如果 props 中没有 SKU 数据，尝试从 API 获取
+    else if (productData.productId) {
+      console.log("从 API 获取 SKU 数据");
+      await fetchSkuData();
+    }
+  }
 };
 
 // 從API響應中提取分類ID
@@ -771,7 +811,12 @@ const handleImageError = (event, image) => {
 const reconstructSkuData = (skus) => {
   if (!skus?.length) return;
 
-  // 收集規格
+  console.log("重构 SKU 数据，收到的 SKU:", skus);
+
+  // 清除现有规格选项
+  specOptions.value = [];
+
+  // 从所有 SKU 中收集规格值
   const specMap = {};
   skus.forEach((sku) => {
     if (!sku.specPairs) return;
@@ -781,7 +826,9 @@ const reconstructSkuData = (skus) => {
     });
   });
 
-  // 創建規格選項
+  console.log("提取的规格映射:", specMap);
+
+  // 根据收集的数据创建规格选项
   specOptions.value = Object.entries(specMap).map(([name, valuesSet]) => ({
     name,
     values: Array.from(valuesSet),
@@ -789,15 +836,68 @@ const reconstructSkuData = (skus) => {
     valueErrors: Array(valuesSet.size).fill(""),
   }));
 
-  // 重建SKU列表
+  console.log("重构后的规格选项:", specOptions.value);
+
+  // 使用现有数据重建 SKU 列表
   generatedSkus.value = skus.map((sku) => ({
-    id: sku.id,
+    id: sku.id || sku.skuId,
     specPairs: { ...sku.specPairs },
     price: sku.price,
     stock: sku.stock,
     priceError: "",
     stockError: "",
   }));
+
+  console.log("重构后的 SKU 列表:", generatedSkus.value);
+};
+
+const backfillSkuData = () => {
+  // 如果没有数据或已经生成，则跳过
+  if (!props.productData?.skus?.length || generatedSkus.value.length > 0)
+    return;
+
+  // 从现有产品重构规格选项和 SKU 数据
+  reconstructSkuData(props.productData.skus);
+
+  // 如果可用，根据第一个 SKU 设置默认批量值
+  if (generatedSkus.value.length > 0) {
+    const firstSku = generatedSkus.value[0];
+    batchSettings.price = firstSku.price || 0;
+    batchSettings.stock = firstSku.stock || 0;
+  }
+};
+
+const fetchSkuData = async () => {
+  try {
+    if (!productData.productId) {
+      console.log("没有产品 ID，无法获取 SKU 数据");
+      return;
+    }
+
+    console.log("正在获取 SKU 数据，产品 ID:", productData.productId);
+
+    const response = await axios.get(
+      `/api/products/${productData.productId}/skus`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    console.log("获取到的 SKU 数据:", response.data);
+
+    if (response.data && Array.isArray(response.data)) {
+      // 重构 SKU 数据
+      reconstructSkuData(response.data);
+      return true;
+    } else {
+      console.warn("获取到的 SKU 数据格式不符合预期");
+      return false;
+    }
+  } catch (error) {
+    console.error("获取 SKU 数据失败:", error);
+    console.error("错误详情:", error.response?.data || error.message);
+    return false;
+  }
 };
 
 // API請求方法
@@ -1070,9 +1170,30 @@ const generateCartesianProduct = (arrays) => {
 };
 
 const generateSkuList = () => {
+  // 如果我们已经有 SKU 并且处于编辑模式，
+  // 在重新生成前确认，因为这会丢失现有数据
+  if (props.isEdit && generatedSkus.value.length > 0) {
+    Swal.fire({
+      title: "確認重新生成",
+      text: "重新生成會覆蓋現有的SKU數據，是否繼續？",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "確認",
+      cancelButtonText: "取消",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        doGenerateSkuList();
+      }
+    });
+  } else {
+    doGenerateSkuList();
+  }
+};
+
+const doGenerateSkuList = () => {
   if (!validateSpecOptions()) return;
 
-  // 準備規格
+  // 准备规格
   const validSpecs = specOptions.value
     .map((spec) => ({
       name: spec.name,
@@ -1092,18 +1213,18 @@ const generateSkuList = () => {
   const specNames = validSpecs.map((spec) => spec.name);
   const specValuesList = validSpecs.map((spec) => spec.values);
 
-  // 生成組合
+  // 生成组合
   const combinations = generateCartesianProduct(specValuesList);
 
-  // 創建SKU
+  // 创建 SKUs
   generatedSkus.value = combinations.map((combination) => {
-    // 規格鍵值對
+    // 创建规格对
     const specPairs = {};
     specNames.forEach((name, index) => {
       specPairs[name] = combination[index];
     });
 
-    // 檢查現有SKU
+    // 检查现有 SKU
     const existingSku =
       props.isEdit && props.productData?.skus
         ? props.productData.skus.find((sku) => {
@@ -1124,7 +1245,7 @@ const generateSkuList = () => {
     };
   });
 
-  // 應用批量設定
+  // 应用批量设置
   if (batchSettings.price > 0) applyBatchSetting("price");
   if (batchSettings.stock > 0) applyBatchSetting("stock");
 };
@@ -1189,6 +1310,27 @@ const nextStep = async () => {
   // 新增模式先保存基本資訊
   if (!props.isEdit && !productData.productId) {
     await saveBasicInfo();
+  }
+
+  // 在切换到 SKU 标签前，确保 SKU 数据已加载
+  if (
+    props.isEdit &&
+    generatedSkus.value.length === 0 &&
+    productData.productId
+  ) {
+    console.log("切换到 SKU 标签前获取 SKU 数据");
+    const success = await fetchSkuData();
+
+    if (success) {
+      console.log("成功获取并构建 SKU 数据");
+      Swal.fire({
+        title: "已载入现有规格",
+        text: "已自动加载商品规格数据",
+        icon: "info",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    }
   }
 
   activeTab.value = "sku";
