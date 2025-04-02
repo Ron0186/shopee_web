@@ -870,18 +870,22 @@ const backfillSkuData = () => {
 const fetchSkuData = async () => {
   try {
     if (!productData.productId) {
-      console.log("没有产品 ID，无法获取 SKU 数据");
-      return;
+      console.log("沒有產品 ID，無法獲取 SKU 數據");
+      return false;
     }
 
-    console.log("正在获取 SKU 数据，产品 ID:", productData.productId);
+    const productId = parseInt(productData.productId);
+    if (isNaN(productId) || productId <= 0) {
+      console.error("產品 ID 無效:", productData.productId);
+      return false;
+    }
 
-    const response = await axios.get(
-      `/api/products/${productData.productId}/skus`,
-      {
-        headers: { Authorization: `Bearer ${token}` },
-      }
-    );
+    console.log("正在獲取 SKU 數據，產品 ID:", productId);
+
+    const response = await axios.get(`/api/products/${productId}/skus`, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 10000,
+    });
 
     console.log("获取到的 SKU 数据:", response.data);
 
@@ -1263,18 +1267,38 @@ const validateGeneratedSkus = () => {
 
   generatedSkus.value.forEach((sku) => {
     // 驗證價格
-    if (sku.price === null || sku.price === undefined || sku.price < 0) {
+    let price = Number(sku.price);
+    if (isNaN(price)) {
+      try {
+        price = parseFloat(sku.price);
+      } catch (e) {
+        price = NaN;
+      }
+    }
+
+    if (isNaN(price) || price < 0) {
       sku.priceError = "價格必須為0或正數";
       valid = false;
     } else {
+      sku.price = price; // 確保是數字
       sku.priceError = "";
     }
 
     // 驗證庫存
-    if (sku.stock === null || sku.stock === undefined || sku.stock < 0) {
+    let stock = Number(sku.stock);
+    if (isNaN(stock)) {
+      try {
+        stock = parseInt(sku.stock);
+      } catch (e) {
+        stock = NaN;
+      }
+    }
+
+    if (isNaN(stock) || stock < 0 || !Number.isInteger(stock)) {
       sku.stockError = "庫存必須為0或正整數";
       valid = false;
     } else {
+      sku.stock = stock; // 確保是數字
       sku.stockError = "";
     }
   });
@@ -1478,13 +1502,18 @@ const updateProduct = async () => {
 
 const updateProductWithSku = async () => {
   try {
+    // 先更新基本資訊
     const basicInfoUpdated = await updateProduct();
     if (!basicInfoUpdated) return;
 
+    // 如果沒有 SKU 資料，直接返回
     if (generatedSkus.value.length === 0) {
+      closeModal();
+      emit("refresh");
       return;
     }
 
+    // 驗證 SKU 資料
     if (!validateGeneratedSkus()) {
       return;
     }
@@ -1495,51 +1524,86 @@ const updateProductWithSku = async () => {
     const newSkus = generatedSkus.value.filter((sku) => !sku.id);
     const existingSkus = generatedSkus.value.filter((sku) => sku.id);
 
-    // 更新現有SKU
-    if (existingSkus.length > 0) {
-      const updatePromises = existingSkus.map((sku) =>
-        axios.put(
-          `/api/skus/${sku.id}`,
-          {
-            price: sku.price,
-            stock: sku.stock,
+    // 更新現有 SKU - 使用單一請求而非 Promise.all
+    for (const sku of existingSkus) {
+      try {
+        // 確保數據格式正確
+        const updateData = {
+          price: Number(sku.price),
+          stock: Number(sku.stock),
+        };
+
+        console.log(`更新 SKU ${sku.id}，數據:`, updateData);
+
+        // 重要: 使用 await 等待每個請求完成
+        await axios.put(`/api/skus/${sku.id}`, updateData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
           },
+          // 增加超時設置
+          timeout: 10000,
+        });
+      } catch (error) {
+        console.error(`更新 SKU ${sku.id} 時出錯:`, error);
+        Swal.fire({
+          title: "更新失敗",
+          text: `更新 SKU ${sku.id} 時出錯: ${error.message}`,
+          icon: "error",
+        });
+        isSubmitting.value = false;
+        return; // 出錯時提前返回
+      }
+    }
+
+    // 添加新 SKU (如果有)
+    if (newSkus.length > 0) {
+      try {
+        const newSkuData = newSkus.map((sku) => ({
+          specPairs: { ...sku.specPairs },
+          price: Number(sku.price),
+          stock: Number(sku.stock),
+        }));
+
+        await axios.post(
+          `/api/products/${productData.productId}/skus/batch`,
+          newSkuData,
           {
             headers: {
               Authorization: `Bearer ${token}`,
               "Content-Type": "application/json",
             },
+            timeout: 10000,
           }
-        )
-      );
-
-      await Promise.all(updatePromises);
+        );
+      } catch (error) {
+        console.error("新增 SKU 錯誤:", error);
+        Swal.fire({
+          title: "新增失敗",
+          text: error.response?.data?.message || "無法新增 SKU",
+          icon: "error",
+        });
+        isSubmitting.value = false;
+        return; // 出錯時提前返回
+      }
     }
 
-    // 添加新SKU
-    if (newSkus.length > 0) {
-      const newSkuData = newSkus.map((sku) => ({
-        specPairs: { ...sku.specPairs },
-        price: sku.price,
-        stock: sku.stock,
-      }));
+    // 所有操作成功後顯示成功訊息
+    Swal.fire({
+      title: "更新成功",
+      text: "商品和 SKU 已成功更新",
+      icon: "success",
+      timer: 1500,
+    });
 
-      await axios.post(
-        `/api/products/${productData.productId}/skus/batch`,
-        newSkuData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-    }
+    // 清理並刷新
+    emit("refresh");
+    closeModal();
   } catch (error) {
-    console.error("更新SKU錯誤:", error);
+    console.error("更新商品與 SKU 時發生錯誤:", error);
     Swal.fire({
       title: "更新失敗",
-      text: error.response?.data?.message || "無法更新SKU",
+      text: error.message || "未知錯誤",
       icon: "error",
     });
   } finally {
@@ -1645,8 +1709,25 @@ const resetForm = () => {
 };
 
 const closeModal = () => {
-  resetForm();
-  emit("close");
+  // 如果有提交中的請求，詢問用戶是否確定要關閉
+  if (isSubmitting.value) {
+    Swal.fire({
+      title: "確認關閉",
+      text: "資料正在提交中，確定要關閉嗎？",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "確定",
+      cancelButtonText: "取消",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        resetForm();
+        emit("close");
+      }
+    });
+  } else {
+    resetForm();
+    emit("close");
+  }
 };
 
 // 掛載時初始化
@@ -1662,6 +1743,14 @@ onMounted(() => {
       fetchProductImages(productId);
     }
   }
+  // 添加頁面關閉前的事件處理
+  window.addEventListener("beforeunload", (event) => {
+    if (isSubmitting.value) {
+      // 提示用戶有未完成的操作
+      event.preventDefault();
+      event.returnValue = "";
+    }
+  });
 });
 </script>
 
