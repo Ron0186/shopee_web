@@ -10,18 +10,19 @@
               :src="selectedImage"
               class="img-fluid rounded"
               alt="商品主圖"
+              @error="handleImageError"
             />
           </div>
           <!-- 縮圖列表 -->
           <div class="thumbnails d-flex overflow-auto">
             <div
-              v-for="(image, index) in productImages"
+              v-for="(image, index) in allProductImages"
               :key="index"
               class="thumbnail-item me-2"
               @click="selectedImageIndex = index"
             >
               <img
-                :src="image"
+                :src="getImageUrl(image)"
                 class="img-thumbnail"
                 :class="{ 'border-primary': selectedImageIndex === index }"
                 style="
@@ -31,6 +32,7 @@
                   cursor: pointer;
                 "
                 alt="商品縮圖"
+                @error="handleImageError"
               />
             </div>
           </div>
@@ -396,6 +398,10 @@ const router = useRouter();
 const productId = route.params.productId;
 const userStore = useUserStore();
 
+// 基礎 URL
+const baseUrl = ref(import.meta.env.VITE_API_URL || "");
+const defaultImage = "/assets/default-image.png"; // 默認圖片路徑
+
 // 商品資料
 const product = ref({
   productId: "",
@@ -411,9 +417,6 @@ const product = ref({
 // 商品圖片
 const productImages = ref([]);
 const selectedImageIndex = ref(0);
-const selectedImage = computed(
-  () => productImages.value[selectedImageIndex.value] || ""
-);
 
 // 規格選項
 const colors = ref([
@@ -430,6 +433,101 @@ const quantity = ref(1);
 const shippingMethod = ref("homeDelivery");
 const showSizeGuide = ref(false);
 
+// 增強圖片處理邏輯
+// 從各種來源獲取所有商品圖片
+const allProductImages = computed(() => {
+  if (!product.value) return [];
+
+  // 如果有 productImages 數組，優先使用它
+  if (productImages.value && productImages.value.length > 0) {
+    return productImages.value.map((img) => {
+      // 處理不同格式的圖片物件
+      if (typeof img === "string") {
+        return { imagePath: img };
+      }
+      return img;
+    });
+  }
+
+  // 使用可能的其他圖片來源
+  const images = [];
+
+  // 檢查 primaryImageUrl
+  if (product.value.primaryImageUrl) {
+    images.push({
+      imagePath: product.value.primaryImageUrl,
+      isPrimary: true,
+    });
+  }
+
+  // 檢查 image
+  if (
+    product.value.image &&
+    product.value.image !== product.value.primaryImageUrl
+  ) {
+    images.push({
+      imagePath: product.value.image,
+      isPrimary: !product.value.primaryImageUrl,
+    });
+  }
+
+  // 如果仍然沒有圖片，使用預設圖片
+  if (images.length === 0) {
+    images.push({
+      imagePath: defaultImage,
+      isPrimary: true,
+    });
+  }
+
+  return images;
+});
+
+// 選中的圖片
+const selectedImage = computed(() => {
+  const images = allProductImages.value;
+  if (images.length === 0) return defaultImage;
+
+  if (
+    selectedImageIndex.value >= 0 &&
+    selectedImageIndex.value < images.length
+  ) {
+    return getImageUrl(images[selectedImageIndex.value]);
+  }
+
+  return getImageUrl(images[0]);
+});
+
+// 獲取圖片 URL
+const getImageUrl = (image) => {
+  if (!image) return defaultImage;
+
+  const imagePath = image.imagePath || image.path || image.url || image;
+  if (!imagePath) return defaultImage;
+
+  // 如果是完整 URL，直接返回
+  if (typeof imagePath === "string" && imagePath.startsWith("http")) {
+    return imagePath;
+  }
+
+  // 如果是相對路徑，加上基礎 URL
+  if (
+    typeof imagePath === "string" &&
+    baseUrl.value &&
+    !imagePath.startsWith("/assets")
+  ) {
+    return `${baseUrl.value}${imagePath}`;
+  }
+
+  // 如果是本地圖片路徑，直接返回
+  return imagePath;
+};
+
+// 處理圖片加載錯誤
+const handleImageError = (e) => {
+  console.log("圖片載入失敗，使用預設圖片");
+  e.target.src = defaultImage;
+};
+
 // 價格計算
 const currentPrice = computed(() => {
   return product.value.price || 790;
@@ -443,9 +541,19 @@ const canAddToCart = computed(() => {
 // 監聽 Modal 顯示
 watch(showSizeGuide, (newValue) => {
   if (newValue) {
-    document.getElementById("sizeGuideModal").classList.add("d-block");
+    const modal = document.getElementById("sizeGuideModal");
+    if (modal) {
+      modal.classList.add("d-block");
+      modal.style.display = "block";
+      document.body.classList.add("modal-open");
+    }
   } else {
-    document.getElementById("sizeGuideModal").classList.remove("d-block");
+    const modal = document.getElementById("sizeGuideModal");
+    if (modal) {
+      modal.classList.remove("d-block");
+      modal.style.display = "none";
+      document.body.classList.remove("modal-open");
+    }
   }
 });
 
@@ -522,26 +630,39 @@ const addToCart = () => {
 // 獲取商品詳情
 const fetchProductDetail = async () => {
   try {
+    console.log("獲取商品詳情, 商品ID:", productId);
     // 實際使用時請替換為真實API路徑
     const response = await axios.get(`/api/products/${productId}`);
 
     if (response.status === 200 && response.data) {
+      console.log("商品詳情原始回應:", response.data);
       product.value = response.data;
 
       // 處理圖片資源
       if (
         response.data.productImages &&
+        Array.isArray(response.data.productImages) &&
         response.data.productImages.length > 0
       ) {
-        productImages.value = response.data.productImages.map((img) => img.url);
+        productImages.value = response.data.productImages.map((img) =>
+          typeof img === "string" ? { imagePath: img } : img
+        );
+        console.log("商品圖片數據:", productImages.value);
+      } else if (response.data.primaryImageUrl || response.data.image) {
+        // 如果沒有 productImages 但有 primaryImageUrl 或 image
+        console.log("使用主圖/圖片字段:", {
+          primaryImageUrl: response.data.primaryImageUrl,
+          image: response.data.image,
+        });
       } else {
+        console.log("沒有找到商品圖片，將使用默認測試圖片");
         // 假設的測試圖片，實際應用中應使用真實的商品圖片
         productImages.value = [
           "/assets/product-1.jpg",
           "/assets/product-2.jpg",
           "/assets/product-3.jpg",
           "/assets/product-4.jpg",
-        ];
+        ].map((path) => ({ imagePath: path }));
       }
     }
   } catch (error) {
@@ -562,17 +683,26 @@ const fetchProductDetail = async () => {
 
     // 測試用圖片
     productImages.value = [
-      "https://via.placeholder.com/500x600?text=Product+Image+1",
-      "https://via.placeholder.com/500x600?text=Product+Image+2",
-      "https://via.placeholder.com/500x600?text=Product+Image+3",
-      "https://via.placeholder.com/500x600?text=Product+Image+4",
+      { imagePath: "https://via.placeholder.com/500x600?text=Product+Image+1" },
+      { imagePath: "https://via.placeholder.com/500x600?text=Product+Image+2" },
+      { imagePath: "https://via.placeholder.com/500x600?text=Product+Image+3" },
+      { imagePath: "https://via.placeholder.com/500x600?text=Product+Image+4" },
     ];
   }
 };
 
 // 在元件掛載時獲取商品資訊
-onMounted(() => {
-  fetchProductDetail();
+onMounted(async () => {
+  await fetchProductDetail();
+
+  // 初始化 Bootstrap 模態框
+  const bootstrap = window.bootstrap;
+  if (bootstrap && bootstrap.Modal) {
+    const modalElement = document.getElementById("sizeGuideModal");
+    if (modalElement) {
+      new bootstrap.Modal(modalElement);
+    }
+  }
 });
 </script>
 
