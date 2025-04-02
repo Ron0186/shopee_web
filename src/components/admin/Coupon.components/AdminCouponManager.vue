@@ -79,9 +79,9 @@ import AdminCouponCard from "./AdminCouponCard.vue";
 import AdminCouponModal from "./AdminCouponModal.vue";
 import CouponSelect from "./CouponSelect.vue";
 import CouponChart from "./CouponChart.vue";
-import { useRouter } from 'vue-router'; // 如果需要導航
+// import { useRouter } from 'vue-router'; // 如果需要導航
 
-const router = useRouter(); // 用於導航
+// const router = useRouter(); // 用於導航
 
 // --- 狀態管理 ---
 const coupons = ref([]); // 儲存從後端獲取的優惠券列表 (AdminCouponDTO)
@@ -271,22 +271,7 @@ async function fetchMonthlyStats() {
             // if(chartRef.value) chartRef.value.updateChart(monthlyStats.value);
         }
 
-        // --- 暫時使用假數據 ---
-        // const months = ['1月', '2月', '3月', '4月', '5月', '6月']; // 假設近 6 個月
-        // monthlyStats.value = {
-        //     labels: months,
-        //     newCounts: months.map(() => Math.floor(Math.random() * 30)), // 隨機新增數
-        //     currentCounts: months.map(() => Math.floor(Math.random() * 100) + 50) // 隨機目前數
-        // };
-        // console.log("更新圖表數據:", monthlyStats.value);
-        // // 確保圖表元件已掛載後再更新
-        // // 使用 nextTick 或 setTimeout 可能更可靠，或在 chart 元件內部 watch props
-        // setTimeout(() => {
-        //     if (chartRef.value?.updateChart) { // 假設 chart 元件有 updateChart 方法
-        //         chartRef.value.updateChart(monthlyStats.value);
-        //     }
-        // }, 0);
-        // // --- 結束假數據 ---
+
 
     } catch (error) {
         console.error("取得統計數據失敗:", error);

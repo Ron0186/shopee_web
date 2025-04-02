@@ -55,11 +55,6 @@ const props = defineProps({
 // 定義向上層發送的事件
 const emit = defineEmits(["editCoupon", "deleteCoupon"]);
 
-// // 詳細資料功能 (暫時移除或待實現)
-// function showDetails() {
-//   // 可以 emit 事件或打開一個新的 read-only modal
-//   console.log("顯示詳細資料:", props.coupon);
-// }
 
 // 觸發編輯事件，將當前 coupon 資料傳給父元件
 function emitEditCoupon() {
