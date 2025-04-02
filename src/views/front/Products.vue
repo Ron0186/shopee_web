@@ -62,16 +62,6 @@
       <li class="nav-item">
         <a
           class="nav-link"
-          :class="{ active: activeTab === 'reviewing' }"
-          href="#"
-          @click.prevent="setActiveTab('reviewing')"
-        >
-          審核中 ({{ getTabCount("reviewing") }})
-        </a>
-      </li>
-      <li class="nav-item">
-        <a
-          class="nav-link"
           :class="{ active: activeTab === 'inactive' }"
           href="#"
           @click.prevent="setActiveTab('inactive')"
@@ -128,55 +118,53 @@
             <th style="width: 150px">商品名稱</th>
             <th style="width: 100px">價格</th>
             <th style="width: 80px">商品數量</th>
-            <th style="width: 130px">商品內容優化</th>
-            <th style="width: 90px">上架狀態</th>
+            <th style="width: 120px">商品狀態</th>
             <th style="width: 120px">更新時間</th>
-            <th style="width: 230px">操作</th>
+            <th style="width: 200px">操作</th>
           </tr>
         </thead>
         <tbody>
-          <tr v-for="e in filteredProducts" :key="e.productId">
-            <td>{{ e.productId }}</td>
+          <tr v-for="product in filteredProducts" :key="product.productId">
+            <td>{{ product.productId }}</td>
             <td>
               <img
-                v-if="e.primaryImageUrl"
-                :src="getImageUrl(e)"
+                v-if="product.primaryImageUrl"
+                :src="getImageUrl(product)"
                 alt="商品圖片"
                 class="product-image"
               />
               <span v-else>無圖片</span>
             </td>
-            <td>{{ e.productName }}</td>
+            <td>{{ product.productName }}</td>
             <td>
-              <span v-if="e.minPrice === e.maxPrice">NT${{ e.minPrice }}</span>
-              <span v-else>NT${{ e.minPrice }} - NT${{ e.maxPrice }}</span>
-            </td>
-            <td>{{ e.totalStock || 0 }}</td>
-            <td>
-              <span
-                v-if="e.needsOptimization"
-                class="badge bg-warning text-dark"
-                >需要修改</span
+              <span v-if="product.minPrice === product.maxPrice"
+                >NT${{ product.minPrice }}</span
+              >
+              <span v-else
+                >NT${{ product.minPrice }} - NT${{ product.maxPrice }}</span
               >
             </td>
+            <td>{{ product.totalStock || 0 }}</td>
             <td>
-              <span :class="getStatusClass(e)">
-                {{ getStatusText(e) }}
-              </span>
+              <div class="d-flex flex-column">
+                <span :class="getStatusClass(product)">
+                  {{ getStatusText(product) }}
+                </span>
+              </div>
             </td>
-            <td>{{ formatDate(e.updatedAt) }}</td>
+            <td>{{ formatDate(product.updatedAt) }}</td>
             <td>
               <div class="btn-group">
                 <button
                   class="btn btn-primary btn-sm"
-                  @click="openEditModal(e)"
+                  @click="openEditModal(product)"
                 >
                   編輯
                 </button>
 
                 <button
                   class="btn btn-info btn-sm"
-                  @click="goToSkuManagement(e.productId)"
+                  @click="goToSkuManagement(product.productId)"
                 >
                   SKU管理
                 </button>
@@ -195,16 +183,16 @@
                       <a
                         class="dropdown-item"
                         href="#"
-                        @click.prevent="toggleActive(e)"
+                        @click.prevent="toggleActive(product)"
                       >
-                        {{ e.active ? "下架" : "上架" }}
+                        {{ product.active ? "下架" : "上架" }}
                       </a>
                     </li>
                     <li>
                       <a
                         class="dropdown-item"
                         href="#"
-                        @click.prevent="goToPromotionPage(e.productId)"
+                        @click.prevent="goToPromotionPage(product.productId)"
                       >
                         付費推廣
                       </a>
@@ -214,7 +202,7 @@
                       <a
                         class="dropdown-item text-danger"
                         href="#"
-                        @click.prevent="deleteProduct(e.productId)"
+                        @click.prevent="deleteProduct(product.productId)"
                       >
                         刪除
                       </a>
@@ -232,61 +220,70 @@
     <div v-else-if="viewMode === 'card'" class="product-card-view">
       <div class="row">
         <div
-          v-for="e in filteredProducts"
-          :key="e.productId"
+          v-for="product in filteredProducts"
+          :key="product.productId"
           class="col-md-4 col-sm-6 mb-4"
         >
           <div class="card h-100">
             <div class="position-relative">
               <img
-                :src="getImageUrl(e)"
+                :src="getImageUrl(product)"
                 class="card-img-top"
                 alt="商品圖片"
                 style="height: 200px; object-fit: cover"
               />
-              <div v-if="!e.active" class="product-status-overlay">
+              <div v-if="!product.active" class="product-status-overlay">
                 <span class="lock-icon">
                   <i class="bi bi-lock-fill"></i>
                 </span>
-                <span class="status-text">{{ getStatusText(e) }}</span>
+                <span class="status-text">{{ getStatusText(product) }}</span>
                 <button
-                  v-if="getStatusText(e) === '未上架/尚未刊登'"
+                  v-if="getStatusText(product) === '未上架/尚未刊登'"
                   class="btn btn-sm btn-light mt-2"
-                  @click="toggleActive(e)"
+                  @click="toggleActive(product)"
                 >
                   上架
                 </button>
               </div>
             </div>
             <div class="card-body">
-              <h5 class="card-title text-truncate">{{ e.productName }}</h5>
+              <h5 class="card-title text-truncate">
+                {{ product.productName }}
+              </h5>
               <p class="card-text text-danger">
-                <span v-if="e.minPrice === e.maxPrice"
-                  >NT${{ e.minPrice }}</span
+                <span v-if="product.minPrice === product.maxPrice"
+                  >NT${{ product.minPrice }}</span
                 >
-                <span v-else>NT${{ e.minPrice }} - NT${{ e.maxPrice }}</span>
+                <span v-else
+                  >NT${{ product.minPrice }} - NT${{ product.maxPrice }}</span
+                >
               </p>
               <div class="d-flex justify-content-between mb-2">
-                <span>商品數量：{{ e.totalStock || 0 }}</span>
+                <span>商品數量：{{ product.totalStock || 0 }}</span>
                 <div>
-                  <i class="bi bi-eye me-1"></i>{{ e.viewCount || 0 }}
+                  <i class="bi bi-eye me-1"></i>{{ product.viewCount || 0 }}
                   <i class="bi bi-heart ms-2 me-1"></i
-                  >{{ e.favoriteCount || 0 }}
+                  >{{ product.favoriteCount || 0 }}
                 </div>
               </div>
-              <div v-if="e.needsOptimization" class="mb-2">
-                <span class="badge bg-warning text-dark">需要修改</span>
+              <div class="d-flex justify-content-between mb-2">
+                <span :class="getStatusClass(product)">{{
+                  getStatusText(product)
+                }}</span>
               </div>
             </div>
             <div
               class="card-footer bg-transparent d-flex justify-content-between"
             >
-              <button class="btn btn-sm btn-primary" @click="openEditModal(e)">
+              <button
+                class="btn btn-sm btn-primary"
+                @click="openEditModal(product)"
+              >
                 <i class="bi bi-pencil"></i> 編輯
               </button>
               <button
                 class="btn btn-sm btn-info"
-                @click="goToSkuManagement(e.productId)"
+                @click="goToSkuManagement(product.productId)"
               >
                 <i class="bi bi-grid"></i> SKU
               </button>
@@ -303,16 +300,16 @@
                     <a
                       class="dropdown-item"
                       href="#"
-                      @click.prevent="toggleActive(e)"
+                      @click.prevent="toggleActive(product)"
                     >
-                      {{ e.active ? "下架" : "上架" }}
+                      {{ product.active ? "下架" : "上架" }}
                     </a>
                   </li>
                   <li>
                     <a
                       class="dropdown-item"
                       href="#"
-                      @click.prevent="goToPromotionPage(e.productId)"
+                      @click.prevent="goToPromotionPage(product.productId)"
                     >
                       付費推廣
                     </a>
@@ -322,7 +319,7 @@
                     <a
                       class="dropdown-item text-danger"
                       href="#"
-                      @click.prevent="deleteProduct(e.productId)"
+                      @click.prevent="deleteProduct(product.productId)"
                     >
                       刪除
                     </a>
@@ -370,22 +367,7 @@
       </ul>
     </nav>
 
-    <!-- 新增商品 Modal -->
-    <!-- <product-add-modal
-      :isOpen="showAddModal"
-      :shopId="Number(shopId)"
-      @close="showAddModal = false"
-      @refresh="fetchProducts"
-    /> -->
-
-    <!-- 編輯商品 Modal -->
-    <!-- <product-edit-modal
-      :isOpen="showEditModal"
-      :theData="selectedElement"
-      @close="showEditModal = false"
-      @refresh="fetchProducts"
-    /> -->
-
+    <!-- 商品 Modal -->
     <IntegratedProductModal
       :isOpen="showProductModal"
       :productData="currentProduct"
@@ -402,8 +384,6 @@ import { useRoute, useRouter } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
-// import ProductAddModal from "@/components/product.components/ProductAddModal.vue";
-// import ProductEditModal from "@/components/product.components/ProductEditModal.vue";
 import IntegratedProductModal from "@/components/product.components/IntegratedProductModal.vue";
 
 const route = useRoute();
@@ -439,10 +419,8 @@ const filteredProducts = computed(() => {
       if (activeTab.value === "active")
         return product.active && !product.isDeleted;
       if (activeTab.value === "deleted") return product.isDeleted;
-      if (activeTab.value === "reviewing")
-        return !product.reviewStatus && !product.isDeleted;
       if (activeTab.value === "inactive")
-        return !product.active && product.reviewStatus && !product.isDeleted;
+        return !product.active && !product.isDeleted;
       return true;
     });
   }
@@ -460,11 +438,6 @@ const filteredProducts = computed(() => {
   return filtered;
 });
 
-// 模態框狀態
-const showAddModal = ref(false);
-const showEditModal = ref(false);
-const selectedElement = ref(null);
-
 // 基本設定
 const baseUrl = ref(import.meta.env.VITE_API_URL);
 
@@ -479,12 +452,8 @@ const getTabCount = (tab) => {
     return products.value.filter((p) => p.active && !p.isDeleted).length;
   } else if (tab === "deleted") {
     return products.value.filter((p) => p.isDeleted).length;
-  } else if (tab === "reviewing") {
-    return products.value.filter((p) => !p.reviewStatus && !p.isDeleted).length;
   } else if (tab === "inactive") {
-    return products.value.filter(
-      (p) => !p.active && p.reviewStatus && !p.isDeleted
-    ).length;
+    return products.value.filter((p) => !p.active && !p.isDeleted).length;
   }
   return 0;
 };
@@ -540,7 +509,6 @@ const displayPageNumbers = computed(() => {
 // 獲取商品狀態文字
 const getStatusText = (product) => {
   if (product.isDeleted) return "違規/刪除";
-  if (!product.reviewStatus) return "審核中";
   if (!product.active) return "未上架/尚未刊登";
   return "架上商品";
 };
@@ -550,14 +518,13 @@ const getStatusClass = (product) => {
   const status = getStatusText(product);
   if (status === "架上商品") return "text-success";
   if (status === "未上架/尚未刊登") return "text-warning";
-  if (status === "審核中") return "text-info";
   if (status === "違規/刪除") return "text-danger";
   return "";
 };
 
 // 取得圖片 URL
 const getImageUrl = (product) => {
-  if (!product) return null;
+  if (!product) return "/assets/default-image.png";
 
   if (product.primaryImageUrl) {
     return product.primaryImageUrl.startsWith("http")
@@ -609,10 +576,6 @@ const fetchProducts = async () => {
       return;
     }
 
-    console.log("正在請求的 shopId:", shopId);
-    console.log("當前頁碼:", currentPage.value);
-    console.log("每頁大小:", pageSize.value);
-
     // 構建查詢參數
     const params = {
       shopId: shopId,
@@ -626,8 +589,6 @@ const fetchProducts = async () => {
         params.active = true;
       } else if (activeTab.value === "inactive") {
         params.active = false;
-      } else if (activeTab.value === "reviewing") {
-        params.reviewStatus = false;
       } else if (activeTab.value === "deleted") {
         params.isDeleted = true;
       }
@@ -643,18 +604,12 @@ const fetchProducts = async () => {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    console.log("API 回傳原始數據:", response);
-
-    // 檢查是否為分頁格式的回傳結果
+    // 處理回傳的數據
     if (response.data && response.data.content) {
-      console.log("API 回傳的「我的商品」資料:", response.data.content);
       products.value = response.data.content;
       totalItems.value = response.data.totalElements || 0;
       totalPages.value = response.data.totalPages || 1;
-    }
-    // 保留原有的處理邏輯，以防 API 回傳格式不變
-    else if (Array.isArray(response.data)) {
-      console.log("API 回傳的「我的商品」資料:", response.data);
+    } else if (Array.isArray(response.data)) {
       products.value = response.data;
       totalItems.value = response.data.length;
       totalPages.value = 1;
@@ -669,11 +624,10 @@ const fetchProducts = async () => {
       totalPages.value = 1;
     }
 
-    // 對商品數據進行二次處理
-    processProductData();
+    // 批量獲取商品細節而不是單獨請求每個商品
+    await processBatchProductData();
   } catch (error) {
-    console.error("完整錯誤信息:", error);
-    console.error("錯誤響應:", error.response);
+    console.error("載入失敗:", error.response || error);
 
     Swal.fire({
       title: "載入失敗",
@@ -687,49 +641,59 @@ const fetchProducts = async () => {
   }
 };
 
-// 處理商品數據 (添加價格範圍、數量等資訊)
-const processProductData = async () => {
-  // 處理每個商品
-  for (const product of products.value) {
-    // 如果沒有庫存資訊，獲取 SKU 數據
-    if (product.totalStock === undefined) {
-      try {
-        const skuResponse = await axios.get(
-          `/api/products/${product.productId}/skus`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
+// 批量處理商品數據 (優化API請求)
+const processBatchProductData = async () => {
+  // 找出需要獲取SKU的商品ID列表
+  const productsNeedingSku = products.value.filter(
+    (product) => product.totalStock === undefined
+  );
+
+  if (productsNeedingSku.length === 0) return;
+
+  try {
+    // 假設這裡有一個批量獲取SKU的API
+    // 如果沒有，可以使用Promise.all並行請求多個SKU
+    const skuPromises = productsNeedingSku.map((product) =>
+      axios.get(`/api/products/${product.productId}/skus`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+    );
+
+    const skuResponses = await Promise.all(skuPromises);
+
+    // 處理每個商品的SKU數據
+    for (let i = 0; i < productsNeedingSku.length; i++) {
+      const product = productsNeedingSku[i];
+      const skuResponse = skuResponses[i];
+
+      if (skuResponse.data && Array.isArray(skuResponse.data)) {
+        const skus = skuResponse.data;
+
+        // 計算商品總庫存
+        product.totalStock = skus.reduce(
+          (sum, sku) => sum + (sku.stock || 0),
+          0
         );
 
-        if (skuResponse.data && Array.isArray(skuResponse.data)) {
-          const skus = skuResponse.data;
-
-          // 計算商品總庫存
-          product.totalStock = skus.reduce(
-            (sum, sku) => sum + (sku.stock || 0),
-            0
-          );
-
-          // 計算價格範圍
-          if (skus.length > 0) {
-            const prices = skus.map((sku) => sku.price || 0);
-            product.minPrice = Math.min(...prices);
-            product.maxPrice = Math.max(...prices);
-          } else {
-            product.minPrice = 0;
-            product.maxPrice = 0;
-          }
+        // 計算價格範圍
+        if (skus.length > 0) {
+          const prices = skus.map((sku) => sku.price || 0);
+          product.minPrice = Math.min(...prices);
+          product.maxPrice = Math.max(...prices);
+        } else {
+          product.minPrice = 0;
+          product.maxPrice = 0;
         }
-      } catch (error) {
-        console.error(`獲取商品 ${product.productId} 的 SKU 資訊失敗:`, error);
-        product.totalStock = 0;
-        product.minPrice = 0;
-        product.maxPrice = 0;
       }
     }
-
-    // 隨機添加一些優化需求(僅示例)
-    product.needsOptimization = Math.random() < 0.3;
+  } catch (error) {
+    console.error("批量獲取商品SKU失敗:", error);
+    // 設定默認值
+    productsNeedingSku.forEach((product) => {
+      product.totalStock = 0;
+      product.minPrice = 0;
+      product.maxPrice = 0;
+    });
   }
 };
 
@@ -741,8 +705,8 @@ const openAddModal = () => {
 };
 
 // 開啟編輯 Modal
-const openEditModal = (e) => {
-  currentProduct.value = { ...e }; // 複製物件，避免影響原資料
+const openEditModal = (product) => {
+  currentProduct.value = { ...product }; // 複製物件，避免影響原資料
   isEditMode.value = true;
   showProductModal.value = true;
 };
