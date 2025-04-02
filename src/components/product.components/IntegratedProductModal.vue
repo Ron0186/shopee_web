@@ -283,6 +283,11 @@
 
           <!-- SKU設定頁面 -->
           <div v-if="activeTab === 'sku'">
+            <div class="alert alert-info mb-3" v-if="isEdit">
+              <i class="bi bi-info-circle me-2"></i>
+              編輯模式下，您可以修改現有 SKU
+              的價格和庫存，但無法修改規格類型和值。如需更改規格組合，請在基本資訊頁面刪除商品並重新創建。
+            </div>
             <!-- 規格設定區 -->
             <div class="mb-4">
               <h6>設定商品規格</h6>
@@ -360,16 +365,20 @@
                   type="button"
                   class="btn btn-outline-primary"
                   @click="addSpec"
+                  :disabled="isEdit && generatedSkus.length > 0"
                 >
                   <i class="bi bi-plus-circle"></i> 添加規格類型
                 </button>
                 <button
                   type="button"
                   class="btn btn-primary"
-                  @click="generateSkuList"
-                  :disabled="!canGenerateSku"
+                  @click="confirmGenerateSkuList"
+                  :disabled="
+                    !canGenerateSku || (isEdit && generatedSkus.length > 0)
+                  "
                 >
-                  <i class="bi bi-gear"></i> 生成 SKU 列表
+                  <i class="bi bi-gear"></i>
+                  {{ isEdit ? "重新生成 SKU 列表" : "生成 SKU 列表" }}
                 </button>
               </div>
             </div>
@@ -759,6 +768,25 @@ const loadProductData = async () => {
       console.log("从 API 获取 SKU 数据");
       await fetchSkuData();
     }
+  }
+};
+
+const confirmGenerateSkuList = () => {
+  if (isEdit.value && generatedSkus.value.length > 0) {
+    Swal.fire({
+      title: "確認操作",
+      text: "在編輯模式下，重新生成 SKU 列表可能會導致資料丟失。是否繼續？",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "繼續",
+      cancelButtonText: "取消",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        generateSkuList();
+      }
+    });
+  } else {
+    generateSkuList();
   }
 };
 
@@ -1197,6 +1225,22 @@ const generateSkuList = () => {
 const doGenerateSkuList = () => {
   if (!validateSpecOptions()) return;
 
+  // 暫存當前的 SKU 資料 (以便保留已有的價格和庫存)
+  const existingSkuMap = {};
+  generatedSkus.value.forEach((sku) => {
+    // 創建一個唯一的鍵值來標識每個 SKU
+    const key = Object.entries(sku.specPairs)
+      .map(([k, v]) => `${k}:${v}`)
+      .sort()
+      .join("|");
+
+    existingSkuMap[key] = {
+      id: sku.id,
+      price: sku.price,
+      stock: sku.stock,
+    };
+  });
+
   // 准备规格
   const validSpecs = specOptions.value
     .map((spec) => ({
@@ -1228,19 +1272,17 @@ const doGenerateSkuList = () => {
       specPairs[name] = combination[index];
     });
 
-    // 检查现有 SKU
-    const existingSku =
-      props.isEdit && props.productData?.skus
-        ? props.productData.skus.find((sku) => {
-            if (!sku.specPairs) return false;
-            return Object.entries(specPairs).every(
-              ([key, value]) => sku.specPairs[key] === value
-            );
-          })
-        : null;
+    // 創建用於查找的鍵值
+    const key = Object.entries(specPairs)
+      .map(([k, v]) => `${k}:${v}`)
+      .sort()
+      .join("|");
+
+    // 檢查是否有匹配的現有 SKU
+    const existingSku = existingSkuMap[key];
 
     return {
-      id: existingSku?.id,
+      id: existingSku?.id || null,
       specPairs,
       price: existingSku?.price || 0,
       stock: existingSku?.stock || 0,
@@ -1249,9 +1291,42 @@ const doGenerateSkuList = () => {
     };
   });
 
-  // 应用批量设置
-  if (batchSettings.price > 0) applyBatchSetting("price");
-  if (batchSettings.stock > 0) applyBatchSetting("stock");
+  // 顯示提示
+  if (props.isEdit && Object.keys(existingSkuMap).length > 0) {
+    Swal.fire({
+      title: "SKU 列表已更新",
+      text: "已保留現有 SKU 的價格和庫存數據",
+      icon: "info",
+      timer: 1500,
+    });
+  }
+
+  // 批量設置僅應用於新 SKU
+  if (batchSettings.price > 0 || batchSettings.stock > 0) {
+    // 詢問是否要對所有 SKU 應用批量設置
+    Swal.fire({
+      title: "批量設置",
+      text: "是否要對所有 SKU 應用批量設置值？選擇「否」將只對新 SKU 應用",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "是，全部 SKU",
+      cancelButtonText: "否，僅新 SKU",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // 應用於所有 SKU
+        if (batchSettings.price > 0) applyBatchSetting("price");
+        if (batchSettings.stock > 0) applyBatchSetting("stock");
+      } else {
+        // 僅應用於新 SKU (無 id 的)
+        generatedSkus.value.forEach((sku) => {
+          if (!sku.id) {
+            if (batchSettings.price > 0) sku.price = batchSettings.price;
+            if (batchSettings.stock > 0) sku.stock = batchSettings.stock;
+          }
+        });
+      }
+    });
+  }
 };
 
 const applyBatchSetting = (field) => {
@@ -1520,11 +1595,12 @@ const updateProductWithSku = async () => {
 
     isSubmitting.value = true;
 
-    // 分類處理
-    const newSkus = generatedSkus.value.filter((sku) => !sku.id);
+    // 分類處理 - 只更新現有的 SKU，不處理新增
     const existingSkus = generatedSkus.value.filter((sku) => sku.id);
+    let successCount = 0;
+    let errorCount = 0;
 
-    // 更新現有 SKU - 使用單一請求而非 Promise.all
+    // 逐一更新現有 SKU 的價格和庫存
     for (const sku of existingSkus) {
       try {
         // 確保數據格式正確
@@ -1535,72 +1611,54 @@ const updateProductWithSku = async () => {
 
         console.log(`更新 SKU ${sku.id}，數據:`, updateData);
 
-        // 重要: 使用 await 等待每個請求完成
-        await axios.put(`/api/skus/${sku.id}`, updateData, {
+        // 發送請求更新
+        const response = await axios.put(`/api/skus/${sku.id}`, updateData, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          // 增加超時設置
           timeout: 10000,
         });
+
+        if (response.status >= 200 && response.status < 300) {
+          successCount++;
+        } else {
+          errorCount++;
+          console.error(`更新 SKU ${sku.id} 失敗:`, response);
+        }
       } catch (error) {
-        console.error(`更新 SKU ${sku.id} 時出錯:`, error);
-        Swal.fire({
-          title: "更新失敗",
-          text: `更新 SKU ${sku.id} 時出錯: ${error.message}`,
-          icon: "error",
-        });
-        isSubmitting.value = false;
-        return; // 出錯時提前返回
+        errorCount++;
+        console.error(`更新 SKU ${sku.id} 錯誤:`, error);
       }
     }
 
-    // 添加新 SKU (如果有)
-    if (newSkus.length > 0) {
-      try {
-        const newSkuData = newSkus.map((sku) => ({
-          specPairs: { ...sku.specPairs },
-          price: Number(sku.price),
-          stock: Number(sku.stock),
-        }));
-
-        await axios.post(
-          `/api/products/${productData.productId}/skus/batch`,
-          newSkuData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            timeout: 10000,
-          }
-        );
-      } catch (error) {
-        console.error("新增 SKU 錯誤:", error);
-        Swal.fire({
-          title: "新增失敗",
-          text: error.response?.data?.message || "無法新增 SKU",
-          icon: "error",
-        });
-        isSubmitting.value = false;
-        return; // 出錯時提前返回
-      }
+    // 顯示更新結果
+    if (errorCount > 0) {
+      Swal.fire({
+        title: "部分更新失敗",
+        text: `成功更新 ${successCount} 個 SKU，${errorCount} 個更新失敗`,
+        icon: "warning",
+      });
+    } else if (successCount > 0) {
+      Swal.fire({
+        title: "更新成功",
+        text: `已成功更新 ${successCount} 個 SKU 的價格和庫存`,
+        icon: "success",
+        timer: 1500,
+      });
+    } else {
+      Swal.fire({
+        title: "未進行更新",
+        text: "沒有現有的 SKU 需要更新",
+        icon: "info",
+      });
     }
-
-    // 所有操作成功後顯示成功訊息
-    Swal.fire({
-      title: "更新成功",
-      text: "商品和 SKU 已成功更新",
-      icon: "success",
-      timer: 1500,
-    });
 
     // 清理並刷新
     emit("refresh");
     closeModal();
   } catch (error) {
-    console.error("更新商品與 SKU 時發生錯誤:", error);
+    console.error("更新 SKU 時發生錯誤:", error);
     Swal.fire({
       title: "更新失敗",
       text: error.message || "未知錯誤",
