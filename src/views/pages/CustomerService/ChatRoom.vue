@@ -44,19 +44,18 @@
 </template>
 
 <script setup>
-import { ref, watch, computed, onUnmounted, watchEffect, onMounted } from "vue"; // 確保引入 onMounted
-import { useRoute, useRouter } from "vue-router";
-
+import { ref, watch, computed, onUnmounted, onMounted } from "vue"; // 確保引入 onMounted
+import { useRoute } from "vue-router";
 import Swal from "sweetalert2";
 import { storeToRefs } from "pinia";
 import { useChatStore } from '@/stores/chatStore';
 import { useUserStore } from '@/stores/user'; // 新增這行
 // 從 store 中取得相關狀態與方法
 const chatStore = useChatStore();
-const { currentUser, activeChatRoom, displayMessages, connectionStatus, socketManager } = storeToRefs(chatStore);
+const { activeChatRoom, displayMessages, connectionStatus, socketManager } = storeToRefs(chatStore);
 
 const route = useRoute();
-const router = useRouter();
+
 
 const loadingText = ref("載入中...");
 const checkingExisting = ref(false);
@@ -165,8 +164,8 @@ watch(
 );
 
 onMounted(() => {
-    console.log("ChatRoom Component Mounted");
-    // 可以在這裡做一些滾動到底部之類的操作
+    console.log('--- ChatRoom Component: Script Setup START ---');
+    alert('ChatRoom Component: Script Setup START'); // <--- 強制彈窗，確保能看到
 });
 
 

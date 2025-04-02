@@ -14,8 +14,9 @@ export const useChatStore = defineStore('chat', () => {
     // state
     const userStore = useUserStore();
     const { userId, username, isSeller } = storeToRefs(userStore);
-    const stores = ref([]); // 存放商店列表 { shopId, name, ..., unreadCount, hasActiveChat }
-    const isLoadingStores = ref(false);
+    // --- 新狀態：存儲對話列表 ---
+    const conversations = ref([]); // 替換/補充舊的 stores
+    const isLoadingConversations = ref(false); // 替換/補充 isLoadingStores
     const activeChatRoom = ref(null);
     const messages = ref([]);
     const connectionStatus = ref('disconnected');
@@ -41,98 +42,93 @@ export const useChatStore = defineStore('chat', () => {
 
     const authToken = ref(sessionStorage.getItem('authToken'));
 
+    // --- 獲取 Token 的輔助函數 ---
+    function getCurrentAuthToken() {
+        const token = sessionStorage.getItem('authToken');
+        if (!token) {
+            console.error("[ChatStore] 缺少 Auth Token。");
+            // 可以考慮拋出錯誤或導向登入
+        }
+        return token;
+    }
 
-    // Action: 獲取商店列表和初始未讀數
-    async function fetchStoresAndUnreadCounts() {
+    // --- >>> 新 Action：獲取賣家對話列表 <<< ---
+    async function fetchSellerConversations() {
         // 只在賣家登入時執行
-        if (!userId.value) {
-            console.log("[ChatStore] 未登入，不載入商店列表及未讀數。");
-            stores.value = []; // 清空列表
+        if (!isSeller.value || !userId.value) {
+            console.log("[ChatStore] 非賣家或未登入，不載入對話列表。");
+            conversations.value = []; // 清空列表
             return;
         }
-        isLoadingStores.value = true;
-        console.log("[ChatStore] 載入商店列表及初始未讀數 for sellerId:", userId.value);
+
+        isLoadingConversations.value = true;
+        console.log("[ChatStore] 載入賣家對話列表 for sellerId:", userId.value);
+        const currentAuthToken = sessionStorage.getItem('authToken'); // 獲取當前 Token
+        if (!currentAuthToken) {
+            console.error("[ChatStore] 缺少 Auth Token，無法載入對話列表。");
+            isLoadingConversations.value = false;
+            conversations.value = [];
+            // 可以考慮彈出提示或導向登入
+            return;
+        }
+
         try {
-            // 1. 獲取商店列表 API
-            const storesResponse = await axios.get('/api/shop/allShop'); // 假設 axios 已設定 baseURL
-            let storesData = storesResponse.data?.data || storesResponse.data || [];
-            if (!Array.isArray(storesData)) storesData = [];
-            console.log("[ChatStore] 商店列表 API 回應:", storesData);
-
-            // 2. 獲取初始未讀數 API
-            let initialUnreadData = {};
-            try {
-                // *** 從 sessionStorage 或 userStore 獲取當前的 Auth Token ***
-                const currentAuthToken = sessionStorage.getItem('authToken'); // 或者從 userStore 獲取 (如果有的話)
-
-                if (!currentAuthToken) {
-                    // 如果沒有 token，可以選擇拋出錯誤或直接返回空數據
-                    console.warn("[ChatStore] 無法獲取未讀數：缺少 Auth Token。");
-                    // throw new Error("缺少 Auth Token 無法獲取未讀數"); // 或者讓後續流程使用空數據
-                } else {
-                    // *** 在 axios.get 的第二個參數中傳入 headers ***
-                    const unreadResponse = await axios.get(
-                        `/api/chat/unread?sellerId=${userId.value}`,
-                        { // <-- 加入 axios 配置物件
-                            headers: {
-                                'Authorization': `Bearer ${currentAuthToken}`
-                            }
-                        }
-                    );
-                    initialUnreadData = unreadResponse.data || {};
-                    console.log("[ChatStore] 初始未讀數 API 回應:", initialUnreadData);
-                }
-            } catch (unreadError) {
-                console.error("[ChatStore] 獲取初始未讀數失敗:", unreadError);
-                // *** 建議加入更詳細的錯誤日誌 ***
-                if (unreadError.response) {
-                    // 請求已發出，伺服器回應了非 2xx 的狀態碼
-                    console.error("錯誤狀態碼:", unreadError.response.status);
-                    console.error("錯誤回應數據:", unreadError.response.data);
-                } else if (unreadError.request) {
-                    // 請求已發出，但沒有收到回應
-                    console.error("未收到伺服器回應:", unreadError.request);
-                } else {
-                    // 設定請求時發生錯誤
-                    console.error('請求設定錯誤:', unreadError.message);
-                }
-                // 保持原有邏輯：忽略錯誤，未讀數會是 0
-            }
-
-            // 3. 合併數據並更新 stores 狀態
-            stores.value = storesData.map(store => {
-                const shopId = Number(store.shopId);
-                const currentUserIdNum = Number(userId.value);
-                // 處理後端 Map 的 key 可能是數字或字串
-                const unreadCount = Number(initialUnreadData[shopId] ?? initialUnreadData[String(shopId)] ?? 0);
-                return {
-                    id: shopId,
-                    name: store.shopName?.trim() || '未命名店铺',
-                    sellerId: Number(store.userId),
-                    shopId: shopId,
-                    isCurrentUserStore: Number(store.userId) === currentUserIdNum,
-                    unreadCount: unreadCount,
-                    // 根據未讀數判斷是否有活躍對話 (你也可以根據後端回傳的其他欄位判斷)
-                    hasActiveChat: unreadCount > 0,
-                };
+            const response = await axios.get('/api/chat/seller/conversations', {
+                headers: { 'Authorization': `Bearer ${currentAuthToken}` }
             });
-            console.log("[ChatStore] 初始化/更新後的 stores 狀態:", JSON.stringify(stores.value));
-
+            // 後端應返回 List<ConversationDTO>
+            conversations.value = response.data || [];
+            console.log("[ChatStore] 賣家對話列表 API 回應:", conversations.value);
         } catch (error) {
-            console.error('[ChatStore] 載入商店列表失敗:', error);
-            stores.value = []; // 清空以表示錯誤
-            // Swal.fire("錯誤", "無法載入商店列表", "error"); // 考慮是否在 Component 層提示
+            console.error('[ChatStore] 載入賣家對話列表失敗:', error);
+            conversations.value = []; // 清空以表示錯誤
+            if (error.response) {
+                console.error("錯誤狀態碼:", error.response.status);
+                console.error("錯誤回應數據:", error.response.data);
+            }
+            // Swal.fire("錯誤", "無法載入對話列表", "error"); // 可以在組件層提示
         } finally {
-            isLoadingStores.value = false;
+            isLoadingConversations.value = false;
         }
     }
+    // --- >>> 新 Action 結束 <<< ---
+
+    // --- >>> 新增 Action：獲取買家對話列表 <<< ---
+    async function fetchBuyerConversations() {
+        if (isSeller.value || !userId.value) return; // 身份檢查 (確保是買家且已登入)
+        isLoadingConversations.value = true;
+        console.log("[ChatStore] 載入買家對話列表 for buyerId:", userId.value);
+        const currentAuthToken = getCurrentAuthToken();
+        if (!currentAuthToken) {
+            isLoadingConversations.value = false;
+            conversations.value = [];
+            return;
+        }
+        try {
+            // *** 調用為買家設計的新 API ***
+            const response = await axios.get('/api/chat/buyer/conversations', {
+                headers: { 'Authorization': `Bearer ${currentAuthToken}` }
+            });
+            // 後端應返回 List<ConversationDTO> 或類似結構
+            conversations.value = response.data || [];
+            console.log("[ChatStore] 買家對話列表 API 回應:", conversations.value);
+        } catch (error) {
+            console.error('[ChatStore] 載入買家對話列表失敗:', error);
+            conversations.value = [];
+        } finally {
+            isLoadingConversations.value = false;
+        }
+    }
+    // --- >>> 新增 Action 結束 <<< ---
 
 
     /**
-      * 根據 WebSocket 推送更新 stores 列表中的未讀計數
-      * @param {Object} unreadDataMap - 從後端收到的 { shopId: count } 格式的 Map
-      */
-    function updateUnreadCountsInStore(unreadDataMap) {
+       * 根據 WebSocket 推送更新 conversations 列表中的未讀計數
+       * @param {Object} unreadDataMap - 從後端收到的數據，格式需要確認 (可能是 { chatRoomId: count } ?)
+       */
+    function updateUnreadCounts(unreadDataMap) {
+        // *** 注意：這裡假設 unreadDataMap 的 key 是 chatRoomId ***
+        // *** 您需要確認後端 /queue/unread-update 推送的數據格式 ***
         console.log("[ChatStore] 收到 WebSocket 未讀數更新:", unreadDataMap);
         if (!unreadDataMap || typeof unreadDataMap !== 'object') {
             console.warn("[ChatStore] 收到的未讀數更新格式不正確，已忽略。");
@@ -140,31 +136,34 @@ export const useChatStore = defineStore('chat', () => {
         }
 
         let changed = false;
-        stores.value = stores.value.map(store => {
-            const shopId = store.shopId;
-            // 檢查後端 Map 中是否有此 shopId 的 key (數字或字串)
-            const newCount = unreadDataMap[shopId] !== undefined
-                ? Number(unreadDataMap[shopId])
-                : (unreadDataMap[String(shopId)] !== undefined
-                    ? Number(unreadDataMap[String(shopId)])
+        conversations.value = conversations.value.map(conv => {
+            const chatRoomId = conv.chatRoomId;
+            // 檢查是否有此 chatRoomId 的更新
+            const newCount = unreadDataMap[chatRoomId] !== undefined
+                ? Number(unreadDataMap[chatRoomId])
+                : (unreadDataMap[String(chatRoomId)] !== undefined
+                    ? Number(unreadDataMap[String(chatRoomId)])
                     : undefined);
 
-            // 如果找到了新的計數，並且與舊的不同，則更新
-            if (newCount !== undefined && !isNaN(newCount) && store.unreadCount !== newCount) {
-                console.log(`[ChatStore] Store 更新: Shop ID ${shopId} 未讀數從 ${store.unreadCount} 改為 ${newCount}`);
+            if (newCount !== undefined && !isNaN(newCount) && conv.unreadCount !== newCount) {
+                console.log(`[ChatStore] Conversation 更新: ChatRoom ID ${chatRoomId} 未讀數從 ${conv.unreadCount} 改為 ${newCount}`);
                 changed = true;
-                return { ...store, unreadCount: newCount, hasActiveChat: newCount > 0 };
+                return { ...conv, unreadCount: newCount }; // 更新未讀數
             }
-            return store; // 保持不變
+            return conv; // 保持不變
         });
 
         if (changed) {
-            console.log("[ChatStore] 應用 WebSocket 更新後的 stores 狀態:", JSON.stringify(stores.value));
-            // 如果需要，可以在這裡觸發額外的事件或通知
+            console.log("[ChatStore] 應用 WebSocket 更新後的 conversations 狀態:", JSON.stringify(conversations.value));
+            // 按需重新排序 (如果排序依賴未讀數)
+            conversations.value.sort((a, b) =>
+                (b.lastMessageTimestamp || b.lastActiveAt || '1970') > (a.lastMessageTimestamp || a.lastActiveAt || '1970') ? 1 : -1
+            );
         } else {
-            console.log("[ChatStore] WebSocket 更新未導致 stores 狀態變化。");
+            console.log("[ChatStore] WebSocket 更新未導致 conversations 狀態變化。");
         }
     }
+    // --- ---
 
     /**
          * 建立 WebSocket 連接並設定應用級訂閱 (應在登入後呼叫一次)
@@ -470,20 +469,25 @@ export const useChatStore = defineStore('chat', () => {
 
     // 新增一個專門處理聊天室訊息訂閱的函數
     function setupChatRoomSpecificSubscription(chatRoomId) {
-        if (!socketManager.value.stompClient || !socketManager.value.stompClient.connected) return;
+        if (!socketManager.value.stompClient || !socketManager.value.stompClient.connected) {
+            console.warn("[ChatStore] WebSocket 未連接，無法訂閱聊天室主題。"); // 保留原有的警告
+            return;
+        }
         const stompClient = socketManager.value.stompClient;
         const destination = `/topic/chat/${chatRoomId}`;
 
         // 取消舊的聊天室訂閱 (如果需要切換聊天室)
         socketManager.value.subscriptions.forEach((sub, key) => {
             if (key.startsWith('/topic/chat/')) {
-                try { sub.unsubscribe(); } catch (e) { }
+                try {
+                    sub.unsubscribe();
+                    console.log(`[ChatStore] 已取消舊的聊天室主題訂閱: ${key}`); // 保留原有日誌
+                } catch (e) { }
                 socketManager.value.subscriptions.delete(key);
             }
         });
+        console.log(`[ChatStore] setupChatRoomSpecificSubscription: 準備訂閱聊天室主題 --> ${destination}`);
 
-
-        console.log(`準備訂閱聊天室主題: ${destination}`);
         const chatSub = stompClient.subscribe(destination, (message) => {
             const receivedMessage = JSON.parse(message.body);
             // 處理收到的聊天訊息 (addMessage 或 updateMessageStatus)
@@ -523,7 +527,9 @@ export const useChatStore = defineStore('chat', () => {
             const sub = stompClient.subscribe(unreadDest, (message) => {
                 try {
                     const updatedCounts = JSON.parse(message.body); // 預期是 { shopId: count }
-                    updateUnreadCountsInStore(updatedCounts); // 呼叫 Action 更新狀態
+                    // --- >>> 調用新的更新函數 <<< ---
+                    updateUnreadCounts(updatedCounts);
+
                 } catch (e) {
                     console.error("[ChatStore] 處理未讀數 WebSocket 訊息時出錯:", e, message.body);
                 }
@@ -747,9 +753,10 @@ export const useChatStore = defineStore('chat', () => {
 
     return {
         // 給 Content.vue
-        stores,
-        isLoadingStores,
-        fetchStoresAndUnreadCounts,
+        conversations,
+        isLoadingConversations,
+        fetchSellerConversations,
+        fetchBuyerConversations, // <-- 導出新的 Action
 
         // 給 ChatRoom.vue
         activeChatRoom,

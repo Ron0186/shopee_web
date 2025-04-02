@@ -19,48 +19,44 @@
         </p>
 
 
+
         <div v-if="showStoreList" class="modal fade show d-block" tabindex="-1"
             style="background-color: rgba(0,0,0,0.5)">
             <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">選擇商店</h5>
+                        <h5 class="modal-title">選擇對話</h5>
                         <button type="button" class="btn-close" @click="closeModal"></button>
                     </div>
                     <div class="modal-body">
-                        <div v-if="isLoadingStores" class="text-center">
+                        <div v-if="isLoadingConversations" class="text-center">
                             <div class="spinner-border text-primary" role="status">
                                 <span class="visually-hidden">載入中...</span>
                             </div>
-                            <p>載入商店列表中...</p>
+                            <p>載入對話列表中...</p>
                         </div>
-                        <div v-else-if="stores.length > 0" class="row row-cols-1 row-cols-md-2 g-4">
-                            <div class="col" v-for="store in stores" :key="store.id">
-                                <div class="card h-100">
-                                    <div class="card-body d-flex align-items-center">
-                                        <div class="flex-grow-1">
-                                            <h5 class="card-title mb-1">{{ store.name }}</h5>
-                                        </div>
-                                        <button v-if="!store.isCurrentUserStore" class="btn btn-primary"
-                                            @click.stop="buyerChat(store.shopId)">
-                                            買家聊天
-                                        </button>
-                                        <button v-else-if="isShopOwner" class="btn btn-primary"
-                                            :disabled="!store.hasActiveChat && store.unreadCount === 0"
-                                            @click.stop="sellerChat(store.shopId)">
-                                            <template v-if="store.hasActiveChat || store.unreadCount > 0">
-                                                賣家聊天 ({{ store.unreadCount }}未讀)
-                                            </template>
-                                            <template v-else>
-                                                暫無對話 🔒
-                                            </template>
-                                        </button>
-                                    </div>
+
+                        <div v-else-if="conversations.length > 0" class="list-group">
+                            <a href="#" v-for="conversation in conversations" :key="conversation.chatRoomId"
+                                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                                @click.prevent="goToChat(conversation.chatRoomId)">
+                                <div>
+                                    <h5 v-if="isSeller" class="mb-1">與 {{ conversation.buyerName || '未知買家' }} 的對話</h5>
+                                    <h5 v-else class="mb-1">與 {{ conversation.sellerName || conversation.shopName ||
+                                        '未知賣家' }} 的對話</h5>
+                                    <small v-if="isSeller">商店: {{ conversation.shopName || 'N/A' }}</small>
+                                    <p v-if="conversation.lastMessageContentPreview" class="mb-1 text-muted small">
+                                        {{ conversation.lastMessageSenderName }}: {{
+                                            conversation.lastMessageContentPreview }}
+                                    </p>
                                 </div>
-                            </div>
+                                <span v-if="conversation.unreadCount > 0" class="badge bg-danger rounded-pill">
+                                    {{ conversation.unreadCount }}
+                                </span>
+                            </a>
                         </div>
                         <div v-else class="text-center">
-                            <p>無法載入商店列表或您尚未開設商店。</p>
+                            <p>目前沒有進行中的對話。</p> {/* 統一提示 */}
                         </div>
                     </div>
                 </div>
@@ -91,14 +87,17 @@ const selectedArticle = computed(() =>
 );
 
 const chatStore = useChatStore();
-const { stores, isLoadingStores } = storeToRefs(chatStore); // *** 從 Store 獲取狀態 ***
+// --- >>> 獲取新的狀態 <<< ---
+const { conversations, isLoadingConversations } = storeToRefs(chatStore);
+// --- >>> ---
 
 
 watch(() => route.params.id, newId => {
     helpStore.setSelectedArticle(newId);
 }, { immediate: true });
 
-const isShopOwner = computed(() => userStore.isSeller);
+const isSeller = computed(() => userStore.isSeller); // 獲取賣家身份
+
 
 // 同步 localStorage 中的 userId 與 userName 至 sessionStorage
 const syncUserInfoToSession = () => {
@@ -112,60 +111,57 @@ const syncUserInfoToSession = () => {
 
 const openModal = () => {
     showStoreList.value = true;
-    // *** 呼叫 Store 的 Action 來載入初始數據 ***
-    // 這會獲取商店列表和它們目前的未讀數
-    chatStore.fetchStoresAndUnreadCounts();
-    // 確保 WebSocket 已連接以接收後續更新
-    chatStore.connectWebSocket(); // connectWebSocket 內部會檢查是否已連接
+    // --- >>> 根據身份調用不同的加載方法 <<< ---
+    if (isSeller.value) {
+        chatStore.fetchSellerConversations(); // 賣家加載對話
+    } else {
+        chatStore.fetchBuyerConversations(); // <<< 買家加載對話
+    }
+    // --- ---
+    chatStore.connectWebSocket(); // 確保 WS 連接
 };
 
 const closeModal = () => {
     showStoreList.value = false;
-    router.push('/helpCenter');
+
 };
+
+// --- >>> 新增 goToChat 函數 <<< ---
+const goToChat = (chatRoomId) => {
+    console.log(`goToChat called with chatRoomId: ${chatRoomId}, Type: ${typeof chatRoomId}`); // <-- 加入此行
+    if (!chatRoomId || typeof chatRoomId !== 'number') { // <-- 增加類型檢查
+        console.error("goToChat: 無效的 chatRoomId:", chatRoomId);
+        Swal.fire("錯誤", `無法識別的聊天室 ID: ${chatRoomId}`, "error"); // 提示具體 ID
+        return;
+    }
+    console.log(`Navigating to chat room URL: /chat/${chatRoomId}`);
+    router.push(`/chat/${chatRoomId}`);
+    closeModal();
+};
+// --- >>> ---
 
 // --- 聊天導航邏輯 (可以保持不變) ---
-const buyerChat = async (shopId) => {
-    console.log(`Buyer attempting to chat with shopId: ${shopId}`);
-    try {
-        // 買家點擊，通常是創建或查找房間
-        // 這裡用 axios 呼叫後端 /api/chat/create 端點
-        const response = await axios.post('/api/chat/create', { shopId }, {
-            headers: { Authorization: `Bearer ${authToken.value}` }
-        });
-        if (response.data && response.data.chatRoomId) {
-            router.push(`/chat/${response.data.chatRoomId}`); // 跳轉到聊天室
-        } else {
-            throw new Error("無法獲取聊天室 ID");
-        }
-    } catch (error) {
-        console.error("買家聊天啟動失敗:", error);
-        Swal.fire("錯誤", error.response?.data?.message || "無法開啟聊天", "error");
-    }
-};
+// const buyerChat = async (shopId) => {
+//     console.log(`Buyer attempting to chat with shopId: ${shopId}`);
+//     try {
+//         // 買家點擊，通常是創建或查找房間
+//         // 這裡用 axios 呼叫後端 /api/chat/create 端點
+//         const response = await axios.post('/api/chat/create', { shopId }, {
+//             headers: { Authorization: `Bearer ${authToken.value}` }
+//         });
+//         if (response.data && response.data.chatRoomId) {
+//             router.push(`/chat/${response.data.chatRoomId}`); // 跳轉到聊天室
+//         } else {
+//             throw new Error("無法獲取聊天室 ID");
+//         }
+//     } catch (error) {
+//         console.error("買家聊天啟動失敗:", error);
+//         Swal.fire("錯誤", error.response?.data?.message || "無法開啟聊天", "error");
+//     }
+// };
 
-const sellerChat = async (shopId) => {
-    console.log(`Seller attempting to enter chat for shopId: ${shopId}`);
-    try {
-        // 賣家點擊，呼叫後端 /api/chat/seller/enter 端點
-        const response = await axios.get(`/api/chat/seller/enter/${shopId}`, {
-            headers: { Authorization: `Bearer ${authToken.value}` }
-        });
-        if (response.data && response.data.chatRoomId) {
-            router.push(`/chat/${response.data.chatRoomId}`); // 跳轉到聊天室
-        } else {
-            // 理論上後端成功會回傳 chatRoomId，這裡可能不需要處理
-            throw new Error("無法獲取聊天室 ID");
-        }
-    } catch (error) {
-        console.error("賣家進入聊天室失敗:", error);
-        if (error.response?.status === 404) {
-            Swal.fire("提示", error.response?.data?.message || "尚未有买家发起对话", "info");
-        } else {
-            Swal.fire("錯誤", error.response?.data?.message || "無法進入聊天室", "error");
-        }
-    }
-};
+
+
 
 
 
@@ -175,9 +171,9 @@ onMounted(() => {
 
     // 如果是賣家，可以在元件掛載時嘗試載入一次商店和未讀數
     // 並且確保 WebSocket 連接已建立 (或嘗試建立)
-    if (userStore.isSeller) {
+    if (isSeller.value) {
         console.log("賣家身份，嘗試載入初始商店數據並連接 WebSocket...");
-        chatStore.fetchStoresAndUnreadCounts();
+
         chatStore.connectWebSocket(); // connectWebSocket 內部會檢查是否已連接
     }
 });

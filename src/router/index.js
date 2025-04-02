@@ -1,12 +1,11 @@
-import SearchResult from "@/components/SearchResult.vue";
-import HelpCenter from "@/views/pages/HelpCenter.vue";
+
 import UpdateHomeAddress from "@/views/member/UpdateHomeAddress.vue";
 import UpdateCVSAddress from "@/views/member/UpdateCVSAddress.vue";
 import ProductDetails from '@/views/seller/ProductDetails.vue';
 import OrderDetails from '@/views/seller/OrderDetails.vue'
 import SkuDetails from '@/views/seller/SkuDetails.vue'
 import ReviewDetails from '@/views/seller/ReviewDetails.vue'
-
+import ChatRoomComponent from "@/views/pages/CustomerService/ChatRoom.vue"; // <-- 改為靜態導入
 
 import { createRouter, createWebHistory } from "vue-router";
 
@@ -145,16 +144,16 @@ const router = createRouter({
           name: 'CVSAddressCreate',
           component: () => import('@/views/member/CVSAddressCreate.vue')
         },
-        {
-          path: '/memberOrders',
-          name: 'memberOrders',
-          component: () => import('@/views/member/MemberOrders.vue')
-        },
-        {
-          path: '/memberCoupons',
-          name: 'memberCoupons',
-          component: () => import('@/views/member/MemberCoupons.vue')
-        },
+        // {
+        //   path: '/memberOrders',
+        //   name: 'memberOrders',
+        //   component: () => import('@/views/member/MemberOrders.vue')
+        // },
+        // {
+        //   path: '/memberCoupons',
+        //   name: 'memberCoupons',
+        //   component: () => import('@/views/member/MemberCoupons.vue')
+        // },
         {
           path: '/updateHomeAddress/:addressId',
           name: 'UpdateHomeAddress',
@@ -281,7 +280,7 @@ const router = createRouter({
         {
           path: "/chat/:chatRoomId",
           name: "ChatRoom",
-          component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
+          component: ChatRoomComponent, // <-- 直接使用靜態導入的組件
           meta: { requiresAuth: true },
         },
 
@@ -502,7 +501,7 @@ const router = createRouter({
           props: true,
         },
         // {
-        //   //test add selector 
+        //   //test add selector
         //   path: '/add/test',
         //   name: 'add-test',
         //   component: () => import("@/views/member/test.vue"),
