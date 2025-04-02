@@ -14,8 +14,7 @@
         登入</router-link>
       <router-link to="/user/register" v-if="!userStore.username">📝
         註冊</router-link>
-      <router-link to="/shop/apply"
-        v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
+      <router-link to="/shop/apply" v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
         我要當賣家!!</router-link>
 
       <!-- 新增賣家中心按鈕 -->
@@ -31,8 +30,7 @@
       <router-link to="/memberCenter">👤 會員中心</router-link>
 
       <!-- ✅ 訂單管理 + 通知角標 -->
-      <router-link v-if="userStore.username"
-        :to="userStore.isSeller ? '/seller/orders' : '/user/orders'"
+      <router-link v-if="userStore.username" :to="userStore.isSeller ? '/seller/orders' : '/user/orders'"
         class="position-relative">
         📦 訂單管理
         <!-- 賣家：待處理訂單通知 -->
@@ -57,8 +55,7 @@
       <span v-if="userStore.username" @click="logout" class="logout-link">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
       </span>
-      <span v-if="userStore.username" @click="logoutToAdmin"
-        class="logout-link admin-logout">
+      <span v-if="userStore.username" @click="logoutToAdmin" class="logout-link admin-logout">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
       </span>
     </div>
@@ -77,8 +74,7 @@
               衣服</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=electronics"
-              @click="toggleDrawer">📱 電子產品</router-link>
+            <router-link to="/shop?category=electronics" @click="toggleDrawer">📱 電子產品</router-link>
           </li>
           <li>
             <router-link to="/shop?category=home" @click="toggleDrawer">🏠
@@ -113,7 +109,7 @@
           使用者條款</router-link>
       </li>
       <li v-if="userStore.username" @click="logoutToAdmin">
-        <a class="admin-link">🔐 前往後台</a>
+        <a class="admin-link">🔐 優惠券申請</a>
       </li>
       <li v-if="userStore.username" @click="logoutToAdmin">
         <a class="admin-link">🔐 前往後台</a>
