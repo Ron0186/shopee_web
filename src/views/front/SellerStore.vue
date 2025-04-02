@@ -38,7 +38,7 @@
         </button>
       </div>
 
-      <!-- 商品區塊 - 商品資訊相關，是商店擁有者的話會看到編輯&刪除 -->
+      <!-- 商品區塊 - 商品資訊相關，移除編輯&刪除按鈕 -->
       <div class="product-wrapper">
         <div v-if="loading" class="loading-spinner">
           <div class="spinner"></div>
@@ -88,20 +88,7 @@
               </p>
               <p v-if="!isProductActive(product)" class="not-active">未上架</p>
             </div>
-            <div class="product-actions" v-if="isOwner" @click.stop>
-              <button
-                class="btn btn-edit"
-                @click="editProduct(product.productId)"
-              >
-                ✏️ 編輯
-              </button>
-              <button
-                class="btn btn-delete"
-                @click="confirmDeleteProduct(product.productId)"
-              >
-                🗑️ 刪除
-              </button>
-            </div>
+            <!-- 移除編輯和刪除按鈕 -->
           </div>
         </div>
       </div>
@@ -281,61 +268,7 @@ const viewProductDetail = (productId) => {
   router.push(`/products/${productId}`);
 };
 
-// 編輯商品
-const editProduct = (productId) => {
-  router.push(
-    `/seller/shops/${
-      shop.value.shopId || route.params.shopId
-    }/products/edit/${productId}`
-  );
-};
-
-// 確認刪除商品
-const confirmDeleteProduct = async (productId) => {
-  try {
-    const result = await Swal.fire({
-      title: "確定要刪除該商品嗎？",
-      text: "刪除後將無法恢復!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "確定刪除",
-      cancelButtonText: "取消",
-    });
-
-    if (result.isConfirmed) {
-      await deleteProduct(productId);
-    }
-  } catch (error) {
-    console.error("刪除確認錯誤:", error);
-  }
-};
-
-// 刪除商品
-const deleteProduct = async (productId) => {
-  try {
-    const response = await axios.delete(`/api/products/${productId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (response.status >= 200 && response.status < 300) {
-      await Swal.fire({
-        title: "刪除成功",
-        icon: "success",
-      });
-
-      // 重新載入商品列表
-      await fetchProducts();
-    }
-  } catch (error) {
-    Swal.fire({
-      title: "錯誤",
-      text: error.response?.data?.message || "刪除商品失敗",
-      icon: "error",
-    });
-  }
-};
+// 移除了編輯商品和刪除商品的相關函數
 
 // 格式化價格
 const formatPrice = (price) => {
@@ -449,7 +382,7 @@ onMounted(async () => {
 
 .product-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: repeat(5, 1fr); /* 修改為固定5列 */
   gap: 25px;
 }
 
@@ -517,30 +450,7 @@ onMounted(async () => {
   cursor: pointer;
 }
 
-/* 編輯 & 刪除商品按鈕 */
-.product-actions {
-  display: flex;
-  justify-content: space-around;
-  margin-top: 10px;
-}
-
-.btn-edit {
-  background-color: #f1c40f;
-  color: black;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-.btn-delete {
-  background-color: #e74c3c;
-  color: white;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
+/* 移除了編輯 & 刪除商品按鈕的樣式 */
 
 .section-header {
   display: flex;
@@ -647,5 +557,30 @@ onMounted(async () => {
 .page-info {
   font-size: 16px;
   color: #666;
+}
+
+/* 增加響應式設計，在較小的螢幕上減少列數 */
+@media (max-width: 1200px) {
+  .product-list {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .product-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .product-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .product-list {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
