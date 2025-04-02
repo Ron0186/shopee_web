@@ -1,12 +1,11 @@
-import SearchResult from "@/components/SearchResult.vue";
-import HelpCenter from "@/views/pages/HelpCenter.vue";
+
 import UpdateHomeAddress from "@/views/member/UpdateHomeAddress.vue";
 import UpdateCVSAddress from "@/views/member/UpdateCVSAddress.vue";
 import ProductDetails from '@/views/seller/ProductDetails.vue';
 import OrderDetails from '@/views/seller/OrderDetails.vue'
 import SkuDetails from '@/views/seller/SkuDetails.vue'
 import ReviewDetails from '@/views/seller/ReviewDetails.vue'
-
+import ChatRoomComponent from "@/views/pages/CustomerService/ChatRoom.vue"; // <-- 改為靜態導入
 
 import { createRouter, createWebHistory } from "vue-router";
 
@@ -286,7 +285,7 @@ const router = createRouter({
         {
           path: "/chat/:chatRoomId",
           name: "ChatRoom",
-          component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
+          component: ChatRoomComponent, // <-- 直接使用靜態導入的組件
           meta: { requiresAuth: true },
         },
 
@@ -342,6 +341,12 @@ const router = createRouter({
             requiresAuth: false, // 此頁面不需要身份驗證
           },
         },
+        {
+          path: "seller/coupon/apply", // 注意這是相對路徑
+          name: "CouponApply",
+          component: () => import("@/views/front/CouponApplicationForm.vue"),
+          meta: { requiresAuth: true, role: "SELLER" } // 設定路由元信息
+        }
       ],
     },
 
@@ -409,6 +414,14 @@ const router = createRouter({
           name: "ShipmentStatusManagement",
           component: () => import("@/views/admin/ShipmentStatusManagement.vue"),
         },
+
+        {
+          // 整合管理付款/物流頁面
+          path: "integrated-management",
+          name: "IntegratedManagement",
+          component: () => import("@/views/admin/IntegratedManagement.vue"),
+        },
+
         {
           // 後台管理頁面
           path: "admin-management",
@@ -438,6 +451,12 @@ const router = createRouter({
           path: "administrators",
           name: "administrators",
           component: () => import("@/views/admin/Administrators.vue"),
+        },
+        {
+          // 管理員商品頁面
+          path: "product-review",
+          name: "ProductReview",
+          component: () => import("@/views/admin/ProductReview.vue"),
         },
         {
           // 分類管理頁面
@@ -499,7 +518,7 @@ const router = createRouter({
           props: true,
         },
         // {
-        //   //test add selector 
+        //   //test add selector
         //   path: '/add/test',
         //   name: 'add-test',
         //   component: () => import("@/views/member/test.vue"),

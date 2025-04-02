@@ -10,7 +10,7 @@ import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 import { BModal, BButton } from 'bootstrap-vue-next';
 
 import { useChatStore } from '@/stores/chatStore'; // 正確導入 Store
-import { useHelpStore } from "./stores/HelpStore";
+
 // ✅ 確保正確引入 Bootstrap 核心樣式 & JS
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
