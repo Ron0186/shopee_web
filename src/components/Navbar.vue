@@ -195,6 +195,7 @@ const fetchNotificationCount = async () => {
 
 // ✅ 登出功能
 async function logout() {
+  axios.defaults.headers.common["Authorization"] = ``;
   userStore.clearUserData();
   userMenuOpen.value = false; // 關閉下拉選單
   const response = await Swal.fire({
@@ -209,6 +210,7 @@ async function logout() {
 
 // ✅ 登出並跳轉至後台登入頁
 async function logoutToAdmin() {
+  axios.defaults.headers.common["Authorization"] = ``;
   userStore.clearUserData();
   userMenuOpen.value = false; // 關閉下拉選單
   const response = await Swal.fire({
