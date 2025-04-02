@@ -85,24 +85,17 @@ const statusText = computed(() => {
 
 // 判斷是否為本人發送
 const isMyMessage = computed(() => {
-    // 在 computed 工廠函數外部獲取一次 userId，確保響應性
-    const loggedInUserId = computed(() => Number(userStore.userId)); // 從 userStore 獲取登入者 ID (數字)
-
+    const loggedInUserId = computed(() => Number(userStore.userId)); // 1. 獲取當前登入用戶 ID (應為賣家 ID，例如 45)
     return (msg) => {
-        // *** 使用正確的屬性：msg.senderId ***
-        const messageSenderIdRaw = msg?.senderId; // 讀取原始值
-        const messageSenderId = Number(msg?.senderId);
-
-        // (可選) 保留日誌以便測試階段驗證
-        console.log(
+        const messageSenderId = Number(msg?.senderId); // 2. 獲取訊息的發送者 ID
+        console.log( // 3. 打印詳細比較信息
             `比較訊息: ID=${msg?.messageId || msg?.tempId}, ` +
-            `原始 msg.senderId=${messageSenderIdRaw} (類型 ${typeof messageSenderIdRaw}), ` + // 記錄正確的原始值
+            `原始 msg.senderId=${msg?.senderId} (類型 ${typeof msg?.senderId}), ` +
             `轉換後 senderId=${messageSenderId}, ` +
             `登入者ID=${loggedInUserId.value}, ` +
             `是否匹配=${loggedInUserId.value && !isNaN(messageSenderId) && messageSenderId === loggedInUserId.value}`
         );
-
-        // 使用從 msg.senderId 獲取的值進行比較
+        // 4. 比較兩者是否嚴格相等 (===)
         return loggedInUserId.value && !isNaN(messageSenderId) && messageSenderId === loggedInUserId.value;
     };
 });
@@ -222,6 +215,7 @@ async function send() {
     };
 
     try {
+        console.log('發送前的 messageToAdd:', JSON.parse(JSON.stringify(messageToAdd)));
         // 1. 即時顯示
         chatStore.addMessage(messageToAdd);
 
