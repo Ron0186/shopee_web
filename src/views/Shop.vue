@@ -70,8 +70,12 @@
               )
             "
             :alt="product.productName"
+            @click="viewProductDetail(product)"
+            style="cursor: pointer"
           />
-          <h3>{{ product.productName }}</h3>
+          <h3 @click="viewProductDetail(product)" style="cursor: pointer">
+            {{ product.productName }}
+          </h3>
           <p class="product-price">💰 {{ product.lowestPrice }} 元</p>
           <p class="product-seller">👤 賣家：{{ product.sellerName }}</p>
           <p v-if="product.category1Name" class="category-tag">
@@ -350,7 +354,7 @@ const addToCart = (product) => {
 // 👁️ 查看商品詳情
 const viewProductDetail = (product) => {
   console.log("查看商品詳情:", product);
-  router.push(`/products/${product.productId}`);
+  router.push(`/products/${product.productId}/detail`);
 };
 
 // 🖼️ 圖片處理

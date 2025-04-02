@@ -177,6 +177,7 @@ const router = createRouter({
           name: "revenue",
           component: () => import("@/views/seller/RevenueDetails.vue"),
         },
+
         {
           path: "/product-details",
           name: "product-details",
@@ -282,6 +283,13 @@ const router = createRouter({
           name: "ChatRoom",
           component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
           meta: { requiresAuth: true },
+        },
+
+        //商品詳情頁(買家看到的)
+        {
+          path: "/products/:productId/detail",
+          name: "FrontProductDetail",
+          component: () => import("@/views/front/FrontProductDetail.vue"),
         },
 
         //賣家商店頁
