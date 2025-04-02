@@ -108,21 +108,20 @@
         <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
           使用者條款</router-link>
       </li>
-      <li v-if="userStore.username" @click="logoutToAdmin">
-        <a class="admin-link">🔐 優惠券申請</a>
+      <li v-if="userStore.isSeller && userStore.shopId">
+        <router-link to="/seller/coupon/apply" @click="toggleDrawer">🎟️ 優惠券申請</router-link>
       </li>
       <li v-if="userStore.username" @click="logoutToAdmin">
         <a class="admin-link">🔐 前往後台</a>
       </li>
-      <li v-if="userStore.username" @click="logoutToAdmin">
-        <a class="admin-link">🔐 前往後台</a>
+      <li v-if="userStore.isAdmin" @click="logoutToAdmin"> <a class="admin-link">🔐 前往後台</a>
       </li>
     </ul>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useUserStore } from "@/stores/user";
 import Swal from "sweetalert2";
 import router from "@/router/index";
@@ -150,64 +149,71 @@ async function logout() {
     icon: "success",
     confirmButtonText: "OK",
   });
-  if (response.isConfirmed) {
-    router.push("/shop");
-    // ✅ 通知角標查詢
-    const fetchNotificationCount = async () => {
-      if (!userStore.token) return;
 
-      try {
-        if (userStore.isSeller) {
-          const res = await axios.get(
-            `/api/orders/notification/pending-count/seller`
-          );
-          pendingCount.value = res.data;
-        } else if (userStore.isUser) {
-          const res = await axios.get(
-            `/api/orders/notification/shipped-count/user`
-          );
-          shippedCount.value = res.data;
-        }
-      } catch (err) {
-        console.error("🔴 無法取得訂單通知數量", err);
-      }
-    };
+  router.push("/shop");
+}
 
-    // ✅ 初始化時查詢一次
-    onMounted(() => {
-      if (userStore.token) {
-        fetchNotificationCount(); // 回傳通知列
-      }
-    });
+// ✅ 通知角標查詢
+const fetchNotificationCount = async () => {
+  if (!userStore.token) return;
 
-    // ✅ 登出並跳轉至後台登入頁
-    async function logoutToAdmin() {
-      userStore.clearUserData();
-      const response = await Swal.fire({
-        title: "已登出前台",
-        text: "正在前往後台登入頁面",
-        icon: "success",
-        confirmButtonText: "OK",
-      });
-      if (response.isConfirmed) {
-        window.location.href = "/admin/login";
-      }
+  try {
+    if (userStore.isSeller) {
+      const res = await axios.get(
+        `/api/orders/notification/pending-count/seller`
+      );
+      pendingCount.value = res.data;
+    } else if (userStore.isUser) {
+      const res = await axios.get(
+        `/api/orders/notification/shipped-count/user`
+      );
+      shippedCount.value = res.data;
     }
+  } catch (err) {
+    console.error("🔴 無法取得訂單通知數量", err);
+  }
+};
 
-    // 當通知元件點擊時，導向相應聊天室頁面
-    const handleNotificationClick = (chatRoomId) => {
-      console.log("即將導向聊天室：", chatRoomId);
-      router.push(`/chat/${chatRoomId}`);
-    };
-
-    // ✅ 初始化時查詢一次
-    onMounted(() => {
-      if (userStore.token) {
-        fetchNotificationCount(); // 回傳通知列
+// 前往後台功能
+async function logoutToAdmin() {
+  if (userStore.token) { // 如果還在前台登入狀態
+    await Swal.fire({
+      title: '即將前往後台',
+      text: "您將從前台登出。",
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: '確定前往',
+      cancelButtonText: '取消'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        userStore.clearUserData(); // 清除前台登入狀態
+        window.location.href = '/admin/login'; // 跳轉到後台登入頁
       }
     });
+  } else {
+    window.location.href = '/admin/login'; // 如果本來就沒登入，直接跳轉
   }
 }
+
+// 當通知元件點擊時，導向相應聊天室頁面
+const handleNotificationClick = (chatRoomId) => {
+  console.log("即將導向聊天室：", chatRoomId);
+  router.push(`/chat/${chatRoomId}`);
+};
+
+// ✅ 初始化時查詢一次
+onMounted(() => {
+  if (userStore.token) {
+    fetchNotificationCount(); // 回傳通知列
+  }
+});
+
+// 監聽 userStore 的變化，以便在登入/登出後重新獲取通知
+watch(() => userStore.token, (newToken) => {
+  fetchNotificationCount();
+}, { immediate: false }); // immediate false 避免初始重複調用
+
+
 </script>
 
 <style scoped>

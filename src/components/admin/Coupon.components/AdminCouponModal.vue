@@ -1,112 +1,116 @@
 <template>
-  <div class="modal fade show d-block" tabindex="-1" v-if="isModalVisible">
+  <div class="modal fade show d-block" tabindex="-1" v-if="isVisible" @click.self="closeModal">
     <div class="modal-dialog modal-lg">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title">{{ isInsert ? "新增優惠券" : "編輯優惠券" }}</h5>
-          <button type="button" class="btn-close" @click="$emit('closeModal')"></button>
+          <button type="button" class="btn-close" @click="closeModal"></button>
         </div>
         <div class="modal-body">
           <form @submit.prevent="submitForm">
-            <!-- 優惠券 ID -->
-            <div class="mb-3">
+            <div class="mb-3" v-if="!isInsert">
               <label class="form-label">優惠券 ID</label>
-              <input type="text" class="form-control" v-model="couponId" required />
-              <small v-if="isDuplicate" class="text-danger">此優惠券 ID 已存在，請使用其他 ID</small>
-              <small v-if="isInvalidId" class="text-danger">請輸入數字</small>
+              <input type="text" class="form-control" :value="localCoupon.couponId" disabled />
+            </div>
+
+            <div class="mb-3">
+              <label for="shopId" class="form-label">所屬商店 ID <span class="text-danger">*</span></label>
+              <input type="number" class="form-control" id="shopId" v-model.number="localCoupon.shop.shopId" required
+                :disabled="!isInsert">
+              <div v-if="!localCoupon.shop.shopId" class="text-danger">商店 ID 不得為空</div>
+            </div>
+
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="couponName" class="form-label">優惠券名稱 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="couponName" v-model.trim="localCoupon.couponName"
+                  required />
+                <div v-if="!localCoupon.couponName" class="text-danger">優惠券名稱不得為空</div>
+              </div>
+
+              <div class="col-md-6 mb-3">
+                <label for="couponCode" class="form-label">優惠券代碼 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" id="couponCode" v-model.trim="localCoupon.couponCode"
+                  required />
+                <div v-if="!localCoupon.couponCode" class="text-danger">優惠券代碼不得為空</div>
+              </div>
             </div>
 
             <div class="row">
-              <!-- 優惠券名稱 -->
-              <div class="col-md-6">
-                <label class="form-label">優惠券名稱</label>
-                <input type="text" class="form-control" v-model="localCoupon.couponName" required />
+              <div class="col-md-6 mb-3">
+                <label for="discountType" class="form-label">折扣類型 <span class="text-danger">*</span></label>
+                <select class="form-select" id="discountType" v-model="localCoupon.discountType" required>
+                  <option value="" disabled>請選擇</option>
+                  <option value="PERCENTAGE">百分比折扣 (%)</option>
+                  <option value="FIXED_AMOUNT">固定金額折扣</option>
+                </select>
+                <div v-if="!localCoupon.discountType" class="text-danger">折扣類型不得為空</div>
               </div>
 
-              <!-- 優惠券代碼 -->
-              <div class="col-md-6">
-                <label class="form-label">優惠券代碼</label>
-                <input type="text" class="form-control" v-model="localCoupon.couponCode" required />
+              <div class="col-md-6 mb-3">
+                <label for="discountValue" class="form-label">折扣值 <span class="text-danger">*</span></label>
+                <input type="number" step="0.01" min="0.01" class="form-control" id="discountValue"
+                  v-model.number="localCoupon.discountValue" required />
+                <div v-if="!localCoupon.discountValue || localCoupon.discountValue <= 0" class="text-danger">折扣值必須大於 0
+                </div>
               </div>
             </div>
 
+
             <div class="row">
-              <!-- 開始日期 -->
-              <div class="col-md-6">
-                <label class="form-label">開始日期</label>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">開始日期 <span class="text-danger">*</span></label>
                 <flat-pickr v-model="localCoupon.startDate" class="form-control"
-                  :config="startDatePickerConfig"></flat-pickr>
-                <small v-if="startDateError" class="text-danger">開始日期不能早於今天</small>
+                  :config="datePickerConfig"></flat-pickr>
+                <div v-if="!localCoupon.startDate" class="text-danger">開始日期不得為空</div>
               </div>
 
-              <!-- 結束日期 -->
-              <div class="col-md-6">
-                <label class="form-label">結束日期</label>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">結束日期 <span class="text-danger">*</span></label>
                 <flat-pickr v-model="localCoupon.endDate" class="form-control"
                   :config="endDatePickerConfig"></flat-pickr>
-                <small v-if="endDateError" class="text-danger">結束日期不能早於開始日期</small>
+                <div v-if="!localCoupon.endDate" class="text-danger">結束日期不得為空</div>
+                <div
+                  v-if="localCoupon.startDate && localCoupon.endDate && new Date(localCoupon.endDate) < new Date(localCoupon.startDate)"
+                  class="text-danger">
+                  結束日期不能早於開始日期
+                </div>
               </div>
             </div>
 
             <div class="row">
-              <!-- 折扣類型 -->
-              <div class="col-md-6">
-                <label class="form-label">折扣類型</label>
-                <select class="form-select" v-model="localCoupon.discountType" required>
-                  <option value="percentage">百分比折扣</option>
-                  <option value="fixed">固定金額折扣</option>
-                </select>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">總使用次數限制 <span class="text-danger">*</span></label>
+                <input type="number" min="1" class="form-control" v-model.number="localCoupon.usageLimit" required />
+                <div v-if="!localCoupon.usageLimit || localCoupon.usageLimit < 1" class="text-danger">總使用次數必須至少為 1</div>
               </div>
 
-              <!-- 折扣值 -->
-              <div class="col-md-6">
-                <label class="form-label">折扣值</label>
-                <input type="number" class="form-control" v-model.number="discountValue" @input="validateDiscountValue"
-                  required />
-                <small v-if="isInvalidDiscount" class="text-danger">輸入值要大於 0</small>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">每人使用次數限制 <span class="text-danger">*</span></label>
+                <input type="number" min="1" class="form-control" v-model.number="localCoupon.usagePerUser" required />
+                <div v-if="!localCoupon.usagePerUser || localCoupon.usagePerUser < 1" class="text-danger">每人使用次數必須至少為 1
+                </div>
               </div>
             </div>
 
-            <div class="row">
-              <!-- 使用數量限制 -->
-              <div class="col-md-6">
-                <label class="form-label">使用數量限制</label>
-                <input type="number" class="form-control" v-model="localCoupon.usageLimit" required />
-              </div>
-
-              <!-- 每人持有數量 -->
-              <div class="col-md-6">
-                <label class="form-label">每人持有數量</label>
-                <input type="number" class="form-control" v-model="localCoupon.usagePerUser" required />
-              </div>
-            </div>
-
-            <!-- 優惠券描述 -->
             <div class="mb-3">
-              <label class="form-label">優惠券描述</label>
-              <textarea class="form-control" v-model="localCoupon.description" rows="3" required></textarea>
-            </div>
-
-
-            <!-- 圖片上傳，不顯示 photoId -->
-            <div class="mb-3">
-              <label class="form-label">上傳圖片</label>
-              <input type="file" class="form-control" @change="handleImageUpload" />
-              <!-- 圖片預覽 -->
-              <img v-if="imagePreview" :src="imagePreview" alt="預覽" style="max-width: 150px; margin-top: 5px;" />
+              <label class="form-label">優惠券描述 <span class="text-danger">*</span></label>
+              <textarea class="form-control" v-model.trim="localCoupon.description" rows="3" required></textarea>
+              <div v-if="!localCoupon.description" class="text-danger">描述不得為空</div>
             </div>
 
             <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" @click="$emit('closeModal')">取消</button>
-              <!--
-                ✅ 若表單驗證通過、且 couponId 沒重複時，才能點擊「新增/更新」
-                若一直顯示灰色(無法點擊)，代表 isFormValid 或 couponIdExists 仍為 false
-              -->
-              <button type="submit" class="btn btn-primary"
-                :disabled="!isFormValid || isDuplicate || isInvalidId || isInvalidDiscount">
-                {{ isInsert ? "新增" : "更新" }}
+              <button type="button" class="btn btn-secondary" @click="closeModal">取消</button>
+              <button type="submit" class="btn btn-primary" :disabled="!isFormValid">
+                {{ isInsert ? "新增" : "儲存更新" }}
               </button>
             </div>
+
+            <div v-if="errorMessage" class="alert alert-danger mt-3" role="alert">
+              {{ errorMessage }}
+            </div>
+
           </form>
         </div>
       </div>
@@ -115,153 +119,184 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from "vue";
-import axiosapi from "@/plugins/axios";
+import { ref, computed, watch, reactive } from "vue";
+
 import FlatPickr from "vue-flatpickr-component";
 import "flatpickr/dist/flatpickr.css";
-import { debounce } from "lodash";
 
-// ✅ 接收父層的 props
+
+// Props 定義
 const props = defineProps({
-  isModalVisible: Boolean,
+  isVisible: Boolean,
   isInsert: Boolean,
-  coupon: Object
+  coupon: {
+    type: Object,
+    default: () => ({ shop: { shopId: null } })
+  }
 });
-const isInvalidDiscount = ref(false); // 折扣值驗證
-const discountValue = ref(props.coupon?.discountValue ?? 0); // 預設為 0
-const isInvalidId = ref(false); // 是否為非法 ID（非數字）
-// ✅ 向父層發事件
+
+// Emits 定義
 const emit = defineEmits(["closeModal", "createCoupon", "modifyCoupon"]);
 
-// ✅ localCoupon 儲存其他欄位
-const localCoupon = ref({ ...props.coupon, photo: null });
-const imagePreview = ref(null); // 用於顯示圖片預覽
+const errorMessage = ref(null);
+const formSubmitted = ref(false); // 標記是否已嘗試提交
 
-// ✅ 分開儲存 couponId，用來自動檢查
-const couponId = ref(localCoupon.value.couponId || "");
+// 本地響應式物件，用於表單綁定
+const localCoupon = reactive({
+  couponId: null,
+  couponName: '',
+  couponCode: '',
+  description: '',
+  discountType: '',
+  discountValue: null,
+  startDate: '',
+  endDate: '',
+  usageLimit: 100,
+  usagePerUser: 1,
+  shop: { shopId: null } // 初始化 shop 物件和 shopId
+});
 
-// ✅ 檢查中 / 重複標記
-const isChecking = ref(false);
-const isDuplicate = ref(false);
-
-// ✅ 取得今天 0:00
-const currentDate = new Date();
-currentDate.setHours(0, 0, 0, 0);
-
-// ✅ 日期設定
-const startDatePickerConfig = {
+// 日期選擇器設定
+const datePickerConfig = ref({
   enableTime: false,
-  dateFormat: "Y/m/d",
-  minDate: currentDate,
-};
+  dateFormat: "Y-m-d", // 使用 YYYY-MM-DD 格式
+  // minDate: "today" // 可以限制只能選今天之後
+});
+
 const endDatePickerConfig = computed(() => ({
-  enableTime: false,
-  dateFormat: "Y/m/d",
-  minDate: localCoupon.value.startDate || currentDate,
+  ...datePickerConfig.value,
+  minDate: localCoupon.startDate || undefined, // 結束日期最早是開始日期
 }));
 
-// ✅ 日期錯誤判斷
-const startDateError = computed(() => {
-  return localCoupon.value.startDate && new Date(localCoupon.value.startDate) < currentDate;
-});
-const endDateError = computed(() => {
-  return (
-    localCoupon.value.endDate &&
-    localCoupon.value.startDate &&
-    new Date(localCoupon.value.endDate) < new Date(localCoupon.value.startDate)
-  );
-});
-// ✅ 驗證是否輸入了非數字
-function validateCouponId() {
-  const regex = /^\d*$/; // 只允許數字
-  isInvalidId.value = !regex.test(couponId.value);
-}
-// ✅ 折扣值驗證
-function validateDiscountValue() {
-  isInvalidDiscount.value = discountValue.value <= 0; // 必須大於 0
-}
-// ✅ 自動檢查 couponId
-const checkCouponId = debounce(async () => {
-  if (!couponId.value) {
-    isDuplicate.value = false;
-    return;
+// 監聽 props.coupon 變化，更新本地表單資料
+// *** 注意：watch 應放在所有依賴的 ref/reactive 宣告之後 ***
+watch(() => props.coupon, (newVal) => {
+  console.log("Modal received coupon prop:", newVal);
+  formSubmitted.value = false; // 重置提交狀態
+  errorMessage.value = null;  // 清除錯誤
+  if (!props.isInsert && newVal && newVal.couponId) { // 編輯模式
+    Object.assign(localCoupon, {
+      ...newVal,
+      startDate: newVal.startDate ? formatDateForPicker(newVal.startDate) : '',
+      endDate: newVal.endDate ? formatDateForPicker(newVal.endDate) : '',
+      shop: { shopId: newVal.shopId || null }
+    });
+    console.log("Modal localCoupon updated (Edit):", JSON.parse(JSON.stringify(localCoupon)));
+  } else if (props.isInsert) { // 新增模式
+    resetForm();
+    console.log("Modal localCoupon reset (Insert):", JSON.parse(JSON.stringify(localCoupon)));
   }
+}, { immediate: true, deep: true });
 
-  isChecking.value = true;
+// 格式化日期給 flatpickr (YYYY-MM-DD)
+function formatDateForPicker(dateString) {
+  if (!dateString) return '';
   try {
-    // 請確保有設定 axios baseURL 或使用完整 URL
-    // e.g. axios.get(`http://localhost:8080/coupons/check/${couponId.value}`)
-    const response = await axiosapi.get(`/coupons/check/${couponId.value}`);
-    // 後端回傳 JSON 字串
-    // e.g. {"duplicate":true}
-    const data = response.data;
-    isDuplicate.value = data.duplicate === true;
-  } catch (error) {
-    console.error("API 請求錯誤:", error);
-    // 🔻 省略 Swal，直接 console 或做其他處理
-  } finally {
-    isChecking.value = false;
+    const date = new Date(dateString.split(' ')[0]);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    if (isNaN(year)) return ''; // 如果日期無效，回傳空
+    return `${year}-${month}-${day}`;
+  } catch (e) {
+    console.error("Error formatting date for picker:", e);
+    return '';
   }
-}, 500);
-
-// ✅ watch couponId，若 isInsert 才檢查
-watch(couponId, () => {
-  validateCouponId();
-  if (!isInvalidId.value) {
-    checkCouponId();
-  }
-});
-// ✅ 當 props.coupon 改變時，更新 localCoupon / couponId
-watch(
-  () => props.coupon,
-  (newVal) => {
-    localCoupon.value = { ...newVal, photo: null };
-    couponId.value = newVal.couponId || "";
-    discountValue.value = newVal.discountValue ?? 0;
-
-  }
-);
-
-// ✅ 處理圖片上傳
-function handleImageUpload(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = () => {
-    // e.g. "data:image/png;base64,xxx..."
-    const base64Full = reader.result; // 整個 Base64 Data URL
-    // 去掉 "data:image/png;base64,"
-    localCoupon.value.photo = base64Full.split(",")[1];
-    imagePreview.value = base64Full; // 給預覽
-  };
-  reader.readAsDataURL(file);
 }
 
-// ✅ 表單驗證
-const isFormValid = computed(() => {
-  return (
-    couponId.value &&
-    localCoupon.value.couponName && // couponId 不能空
-    localCoupon.value.startDate &&
-    localCoupon.value.endDate &&
-    !startDateError.value &&
-    !endDateError.value &&
-    discountValue.value > 0
-  );
-});
+// 重設表單
+function resetForm() {
+  Object.assign(localCoupon, {
+    couponId: null, couponName: '', couponCode: '', description: '',
+    discountType: '', discountValue: null, startDate: '', endDate: '',
+    usageLimit: 100, usagePerUser: 1, shop: { shopId: null }
+  });
+  errorMessage.value = null;
+  formSubmitted.value = false; // 重置提交狀態
+}
 
-// ✅ 提交表單
+// 表單驗證邏輯
+function validateForm() {
+  errorMessage.value = null; // 清除舊錯誤
+  if (!localCoupon.shop?.shopId) { errorMessage.value = '必須指定商店 ID'; return false; }
+  if (!localCoupon.couponName) { errorMessage.value = '優惠券名稱不得為空'; return false; }
+  if (!localCoupon.couponCode) { errorMessage.value = '優惠券代碼不得為空'; return false; }
+  if (!localCoupon.discountType) { errorMessage.value = '折扣類型不得為空'; return false; }
+  if (localCoupon.discountValue == null || localCoupon.discountValue <= 0) { errorMessage.value = '折扣值必須大於 0'; return false; } // == null 檢查 undefined 和 null
+  if (!localCoupon.startDate) { errorMessage.value = '開始日期不得為空'; return false; }
+  if (!localCoupon.endDate) { errorMessage.value = '結束日期不得為空'; return false; }
+  // 確保比較的是 Date 物件
+  const startDate = localCoupon.startDate ? new Date(localCoupon.startDate) : null;
+  const endDate = localCoupon.endDate ? new Date(localCoupon.endDate) : null;
+  if (startDate && endDate && endDate < startDate) { errorMessage.value = '結束日期不能早於開始日期'; return false; }
+  if (localCoupon.usageLimit == null || localCoupon.usageLimit < 1) { errorMessage.value = '總使用次數必須至少為 1'; return false; }
+  if (localCoupon.usagePerUser == null || localCoupon.usagePerUser < 1) { errorMessage.value = '每人使用次數必須至少為 1'; return false; }
+  if (!localCoupon.description) { errorMessage.value = '描述不得為空'; return false; }
+  return true; // 所有檢查通過
+}
+
+// 提交表單
 function submitForm() {
-  if (!isDuplicate.value && isFormValid.value && !isInvalidId.value && !isInvalidDiscount.value) {
-    // 將 couponId 帶回 localCoupon
-    localCoupon.value.couponId = couponId.value;
+  formSubmitted.value = true; // 標記已嘗試提交，觸發驗證訊息顯示
+  if (validateForm()) { // 在提交時才進行驗證
+    const payload = {
+      ...localCoupon,
+      // 確保 shopId 直接在 payload 中，如果 API 需要的話
+      // shopId: localCoupon.shop.shopId, // 或者API直接接受 coupon 物件即可
+    };
+    // 移除 shop 物件本身，如果 API 不需要巢狀物件
+    // delete payload.shop;
+
     if (props.isInsert) {
-      emit("createCoupon", localCoupon.value);
+      delete payload.couponId; // 新增時移除 ID
+      emit("createCoupon", payload);
     } else {
-      emit("modifyCoupon", localCoupon.value);
+      emit("modifyCoupon", payload); // 修改時包含 ID
     }
+  } else {
+    console.log("表單驗證失敗:", errorMessage.value);
+    // 錯誤訊息已透過 errorMessage ref 顯示在模板中
   }
+}
+
+// 關閉 Modal
+function closeModal() {
+  // 不需要 resetForm()，因為 watch 會在 isVisible 變 false 時處理 (如果需要的話)
+  // 或者在父元件關閉時清除 selectedCoupon
+  errorMessage.value = null;
+  formSubmitted.value = false;
+  emit('closeModal');
 }
 
 </script>
+
+<style scoped>
+.modal.show {
+  display: block;
+  /* 移除背景色，由 backdrop 處理 */
+}
+
+.modal-backdrop {
+  /* 確保背景層存在 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1040;
+  /* 比 modal 低一層 */
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+  opacity: 0.5;
+}
+
+.text-danger {
+  font-size: 0.8em;
+}
+
+/* Flatpickr focus style if needed */
+.flatpickr-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+  /* Bootstrap focus style */
+}
+</style>
