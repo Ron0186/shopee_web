@@ -146,39 +146,41 @@
             </td>
             <td>{{ product.totalStock || 0 }}</td>
             <td>
-              <div class="d-flex flex-column">
-                <span :class="getStatusClass(product)">
-                  {{ getStatusText(product) }}
-                </span>
-              </div>
+              <span :class="getStatusClass(product)">
+                {{ getStatusText(product) }}
+              </span>
             </td>
             <td>{{ formatDate(product.updatedAt) }}</td>
             <td>
-              <div class="btn-group">
+              <div class="d-flex">
                 <button
-                  class="btn btn-primary btn-sm"
+                  class="btn btn-primary btn-sm me-1"
                   @click="openEditModal(product)"
                 >
                   編輯
                 </button>
 
                 <button
-                  class="btn btn-info btn-sm"
+                  class="btn btn-info btn-sm me-1"
                   @click="goToSkuManagement(product.productId)"
                 >
                   SKU管理
                 </button>
 
-                <div class="btn-group">
+                <div class="dropdown">
                   <button
                     type="button"
                     class="btn btn-outline-secondary btn-sm dropdown-toggle"
+                    id="dropdownBtn{{ product.productId }}"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
                   >
                     更多
                   </button>
-                  <ul class="dropdown-menu">
+                  <ul
+                    class="dropdown-menu"
+                    aria-labelledby="dropdownBtn{{ product.productId }}"
+                  >
                     <li>
                       <a
                         class="dropdown-item"
@@ -266,7 +268,7 @@
                   >{{ product.favoriteCount || 0 }}
                 </div>
               </div>
-              <div class="d-flex justify-content-between mb-2">
+              <div class="mb-2">
                 <span :class="getStatusClass(product)">{{
                   getStatusText(product)
                 }}</span>
@@ -379,7 +381,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from "vue";
+import { ref, onMounted, computed, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
@@ -462,26 +464,26 @@ const getTabCount = (tab) => {
 const setActiveTab = (tab) => {
   activeTab.value = tab;
   currentPage.value = 0;
-  fetchProducts();
+  fetchProductsAndInitDropdowns();
 };
 
 // 搜尋商品
 const searchProducts = () => {
   currentPage.value = 0;
-  fetchProducts();
+  fetchProductsAndInitDropdowns();
 };
 
 // 重設搜尋
 const resetSearch = () => {
   searchKeyword.value = "";
-  fetchProducts();
+  fetchProductsAndInitDropdowns();
 };
 
 // 換頁
 const changePage = (page) => {
   if (page >= 0 && page < totalPages.value) {
     currentPage.value = page;
-    fetchProducts();
+    fetchProductsAndInitDropdowns();
   }
 };
 
@@ -686,6 +688,8 @@ const processBatchProductData = async () => {
         }
       }
     }
+
+    // 不再需要「需要修改」標籤
   } catch (error) {
     console.error("批量獲取商品SKU失敗:", error);
     // 設定默認值
@@ -757,7 +761,7 @@ const toggleActive = async (product) => {
         product.active = newActive;
 
         // 重新載入商品列表
-        await fetchProducts();
+        await fetchProductsAndInitDropdowns();
       }
     }
   } catch (error) {
@@ -795,7 +799,7 @@ const deleteProduct = async (id) => {
         });
 
         // 重新載入「我的商品」列表
-        await fetchProducts();
+        await fetchProductsAndInitDropdowns();
       }
     }
   } catch (error) {
@@ -807,10 +811,34 @@ const deleteProduct = async (id) => {
   }
 };
 
+// 初始化 Bootstrap 下拉選單
+const initializeDropdowns = () => {
+  nextTick(() => {
+    // 確保 DOM 已經更新
+    if (typeof bootstrap !== "undefined") {
+      document
+        .querySelectorAll(".dropdown-toggle")
+        .forEach((dropdownToggle) => {
+          new bootstrap.Dropdown(dropdownToggle);
+        });
+    } else {
+      console.warn("Bootstrap JavaScript 未載入，下拉選單可能無法正常運作");
+    }
+  });
+};
+
 // 元件掛載時取得「我的商品」列表
 onMounted(() => {
-  fetchProducts();
+  fetchProducts().then(() => {
+    initializeDropdowns();
+  });
 });
+
+// 每次數據更新後重新初始化下拉選單
+const fetchProductsAndInitDropdowns = async () => {
+  await fetchProducts();
+  initializeDropdowns();
+};
 </script>
 
 <style scoped>

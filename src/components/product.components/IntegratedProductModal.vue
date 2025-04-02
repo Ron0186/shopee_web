@@ -40,6 +40,18 @@
           <!-- 基本資訊頁面 -->
           <div v-if="activeTab === 'basic'">
             <form>
+              <!-- 商品ID（編輯模式下顯示） -->
+              <div class="mb-3" v-if="isEdit && productData.productId">
+                <label for="productId" class="form-label">商品 ID</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="productId"
+                  v-model="productData.productId"
+                  readonly
+                />
+              </div>
+
               <div class="mb-3">
                 <label for="productName" class="form-label">商品名稱</label>
                 <input
@@ -69,6 +81,7 @@
                   v-model="productData.category1Id"
                   @change="onCategory1Change"
                   required
+                  :disabled="isEdit && !canEditCategories"
                 >
                   <option value="" disabled selected>請選擇一級分類</option>
                   <option
@@ -79,6 +92,9 @@
                     {{ category.categoryName }}
                   </option>
                 </select>
+                <small v-if="isEdit && !canEditCategories" class="text-muted"
+                  >分類關聯不可變更，如需變更請刪除後重新建立商品</small
+                >
               </div>
 
               <div class="mb-3">
@@ -88,7 +104,9 @@
                   id="category2"
                   v-model="productData.category2Id"
                   required
-                  :disabled="!productData.category1Id"
+                  :disabled="
+                    !productData.category1Id || (isEdit && !canEditCategories)
+                  "
                 >
                   <option value="" disabled selected>請選擇二級分類</option>
                   <option
@@ -99,8 +117,12 @@
                     {{ category.categoryName }}
                   </option>
                 </select>
+                <small v-if="isEdit && !canEditCategories" class="text-muted"
+                  >分類關聯不可變更，如需變更請刪除後重新建立商品</small
+                >
               </div>
 
+              <!-- 商品圖片區 -->
               <div class="mb-3">
                 <label for="productImages" class="form-label"
                   >商品圖片（可上傳多張）</label
@@ -114,59 +136,130 @@
                   multiple
                 />
                 <small class="form-text text-muted">
-                  第一張圖片將自動設為主圖，可通過下方選項變更
+                  您可以選擇多張圖片一次上傳
                 </small>
 
-                <!-- 圖片預覽區域 -->
-                <div class="mt-3 row g-2" v-if="productImages.length > 0">
-                  <div
-                    v-for="(image, index) in productImages"
-                    :key="index"
-                    class="col-md-4 col-6"
-                  >
-                    <div class="card h-100">
-                      <div class="position-relative">
-                        <img
-                          :src="image.preview"
-                          alt="預覽圖片"
-                          class="card-img-top"
-                          style="
-                            height: 150px;
-                            object-fit: contain;
-                            padding: 10px;
-                          "
-                        />
-                        <span
-                          v-if="index === primaryImageIndex"
-                          class="position-absolute top-0 start-0 badge bg-primary m-2"
-                        >
-                          主圖
-                        </span>
-                        <button
-                          type="button"
-                          class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2"
-                          @click="removeImage(index)"
-                          title="移除圖片"
-                        >
-                          <i class="bi bi-x"></i>
-                        </button>
-                      </div>
-                      <div class="card-body pt-2 pb-2">
-                        <div class="form-check">
-                          <input
-                            class="form-check-input"
-                            type="radio"
-                            name="primaryImage"
-                            :id="`primaryImage${index}`"
-                            :checked="index === primaryImageIndex"
-                            @change="setPrimaryImage(index)"
+                <!-- 現有圖片預覽 -->
+                <div v-if="isEdit && existingImages.length > 0" class="mt-3">
+                  <label class="form-label">現有圖片</label>
+                  <div class="row g-2">
+                    <div
+                      v-for="(image, index) in existingImages"
+                      :key="'existing-' + index"
+                      class="col-md-4 col-6"
+                    >
+                      <div class="card h-100">
+                        <div class="position-relative">
+                          <img
+                            :src="getImageUrl(image)"
+                            alt="商品圖片"
+                            class="card-img-top"
+                            style="
+                              height: 150px;
+                              object-fit: contain;
+                              padding: 10px;
+                            "
+                            @error="handleImageError($event, image)"
                           />
-                          <label
-                            class="form-check-label"
-                            :for="`primaryImage${index}`"
+                          <span
+                            v-if="image.isPrimary"
+                            class="position-absolute top-0 start-0 badge bg-primary m-2"
                           >
-                            設為主圖
-                          </label>
+                            主圖
+                          </span>
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2"
+                            @click="removeExistingImage(index)"
+                            title="移除圖片"
+                          >
+                            <i class="bi bi-x"></i>
+                          </button>
+                        </div>
+                        <div class="card-body pt-2 pb-2">
+                          <div class="form-check">
+                            <input
+                              class="form-check-input"
+                              type="radio"
+                              name="primaryExistingImage"
+                              :id="`primaryExistingImage${index}`"
+                              :checked="image.isPrimary"
+                              @change="setExistingImageAsPrimary(index)"
+                            />
+                            <label
+                              class="form-check-label"
+                              :for="`primaryExistingImage${index}`"
+                            >
+                              設為主圖
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    v-if="existingImages.length === 0"
+                    class="alert alert-info mt-2"
+                  >
+                    此商品目前沒有圖片
+                  </div>
+                </div>
+
+                <!-- 新圖片預覽 -->
+                <div v-if="newImages.length > 0" class="mt-3">
+                  <label class="form-label">
+                    {{ isEdit ? "新增圖片" : "圖片預覽" }}
+                  </label>
+                  <div class="row g-2">
+                    <div
+                      v-for="(image, index) in newImages"
+                      :key="'new-' + index"
+                      class="col-md-4 col-6"
+                    >
+                      <div class="card h-100">
+                        <div class="position-relative">
+                          <img
+                            :src="image.preview"
+                            alt="預覽圖片"
+                            class="card-img-top"
+                            style="
+                              height: 150px;
+                              object-fit: contain;
+                              padding: 10px;
+                            "
+                          />
+                          <span
+                            v-if="image.isPrimary"
+                            class="position-absolute top-0 start-0 badge bg-success m-2"
+                          >
+                            {{ isEdit ? "新主圖" : "主圖" }}
+                          </span>
+                          <button
+                            type="button"
+                            class="btn btn-sm btn-danger position-absolute top-0 end-0 m-2"
+                            @click="removeNewImage(index)"
+                            title="移除圖片"
+                          >
+                            <i class="bi bi-x"></i>
+                          </button>
+                        </div>
+                        <div class="card-body pt-2 pb-2">
+                          <div class="form-check">
+                            <input
+                              class="form-check-input"
+                              type="radio"
+                              name="primaryNewImage"
+                              :id="`primaryNewImage${index}`"
+                              :checked="image.isPrimary"
+                              @change="setNewImageAsPrimary(index)"
+                            />
+                            <label
+                              class="form-check-label"
+                              :for="`primaryNewImage${index}`"
+                            >
+                              設為主圖
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -396,7 +489,7 @@
             @click="nextStep"
             :disabled="isSubmitting"
           >
-            下一步：設定商品規格
+            {{ isEdit ? "下一步：編輯規格" : "下一步：設定商品規格" }}
           </button>
           <button
             v-else-if="activeTab === 'sku' && !isEdit"
@@ -449,18 +542,9 @@ import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
 
 const props = defineProps({
-  isOpen: {
-    type: Boolean,
-    default: false,
-  },
-  productData: {
-    type: Object,
-    default: null,
-  },
-  isEdit: {
-    type: Boolean,
-    default: false,
-  },
+  isOpen: Boolean,
+  productData: Object,
+  isEdit: Boolean,
 });
 
 const emit = defineEmits(["close", "refresh"]);
@@ -469,180 +553,318 @@ const emit = defineEmits(["close", "refresh"]);
 const userStore = useUserStore();
 const userId = userStore.userId;
 const token = userStore.token;
+const baseUrl = ref(import.meta.env.VITE_API_URL || "");
 
-// 活動標籤
+// 基本資料
 const activeTab = ref("basic");
+const isSubmitting = ref(false);
+const canEditCategories = ref(false);
 
-// 商品資料初始化
+// 商品資料
 const productData = reactive({
+  productId: null,
   productName: "",
   description: "",
   category1Id: "",
   category2Id: "",
   active: true,
-  productId: null,
 });
 
-// 表示是否跳過SKU設定
-const skipSku = ref(false);
+// 圖片相關
+const existingImages = ref([]);
+const newImages = ref([]);
+const imagesToDelete = ref(new Set());
 
-// 提交狀態
-const isSubmitting = ref(false);
-
-// 多圖片相關
-const productImages = ref([]); // 存儲多個圖片對象
-const primaryImageIndex = ref(0); // 預設第一張為主圖
-
-// 分類資料
+// 分類相關
 const category1List = ref([]);
 const category2List = ref([]);
 
-// SKU規格選項
+// SKU相關
+const skipSku = ref(false);
 const specOptions = ref([
-  {
-    name: "",
-    values: [""],
-    nameError: "",
-    valueErrors: [""],
-  },
+  { name: "", values: [""], nameError: "", valueErrors: [""] },
 ]);
-
-// 生成的SKU列表
 const generatedSkus = ref([]);
+const batchSettings = reactive({ price: 0, stock: 0 });
 
-// 批量設定
-const batchSettings = reactive({
-  price: 0,
-  stock: 0,
-});
-
-// 判斷是否可以編輯SKU（需要先有商品ID或已完成基本資訊）
-const canEditSku = computed(() => {
-  return props.isEdit || productData.productId || validateBasicInfo(true);
-});
-
-// 計算是否可以生成SKU
-const canGenerateSku = computed(() => {
-  // 檢查是否所有規格都有名稱和至少一個值
-  return (
+// 計算屬性
+const canEditSku = computed(
+  () => props.isEdit || productData.productId || validateBasicInfo(true)
+);
+const canGenerateSku = computed(
+  () =>
     specOptions.value.length > 0 &&
     specOptions.value.every(
       (spec) =>
         spec.name.trim() !== "" && spec.values.some((v) => v.trim() !== "")
     )
-  );
-});
+);
 
-// 監聽modal打開狀態
+// 監聽器：當模態窗口打開或數據變化時
 watch(
   () => props.isOpen,
   (isOpen) => {
     if (isOpen) {
-      // 重置表單
-      if (!props.isEdit) {
-        resetForm();
-      } else {
-        // 編輯模式：載入產品數據
-        loadProductData();
-      }
-      // 獲取分類資料
+      if (!props.isEdit) resetForm();
+      else loadProductData();
       fetchCategory1();
     }
   }
 );
 
-// 監聽編輯數據
 watch(
   () => props.productData,
   (newVal) => {
-    if (newVal && props.isEdit) {
-      loadProductData();
-    }
+    if (newVal && props.isEdit && props.isOpen) loadProductData();
   }
 );
 
-// 載入產品數據
-const loadProductData = () => {
-  if (props.productData) {
-    productData.productName = props.productData.productName || "";
-    productData.description = props.productData.description || "";
-    productData.category1Id = props.productData.category1Id || "";
-    productData.category2Id = props.productData.category2Id || "";
-    productData.active =
-      props.productData.active !== undefined ? props.productData.active : true;
-    productData.productId = props.productData.id;
-
-    // 載入分類後需要獲取二級分類
-    if (productData.category1Id) {
-      fetchCategory2(productData.category1Id);
+watch(
+  () => category1List.value,
+  (newList) => {
+    if (newList.length > 0 && productData.category1Id) {
+      // 确保分类1显示正确
+      const cat1 = newList.find((c) => c.categoryId == productData.category1Id);
+      if (!cat1 && props.productData?.category1?.categoryName) {
+        // 如果找不到匹配的分类但有名称，添加一个临时分类
+        category1List.value.push({
+          categoryId: productData.category1Id,
+          categoryName: props.productData.category1.categoryName,
+        });
+      }
     }
+  },
+  { immediate: true }
+);
 
-    // 如果有圖片資訊，載入圖片
-    if (props.productData.images && props.productData.images.length > 0) {
-      // 假設後端返回的圖片資訊包含URL
-      productImages.value = props.productData.images.map((img, index) => ({
-        preview: img.url,
-        isExisting: true,
-        id: img.id,
-        isPrimary: img.isPrimary,
-      }));
-
-      // 設置主圖索引
-      const primaryIndex = productImages.value.findIndex(
-        (img) => img.isPrimary
-      );
-      primaryImageIndex.value = primaryIndex >= 0 ? primaryIndex : 0;
+watch(
+  () => category2List.value,
+  (newList) => {
+    if (newList.length > 0 && productData.category2Id) {
+      const cat2 = newList.find((c) => c.categoryId == productData.category2Id);
+      if (!cat2 && props.productData?.category2?.categoryName) {
+        category2List.value.push({
+          categoryId: productData.category2Id,
+          categoryName: props.productData.category2.categoryName,
+        });
+      }
     }
+  },
+  { immediate: true }
+);
 
-    // 如果有SKU資訊，需要重建規格選項和SKU列表
-    if (props.productData.skus && props.productData.skus.length > 0) {
-      reconstructSkuData(props.productData.skus);
-    }
+// 數據加載方法
+const loadProductData = async () => {
+  if (!props.productData) {
+    console.log("没有数据传入");
+    return;
   }
+
+  console.log("加载的数据:", props.productData);
+
+  // 重置部分表单
+  newImages.value = [];
+  imagesToDelete.value = new Set();
+
+  // 读取基本资料
+  productData.productId = props.productData.productId || props.productData.id;
+  productData.productName = props.productData.productName || "";
+  productData.description = props.productData.description || "";
+  productData.active =
+    props.productData.active === undefined ? true : props.productData.active;
+
+  console.log("处理后的商品数据:", productData);
+
+  // 提取分类
+  const { category1Id, category2Id } = extractCategoryIds(props.productData);
+  productData.category1Id = category1Id;
+  productData.category2Id = category2Id;
+
+  console.log("提取的分类ID:", { category1Id, category2Id });
+
+  // 載入資料
+  if (productData.category1Id) await fetchCategory2(productData.category1Id);
+
+  // 确保获取产品图片 - 即使props中有图片数据，也尝试从API获取更完整的图片信息
+  if (productData.productId) {
+    console.log("加载商品图片, ID:", productData.productId);
+    await fetchProductImages(productData.productId);
+  }
+
+  // 如果没有从API获取到图片，尝试直接从props中提取
+  if (existingImages.value.length === 0 && props.productData) {
+    console.log("API没有获取到图片，从props中提取");
+
+    if (
+      props.productData.productImages &&
+      props.productData.productImages.length > 0
+    ) {
+      existingImages.value = props.productData.productImages.map((img) => ({
+        ...img,
+        isPrimary: !!img.isPrimary,
+        id: img.id || img.imageId,
+        imagePath: img.imagePath || img.imageUrl || "",
+      }));
+    } else if (props.productData.primaryImageUrl) {
+      existingImages.value = [
+        {
+          id: null,
+          imagePath: props.productData.primaryImageUrl,
+          isPrimary: true,
+        },
+      ];
+    }
+
+    console.log("从props提取的图片:", existingImages.value);
+  }
+
+  if (props.productData.skus?.length > 0)
+    reconstructSkuData(props.productData.skus);
+};
+
+// 從API響應中提取分類ID
+const extractCategoryIds = (data) => {
+  let category1Id = null;
+  let category2Id = null;
+
+  if (data.category1?.id) category1Id = data.category1.id;
+  else if (data.category1Id) category1Id = data.category1Id;
+  else if (data.category1?.categoryId) category1Id = data.category1.categoryId;
+
+  if (data.category2?.id) category2Id = data.category2.id;
+  else if (data.category2Id) category2Id = data.category2Id;
+  else if (data.category2?.categoryId) category2Id = data.category2.categoryId;
+
+  return { category1Id, category2Id };
+};
+
+// 獲取圖片URL
+const getImageUrl = (image) => {
+  if (!image) return "/assets/default-image.png";
+
+  console.log("处理图片URL, 图片数据:", image);
+
+  const imagePath =
+    image.imagePath || image.imageUrl || image.path || image.url;
+
+  if (!imagePath) return "/assets/default-image.png";
+
+  return imagePath.startsWith("http")
+    ? imagePath
+    : imagePath.startsWith("/")
+    ? `${baseUrl.value}${imagePath}`
+    : `${baseUrl.value}/${imagePath}`;
+};
+
+// 處理圖片載入錯誤
+const handleImageError = (event, image) => {
+  const fallbackUrl = image.imagePath
+    ? image.imagePath.startsWith("/")
+      ? `${baseUrl.value}${image.imagePath.substring(1)}`
+      : `${baseUrl.value}/${image.imagePath}`
+    : "/assets/default-image.png";
+
+  event.target.src = fallbackUrl;
 };
 
 // 重建SKU數據
 const reconstructSkuData = (skus) => {
-  if (!skus || skus.length === 0) return;
+  if (!skus?.length) return;
 
-  // 收集所有規格名稱和值
+  // 收集規格
   const specMap = {};
-
   skus.forEach((sku) => {
-    if (sku.specPairs) {
-      Object.entries(sku.specPairs).forEach(([key, value]) => {
-        if (!specMap[key]) {
-          specMap[key] = new Set();
-        }
-        specMap[key].add(value);
-      });
-    }
+    if (!sku.specPairs) return;
+    Object.entries(sku.specPairs).forEach(([key, value]) => {
+      if (!specMap[key]) specMap[key] = new Set();
+      specMap[key].add(value);
+    });
   });
 
   // 創建規格選項
-  specOptions.value = Object.entries(specMap).map(([name, valuesSet]) => {
-    return {
-      name,
-      values: Array.from(valuesSet),
-      nameError: "",
-      valueErrors: Array(valuesSet.size).fill(""),
-    };
-  });
+  specOptions.value = Object.entries(specMap).map(([name, valuesSet]) => ({
+    name,
+    values: Array.from(valuesSet),
+    nameError: "",
+    valueErrors: Array(valuesSet.size).fill(""),
+  }));
 
   // 重建SKU列表
-  generatedSkus.value = skus.map((sku) => {
-    return {
-      id: sku.id,
-      specPairs: { ...sku.specPairs },
-      price: sku.price,
-      stock: sku.stock,
-      priceError: "",
-      stockError: "",
-    };
-  });
+  generatedSkus.value = skus.map((sku) => ({
+    id: sku.id,
+    specPairs: { ...sku.specPairs },
+    price: sku.price,
+    stock: sku.stock,
+    priceError: "",
+    stockError: "",
+  }));
 };
 
-// 獲取一級分類
+// API請求方法
+const fetchProductImages = async (productId) => {
+  try {
+    console.log("正在获取商品图片, 商品ID:", productId);
+
+    const response = await axios.get(`/api/products/${productId}/images`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (response.data && Array.isArray(response.data)) {
+      console.log("API返回的图片数据:", response.data);
+
+      existingImages.value = response.data.map((img) => ({
+        ...img,
+        imagePath: img.imagePath,
+        isPrimary: !!img.isPrimary,
+        id: img.id || img.imageId,
+      }));
+
+      console.log("处理后的图片数据:", existingImages.value);
+    }
+  } catch (error) {
+    console.error("获取商品图片错误:", error);
+
+    // 从 props 获取图片信息
+    if (props.productData) {
+      console.log("尝试从props获取图片数据:", props.productData);
+
+      // 尝试多种可能的数据结构
+      if (
+        props.productData.productImages &&
+        props.productData.productImages.length > 0
+      ) {
+        console.log("从productImages获取图片");
+        existingImages.value = props.productData.productImages.map((img) => ({
+          ...img,
+          isPrimary: !!img.isPrimary,
+          id: img.id || img.imageId,
+          imagePath: img.imagePath || img.imageUrl || "",
+        }));
+      } else if (props.productData.primaryImageUrl) {
+        console.log("从primaryImageUrl获取图片");
+        existingImages.value = [
+          {
+            id: null,
+            imagePath: props.productData.primaryImageUrl,
+            isPrimary: true,
+          },
+        ];
+      } else if (props.productData.image) {
+        console.log("从image获取图片");
+        existingImages.value = [
+          {
+            id: null,
+            imagePath: props.productData.image,
+            isPrimary: true,
+          },
+        ];
+      }
+
+      console.log("最终设置的图片数据:", existingImages.value);
+    }
+  }
+};
+
 const fetchCategory1 = async () => {
   try {
     const response = await axios.get("/api/category1/all", {
@@ -650,13 +872,10 @@ const fetchCategory1 = async () => {
     });
 
     if (response.data && Array.isArray(response.data)) {
-      // 確保數據格式統一
       category1List.value = response.data.map((cat) => ({
-        categoryId: cat.id,
-        categoryName: cat.name,
+        categoryId: cat.id || cat.categoryId,
+        categoryName: cat.name || cat.categoryName,
       }));
-    } else {
-      console.error("獲取一級分類資料格式錯誤:", response.data);
     }
   } catch (error) {
     console.error("獲取一級分類錯誤:", error);
@@ -668,7 +887,6 @@ const fetchCategory1 = async () => {
   }
 };
 
-// 根據一級分類ID獲取二級分類
 const fetchCategory2 = async (parentId) => {
   if (!parentId) {
     category2List.value = [];
@@ -676,58 +894,47 @@ const fetchCategory2 = async (parentId) => {
   }
 
   try {
-    const response = await axios.get(`/api/category2/byC1`, {
-      params: {
-        category1Id: parentId,
-      },
+    const response = await axios.get("/api/category2/byC1", {
+      params: { category1Id: parentId },
       headers: { Authorization: `Bearer ${token}` },
     });
 
     if (response.data && Array.isArray(response.data)) {
-      // 確保數據格式統一
       category2List.value = response.data.map((cat) => ({
-        categoryId: cat.id,
-        categoryName: cat.name,
+        categoryId: cat.id || cat.categoryId,
+        categoryName: cat.name || cat.categoryName,
       }));
-    } else {
-      console.error("獲取二級分類資料格式錯誤:", response.data);
     }
   } catch (error) {
     console.error("獲取二級分類錯誤:", error);
-    Swal.fire({
-      title: "載入分類失敗",
-      text: error.response?.data?.message || "無法獲取二級分類資料",
-      icon: "error",
-    });
   }
 };
 
-// 當一級分類變更時觸發
+// 事件處理方法
 const onCategory1Change = () => {
-  productData.category2Id = ""; // 清空二級分類選擇
+  productData.category2Id = "";
   fetchCategory2(productData.category1Id);
 };
 
-// 處理多圖片上傳
 const handleImagesChange = (event) => {
   const files = event.target.files;
-  if (!files || files.length === 0) return;
+  if (!files?.length) return;
 
-  // 處理每個選擇的文件
   for (let i = 0; i < files.length; i++) {
     const file = files[i];
     const reader = new FileReader();
 
     reader.onload = (e) => {
-      productImages.value.push({
+      newImages.value.push({
         file: file,
         preview: e.target.result,
-        isPrimary: productImages.value.length === 0, // 如果是第一張圖，設為主圖
+        isPrimary:
+          newImages.value.length === 0 && existingImages.value.length === 0,
       });
 
-      // 如果是第一張圖，設置為主圖
-      if (productImages.value.length === 1) {
-        primaryImageIndex.value = 0;
+      if (newImages.value.length === 1 && existingImages.value.length === 0) {
+        resetAllPrimaryFlags();
+        newImages.value[0].isPrimary = true;
       }
     };
 
@@ -735,32 +942,62 @@ const handleImagesChange = (event) => {
   }
 };
 
-// 移除圖片
-const removeImage = (index) => {
-  // 如果要移除的是主圖，重新設置主圖
-  if (index === primaryImageIndex.value) {
-    if (productImages.value.length > 1) {
-      // 如果還有其他圖片，設置下一張為主圖
-      primaryImageIndex.value =
-        index === productImages.value.length - 1 ? 0 : index;
-    } else {
-      primaryImageIndex.value = -1; // 沒有圖片了
+const removeExistingImage = (index) => {
+  const imageToRemove = existingImages.value[index];
+
+  if (imageToRemove.id) imagesToDelete.value.add(imageToRemove.id);
+
+  if (imageToRemove.isPrimary) {
+    if (existingImages.value.length > 1) {
+      const nextIndex = (index + 1) % existingImages.value.length;
+      resetAllPrimaryFlags();
+      existingImages.value[nextIndex].isPrimary = true;
+    } else if (newImages.value.length > 0) {
+      resetAllPrimaryFlags();
+      newImages.value[0].isPrimary = true;
     }
-  } else if (index < primaryImageIndex.value) {
-    // 如果移除的圖片在主圖之前，主圖索引需要減1
-    primaryImageIndex.value--;
   }
 
-  // 移除圖片
-  productImages.value.splice(index, 1);
+  existingImages.value.splice(index, 1);
 };
 
-// 設置主圖
-const setPrimaryImage = (index) => {
-  primaryImageIndex.value = index;
+const removeNewImage = (index) => {
+  const imageToRemove = newImages.value[index];
+
+  if (imageToRemove.isPrimary) {
+    if (newImages.value.length > 1) {
+      const nextIndex = (index + 1) % newImages.value.length;
+      resetAllPrimaryFlags();
+      newImages.value[nextIndex].isPrimary = true;
+    } else if (existingImages.value.length > 0) {
+      resetAllPrimaryFlags();
+      existingImages.value[0].isPrimary = true;
+    }
+  }
+
+  newImages.value.splice(index, 1);
 };
 
-// 添加規格
+const setExistingImageAsPrimary = (index) => {
+  resetAllPrimaryFlags();
+  existingImages.value[index].isPrimary = true;
+};
+
+const setNewImageAsPrimary = (index) => {
+  resetAllPrimaryFlags();
+  newImages.value[index].isPrimary = true;
+};
+
+const resetAllPrimaryFlags = () => {
+  existingImages.value.forEach((img) => {
+    img.isPrimary = false;
+  });
+  newImages.value.forEach((img) => {
+    img.isPrimary = false;
+  });
+};
+
+// SKU相關方法
 const addSpec = () => {
   specOptions.value.push({
     name: "",
@@ -770,20 +1007,17 @@ const addSpec = () => {
   });
 };
 
-// 移除規格
 const removeSpec = (index) => {
   if (specOptions.value.length > 1) {
     specOptions.value.splice(index, 1);
   }
 };
 
-// 添加規格值
 const addSpecValue = (specIndex) => {
   specOptions.value[specIndex].values.push("");
   specOptions.value[specIndex].valueErrors.push("");
 };
 
-// 移除規格值
 const removeSpecValue = (specIndex, valueIndex) => {
   if (specOptions.value[specIndex].values.length > 1) {
     specOptions.value[specIndex].values.splice(valueIndex, 1);
@@ -791,7 +1025,6 @@ const removeSpecValue = (specIndex, valueIndex) => {
   }
 };
 
-// 驗證規格設定
 const validateSpecOptions = () => {
   let valid = true;
 
@@ -804,7 +1037,7 @@ const validateSpecOptions = () => {
       spec.nameError = "";
     }
 
-    // 驗證規格值不為空
+    // 驗證規格值
     let hasValidValue = false;
     spec.values.forEach((value, valueIndex) => {
       if (!value.trim()) {
@@ -816,11 +1049,9 @@ const validateSpecOptions = () => {
       }
     });
 
-    if (!hasValidValue) {
-      valid = false;
-    }
+    if (!hasValidValue) valid = false;
 
-    // 檢查規格名稱是否重複
+    // 檢查重複
     const otherSpecs = specOptions.value.filter((_, i) => i !== specIndex);
     if (otherSpecs.some((s) => s.name === spec.name)) {
       spec.nameError = "規格名稱不能重複";
@@ -831,36 +1062,22 @@ const validateSpecOptions = () => {
   return valid;
 };
 
-// 生成笛卡爾積的所有規格組合
 const generateCartesianProduct = (arrays) => {
   return arrays.reduce(
-    (acc, curr) => {
-      return acc
-        .map((x) => {
-          return curr.map((y) => {
-            return [...x, y];
-          });
-        })
-        .flat();
-    },
+    (acc, curr) => acc.map((x) => curr.map((y) => [...x, y])).flat(),
     [[]]
   );
 };
 
-// 生成SKU列表
 const generateSkuList = () => {
-  if (!validateSpecOptions()) {
-    return;
-  }
+  if (!validateSpecOptions()) return;
 
-  // 準備有效的規格和值
+  // 準備規格
   const validSpecs = specOptions.value
-    .map((spec) => {
-      return {
-        name: spec.name,
-        values: spec.values.filter((v) => v.trim() !== ""),
-      };
-    })
+    .map((spec) => ({
+      name: spec.name,
+      values: spec.values.filter((v) => v.trim() !== ""),
+    }))
     .filter((spec) => spec.name && spec.values.length > 0);
 
   if (validSpecs.length === 0) {
@@ -875,24 +1092,22 @@ const generateSkuList = () => {
   const specNames = validSpecs.map((spec) => spec.name);
   const specValuesList = validSpecs.map((spec) => spec.values);
 
-  // 生成所有可能的規格組合
+  // 生成組合
   const combinations = generateCartesianProduct(specValuesList);
 
-  // 創建SKU對象
+  // 創建SKU
   generatedSkus.value = combinations.map((combination) => {
-    // 創建規格鍵值對
+    // 規格鍵值對
     const specPairs = {};
     specNames.forEach((name, index) => {
       specPairs[name] = combination[index];
     });
 
-    // 檢查是否存在相同規格的SKU
+    // 檢查現有SKU
     const existingSku =
       props.isEdit && props.productData?.skus
         ? props.productData.skus.find((sku) => {
             if (!sku.specPairs) return false;
-
-            // 檢查是否所有規格值都匹配
             return Object.entries(specPairs).every(
               ([key, value]) => sku.specPairs[key] === value
             );
@@ -909,25 +1124,19 @@ const generateSkuList = () => {
     };
   });
 
-  // 如果之前有設置批量值，應用它們
-  if (batchSettings.price > 0) {
-    applyBatchSetting("price");
-  }
-  if (batchSettings.stock > 0) {
-    applyBatchSetting("stock");
-  }
+  // 應用批量設定
+  if (batchSettings.price > 0) applyBatchSetting("price");
+  if (batchSettings.stock > 0) applyBatchSetting("stock");
 };
 
-// 應用批量設定
 const applyBatchSetting = (field) => {
   const value = batchSettings[field];
   generatedSkus.value.forEach((sku) => {
     sku[field] = value;
-    sku[`${field}Error`] = ""; // 清除錯誤
+    sku[`${field}Error`] = "";
   });
 };
 
-// 驗證生成的SKU
 const validateGeneratedSkus = () => {
   let valid = true;
 
@@ -952,7 +1161,7 @@ const validateGeneratedSkus = () => {
   return valid;
 };
 
-// 驗證基本信息
+// 表單驗證與提交
 const validateBasicInfo = (silent = false) => {
   let valid = true;
 
@@ -974,54 +1183,44 @@ const validateBasicInfo = (silent = false) => {
   return valid;
 };
 
-// 下一步按鈕處理
 const nextStep = async () => {
-  if (!validateBasicInfo()) {
-    return;
-  }
+  if (!validateBasicInfo()) return;
 
-  // 如果是新增模式，先保存商品基本資訊
+  // 新增模式先保存基本資訊
   if (!props.isEdit && !productData.productId) {
     await saveBasicInfo();
   }
 
-  // 如果已經有商品ID或是編輯模式，直接前往SKU設定
   activeTab.value = "sku";
 };
 
-// 保存商品基本資訊
 const saveBasicInfo = async () => {
   try {
     isSubmitting.value = true;
 
-    // 创建 FormData 对象
+    // 創建表單
     const formData = new FormData();
-    formData.append("userId", userStore.userId); // 用户ID
+    formData.append("userId", userStore.userId);
     formData.append("productName", productData.productName);
     formData.append("description", productData.description || "");
     formData.append("category1Id", productData.category1Id);
     formData.append("category2Id", productData.category2Id);
     formData.append("active", productData.active);
 
-    // 处理多张图片上传
-    if (productImages.value.length > 0) {
-      // 先添加主图（如果存在）
-      if (primaryImageIndex.value >= 0) {
-        formData.append(
-          "images",
-          productImages.value[primaryImageIndex.value].file
-        );
-      }
+    // 處理圖片
+    const primaryImage = newImages.value.find((img) => img.isPrimary);
 
-      // 再添加其他图片
-      for (let i = 0; i < productImages.value.length; i++) {
-        if (i !== primaryImageIndex.value) {
-          formData.append("images", productImages.value[i].file);
-        }
-      }
+    if (primaryImage) {
+      formData.append("images", primaryImage.file);
+      formData.append("isPrimaryNew", "true");
     }
 
-    // 发送请求到后端 API
+    newImages.value.forEach((img) => {
+      if (!img.isPrimary) {
+        formData.append("images", img.file);
+      }
+    });
+
     const response = await axios.post("/api/products", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
@@ -1029,35 +1228,26 @@ const saveBasicInfo = async () => {
       },
     });
 
-    console.log("商品创建响应:", response);
-
     if (response.status >= 200 && response.status < 300) {
-      // 确保正确获取商品ID
-      if (response.data && response.data.productId) {
-        console.log("成功获取到商品ID:", response.data.productId);
+      if (response.data?.productId) {
         productData.productId = response.data.productId;
         return true;
       } else {
-        console.error("响应中没有找到商品ID:", response.data);
         Swal.fire({
-          title: "错误",
-          text: "无法获取商品ID，请联系管理员",
+          title: "錯誤",
+          text: "無法獲取商品ID",
           icon: "error",
         });
         return false;
       }
     } else {
-      throw new Error("新增失败");
+      throw new Error("新增失敗");
     }
   } catch (error) {
-    console.error("新增商品错误详情:", error);
-    console.error("响应数据:", error.response?.data);
+    console.error("新增商品錯誤:", error);
     Swal.fire({
-      title: "新增失败",
-      text:
-        error.response?.data?.message ||
-        error.message ||
-        "请求处理失败，请稍后再试",
+      title: "新增失敗",
+      text: error.response?.data?.message || error.message || "請求處理失敗",
       icon: "error",
     });
     return false;
@@ -1066,53 +1256,46 @@ const saveBasicInfo = async () => {
   }
 };
 
-// 更新商品基本資訊
-const updateBasicInfo = async () => {
+const updateProduct = async () => {
   try {
+    if (!productData.productName) {
+      Swal.fire({ title: "請輸入商品名稱", icon: "warning" });
+      return false;
+    }
+
     isSubmitting.value = true;
 
-    // 創建 FormData 對象
     const formData = new FormData();
+    formData.append("productId", productData.productId);
     formData.append("productName", productData.productName);
     formData.append("description", productData.description || "");
-    formData.append("category1Id", productData.category1Id);
-    formData.append("category2Id", productData.category2Id);
     formData.append("active", productData.active);
 
-    // 處理圖片
-    // 標記要刪除的現有圖片ID
-    const existingImageIds = productImages.value
-      .filter((img) => img.isExisting)
-      .map((img) => img.id);
-    formData.append("existingImageIds", JSON.stringify(existingImageIds));
+    // 處理刪除圖片
+    if (imagesToDelete.value.size > 0) {
+      const deleteIds = Array.from(imagesToDelete.value);
+      deleteIds.forEach((id) => {
+        formData.append("deleteImageIds", id.toString());
+      });
+    }
 
-    // 上傳新圖片
-    const newImages = productImages.value.filter((img) => !img.isExisting);
-    if (newImages.length > 0) {
-      // 先添加主圖（如果是新上傳的）
-      const primaryImage = newImages.find(
-        (_, i) =>
-          productImages.value.indexOf(newImages[i]) === primaryImageIndex.value
-      );
-      if (primaryImage) {
-        formData.append("images", primaryImage.file);
-      }
+    // 處理主圖
+    const primaryExistingImage = existingImages.value.find(
+      (img) => img.isPrimary
+    );
+    if (primaryExistingImage?.id) {
+      formData.append("primaryImageId", primaryExistingImage.id);
+    }
 
-      // 再添加其他新圖片
-      for (const img of newImages) {
-        if (img !== primaryImage) {
-          formData.append("images", img.file);
+    // 處理新圖片
+    if (newImages.value.length > 0) {
+      newImages.value.forEach((img) => {
+        if (img.file) {
+          formData.append("newImages", img.file);
         }
-      }
+      });
     }
 
-    // 標記主圖ID
-    const primaryImage = productImages.value[primaryImageIndex.value];
-    if (primaryImage) {
-      formData.append("primaryImageId", primaryImage.id || "");
-    }
-
-    // 發送請求到後端 API
     const response = await axios.put(
       `/api/products/${productData.productId}`,
       formData,
@@ -1125,6 +1308,15 @@ const updateBasicInfo = async () => {
     );
 
     if (response.status >= 200 && response.status < 300) {
+      closeModal();
+      Swal.fire({
+        title: "更新成功",
+        text: "商品已成功更新",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      emit("refresh");
       return true;
     } else {
       throw new Error("更新失敗");
@@ -1133,10 +1325,7 @@ const updateBasicInfo = async () => {
     console.error("更新商品錯誤:", error);
     Swal.fire({
       title: "更新失敗",
-      text:
-        error.response?.data?.message ||
-        error.message ||
-        "請求處理失敗，請稍後再試",
+      text: error.response?.data?.message || error.message || "請求處理失敗",
       icon: "error",
     });
     return false;
@@ -1145,133 +1334,29 @@ const updateBasicInfo = async () => {
   }
 };
 
-// 提交商品與SKU
-// 提交商品与SKU
-const submitProductWithSku = async () => {
-  try {
-    // 先检查是否有商品ID
-    if (!productData.productId) {
-      console.error("没有商品ID，尝试重新保存基本信息");
-      // 如果没有商品ID，尝试重新保存基本信息
-      const saved = await saveBasicInfo();
-      if (!saved || !productData.productId) {
-        Swal.fire({
-          title: "错误",
-          text: "未能获取商品ID，请先保存基本资讯",
-          icon: "error",
-        });
-        return;
-      }
-    }
-
-    // 如果选择跳过SKU设定或没有生成SKU，直接完成
-    if (skipSku.value || generatedSkus.value.length === 0) {
-      closeModal();
-      Swal.fire({
-        title: "新增成功",
-        text: "商品已成功新增",
-        icon: "success",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-      emit("refresh");
-      return;
-    }
-
-    // 验证SKU信息
-    if (!validateGeneratedSkus()) {
-      return;
-    }
-
-    isSubmitting.value = true;
-
-    console.log("准备创建SKU，商品ID:", productData.productId);
-
-    // 创建提交的SKU数据
-    const skuData = generatedSkus.value.map((sku) => {
-      return {
-        specPairs: { ...sku.specPairs },
-        price: sku.price,
-        stock: sku.stock,
-      };
-    });
-
-    // 使用批量创建SKU的API端点
-    const response = await axios.post(
-      `/api/products/${productData.productId}/skus/batch`,
-      skuData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    console.log("SKU创建响应:", response);
-
-    if (response.status >= 200 && response.status < 300) {
-      closeModal();
-      Swal.fire({
-        title: "新增成功",
-        text: "商品及SKU已成功新增",
-        icon: "success",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-      emit("refresh");
-    } else {
-      throw new Error("新增SKU失败");
-    }
-  } catch (error) {
-    console.error("新增SKU错误:", error);
-    console.error("响应详情:", error.response?.data);
-    Swal.fire({
-      title: "新增失败",
-      text: error.response?.data?.message || "无法新增SKU",
-      icon: "error",
-    });
-  } finally {
-    isSubmitting.value = false;
-  }
-};
-
-// 更新商品與SKU
 const updateProductWithSku = async () => {
   try {
-    // 先更新商品基本信息
-    const basicInfoUpdated = await updateBasicInfo();
+    const basicInfoUpdated = await updateProduct();
     if (!basicInfoUpdated) return;
 
-    // 如果沒有SKU需要更新，直接完成
     if (generatedSkus.value.length === 0) {
-      closeModal();
-      Swal.fire({
-        title: "更新成功",
-        text: "商品資訊已成功更新",
-        icon: "success",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-      emit("refresh");
       return;
     }
 
-    // 驗證SKU信息
     if (!validateGeneratedSkus()) {
       return;
     }
 
     isSubmitting.value = true;
 
-    // 分離新增和更新的SKU
+    // 分類處理
     const newSkus = generatedSkus.value.filter((sku) => !sku.id);
     const existingSkus = generatedSkus.value.filter((sku) => sku.id);
 
     // 更新現有SKU
     if (existingSkus.length > 0) {
-      const updatePromises = existingSkus.map((sku) => {
-        return axios.put(
+      const updatePromises = existingSkus.map((sku) =>
+        axios.put(
           `/api/skus/${sku.id}`,
           {
             price: sku.price,
@@ -1283,8 +1368,8 @@ const updateProductWithSku = async () => {
               "Content-Type": "application/json",
             },
           }
-        );
-      });
+        )
+      );
 
       await Promise.all(updatePromises);
     }
@@ -1308,17 +1393,6 @@ const updateProductWithSku = async () => {
         }
       );
     }
-
-    // 完成更新
-    closeModal();
-    Swal.fire({
-      title: "更新成功",
-      text: "商品及SKU已成功更新",
-      icon: "success",
-      timer: 1500,
-      showConfirmButton: false,
-    });
-    emit("refresh");
   } catch (error) {
     console.error("更新SKU錯誤:", error);
     Swal.fire({
@@ -1331,7 +1405,83 @@ const updateProductWithSku = async () => {
   }
 };
 
-// 重置表單
+const submitProductWithSku = async () => {
+  try {
+    if (!productData.productId) {
+      const saved = await saveBasicInfo();
+      if (!saved || !productData.productId) {
+        Swal.fire({
+          title: "錯誤",
+          text: "未能獲取商品ID",
+          icon: "error",
+        });
+        return;
+      }
+    }
+
+    if (skipSku.value || generatedSkus.value.length === 0) {
+      closeModal();
+      Swal.fire({
+        title: "新增成功",
+        text: "商品已成功新增",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      emit("refresh");
+      return;
+    }
+
+    if (!validateGeneratedSkus()) {
+      return;
+    }
+
+    isSubmitting.value = true;
+
+    // 創建SKU數據
+    const skuData = generatedSkus.value.map((sku) => ({
+      specPairs: { ...sku.specPairs },
+      price: sku.price,
+      stock: sku.stock,
+    }));
+
+    const response = await axios.post(
+      `/api/products/${productData.productId}/skus/batch`,
+      skuData,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.status >= 200 && response.status < 300) {
+      closeModal();
+      Swal.fire({
+        title: "新增成功",
+        text: "商品及SKU已成功新增",
+        icon: "success",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+      emit("refresh");
+    } else {
+      throw new Error("新增SKU失敗");
+    }
+  } catch (error) {
+    console.error("新增SKU錯誤:", error);
+    Swal.fire({
+      title: "新增失敗",
+      text: error.response?.data?.message || "無法新增SKU",
+      icon: "error",
+    });
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+// 重置與關閉
 const resetForm = () => {
   productData.productName = "";
   productData.description = "";
@@ -1339,36 +1489,65 @@ const resetForm = () => {
   productData.category2Id = "";
   productData.active = true;
   productData.productId = null;
-  productImages.value = [];
-  primaryImageIndex.value = 0;
+  existingImages.value = [];
+  newImages.value = [];
+  imagesToDelete.value = new Set();
   activeTab.value = "basic";
   skipSku.value = false;
   specOptions.value = [
-    {
-      name: "",
-      values: [""],
-      nameError: "",
-      valueErrors: [""],
-    },
+    { name: "", values: [""], nameError: "", valueErrors: [""] },
   ];
   generatedSkus.value = [];
   batchSettings.price = 0;
   batchSettings.stock = 0;
 };
 
-// 關閉 Modal
 const closeModal = () => {
   resetForm();
   emit("close");
 };
 
-// 元件掛載時
+// 掛載時初始化
 onMounted(() => {
-  if (props.isOpen) {
-    fetchCategory1();
-    if (props.isEdit && props.productData) {
-      loadProductData();
+  console.log("组件挂载完成");
+  if (props.isOpen && props.productData) {
+    console.log("初始化时加载商品数据:", props.productData);
+
+    // 如果直接有productId，立即加载图片
+    if (props.productData.productId || props.productData.id) {
+      const productId = props.productData.productId || props.productData.id;
+      console.log("组件挂载时加载图片, 商品ID:", productId);
+      fetchProductImages(productId);
     }
   }
 });
 </script>
+
+<style scoped>
+.modal {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.sku-spec {
+  display: inline-block;
+  margin-right: 1rem;
+}
+
+.spec-key {
+  font-weight: bold;
+  margin-right: 0.25rem;
+}
+
+.spec-value {
+  color: #0d6efd;
+}
+
+.card-img-top {
+  background-color: #f8f9fa;
+}
+
+.nav-link.disabled {
+  color: #6c757d;
+  cursor: not-allowed;
+}
+</style>
