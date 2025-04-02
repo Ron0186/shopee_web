@@ -2,209 +2,227 @@
     <div class="container my-4">
         <h3>後台管理者優惠券管理</h3>
 
-        <!-- 搜尋、新增、每頁筆數 -->
+        <div class="mb-3">
+            <button class="btn btn-secondary" @click="navigateToApplicationReview">
+                <i class="bi bi-list-check"></i> 前往審核優惠券申請
+            </button>
+        </div>
+
         <div class="row mb-3 align-items-center">
             <div class="col-md-4 mb-2 mb-md-0">
                 <button class="btn btn-primary w-100" @click="openModal('insert')">
-                    <i class="bi bi-plus-lg"></i> 新增優惠券
+                    <i class="bi bi-plus-lg"></i> 直接新增優惠券
                 </button>
             </div>
             <div class="col-md-4 mb-2 mb-md-0">
-                <input type="text" class="form-control" placeholder="搜尋優惠券名稱" v-model="findName" @input="callFind(1)" />
+                <input type="text" class="form-control" placeholder="搜尋名稱/代碼/商店ID" v-model="searchQuery.text"
+                    @keyup.enter="callFind(1)" />
             </div>
             <div class="col-md-4">
-                <CouponSelect :total="total" :options="[2, 3, 4, 5, 7]" v-model="rows" @change="callFind(1)" />
+                <CouponSelect :total="pagination.totalItems" :options="[4, 8, 12, 16]" v-model="pagination.size"
+                    @change="callFind(1)" />
+            </div>
+            <div class="col-md-4 mt-2">
+                <button class="btn btn-info w-100" @click="callFind(1)">
+                    <i class="bi bi-search"></i> 搜尋
+                </button>
             </div>
         </div>
 
-        <!-- Chart 統計圖表 -->
-        <CouponChart ref="chartRef" />
+        <CouponChart :chart-data-prop="monthlyStats" ref="chartRef" />
 
-        <!-- 🚀 ✅ 優惠券卡片列表 -->
-        <div class="row">
-            <template v-if="coupons.length > 0">
-                <AdminCouponCard v-for="coupon in coupons" :key="coupon.couponId" :coupon="coupon"
-                    @updateCoupon="onUpdateCoupon" @deleteCoupon="onDeleteCoupon" />
-            </template>
-            <div v-else class="text-center text-muted">
-                目前沒有優惠券
+        <div v-if="isLoading" class="text-center mt-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">載入中...</span>
             </div>
         </div>
+        <div v-else-if="coupons.length === 0 && !isLoading" class="alert alert-light text-center mt-3">
+            目前沒有符合條件的優惠券。
+        </div>
+        <div v-else class="row mt-3">
+            <AdminCouponCard v-for="coupon in coupons" :key="coupon.couponId" :coupon="coupon"
+                @editCoupon="openModal('update', coupon)" @deleteCoupon="confirmDelete" />
+        </div>
 
-        <!-- 分頁 -->
-        <nav v-if="total > 0" class="mt-3">
+        <nav v-if="pagination.totalPages > 1 && !isLoading" class="mt-4">
             <ul class="pagination justify-content-center">
-                <li class="page-item" :class="{ disabled: current === 1 }" @click="callFind(1)">
-                    <span class="page-link">«</span>
+                <li class="page-item" :class="{ disabled: pagination.currentPage === 0 }">
+                    <a class="page-link" href="#" @click.prevent="callFind(0)">&laquo;</a>
                 </li>
-                <li v-for="page in pages" :key="page" class="page-item" :class="{ active: page === current }"
-                    @click="callFind(page)">
-                    <span class="page-link">{{ page }}</span>
+                <li class="page-item" :class="{ disabled: pagination.currentPage === 0 }">
+                    <a class="page-link" href="#" @click.prevent="callFind(pagination.currentPage - 1)">&lsaquo;</a>
                 </li>
-                <li class="page-item" :class="{ disabled: current === pages }" @click="callFind(pages)">
-                    <span class="page-link">»</span>
+                <li v-for="page in visiblePages" :key="page" class="page-item"
+                    :class="{ active: page === pagination.currentPage }">
+                    <a class="page-link" href="#" @click.prevent="callFind(page)">{{ page + 1 }}</a>
+                </li>
+
+                <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
+                    <a class="page-link" href="#" @click.prevent="callFind(pagination.currentPage + 1)">&rsaquo;</a>
+                </li>
+                <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
+                    <a class="page-link" href="#" @click.prevent="callFind(pagination.totalPages - 1)">&raquo;</a>
                 </li>
             </ul>
         </nav>
 
-        <!-- 優惠券 Modal -->
-        <!-- 綁定 createCoupon 事件到 callCreate 方法 -->
-        <AdminCouponModal v-if="isModalVisible" :isModalVisible="isModalVisible" :isInsert="isInsert"
-            :coupon="selectedCoupon" @closeModal="closeModal" @createCoupon="addNewCoupon"
-            @modifyCoupon="updateCoupon" />
+        <AdminCouponModal :isVisible="isModalVisible" :isInsert="isInsert" :coupon="selectedCoupon"
+            @closeModal="closeModal" @createCoupon="handleCreateCoupon" @modifyCoupon="handleModifyCoupon" />
     </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
-import axiosapi from "@/plugins/axios"
+import { ref, reactive, onMounted, computed } from "vue";
+import axiosapi from "@/plugins/axios"; // 假設這是你配置好的 axios 實例
 import Swal from "sweetalert2";
 import AdminCouponCard from "./AdminCouponCard.vue";
 import AdminCouponModal from "./AdminCouponModal.vue";
 import CouponSelect from "./CouponSelect.vue";
 import CouponChart from "./CouponChart.vue";
+import { useRouter } from 'vue-router'; // 如果需要導航
 
-const total = ref(0);
-const pages = ref(0);
-const current = ref(1);
-const rows = ref(4);
-const findName = ref("");
-const coupons = ref([]);
+const router = useRouter(); // 用於導航
+
+// --- 狀態管理 ---
+const coupons = ref([]); // 儲存從後端獲取的優惠券列表 (AdminCouponDTO)
+const isLoading = ref(false);
 const isModalVisible = ref(false);
-const chartRef = ref(null);
-const selectedCoupon = ref(null);
-const isInsert = ref(false); // 用來區分「新增」或「修改」
+const isInsert = ref(false);     // true: 新增 Modal, false: 編輯 Modal
+const selectedCoupon = ref(null); // 傳遞給 Modal 的資料
 
+// --- 搜尋與分頁 ---
+const searchQuery = reactive({ text: '' }); // 搜尋條件
+const pagination = reactive({
+    currentPage: 0,  // API 通常從 0 開始
+    size: 4,        // 每頁筆數
+    totalItems: 0,
+    totalPages: 0
+});
 
+// --- 圖表數據 ---
+const chartRef = ref(null); // CouponChart 元件的引用
+const monthlyStats = ref({ // 傳遞給圖表的數據結構
+    labels: [], // 月份 ['1月', '2月', ...]
+    newCounts: [], // 新增數量 [10, 15, ...]
+    currentCounts: [] // 目前數量 [50, 60, ...]
+});
 
-// 開啟 Modal
-function openModal(action, couponData = {}) {
-    if (action === "insert") {
-        isInsert.value = true;
-        selectedCoupon.value = {
-            couponId: "",
-            couponName: "",
-            couponCode: "",
-            description: "",
-            startDate: "",
-            endDate: "",
-            discountType: "percentage",
-            discountValue: 0,
-            usageLimit: 1,
-            usagePerUser: 1,
-            photo: null,
-        };
-    } else if (action === "update") {
-        isInsert.value = false;
-        selectedCoupon.value = { ...couponData }; // 從外部帶入要修改的資料
+// --- Modal 控制 ---
+function openModal(action, couponData = null) {
+    isInsert.value = (action === 'insert');
+    if (isInsert.value) {
+        // 新增模式：提供一個空的結構，包含 shop 物件
+        selectedCoupon.value = { shop: { shopId: null } };
+    } else {
+        // 編輯模式：傳遞從 Card 來的 coupon DTO
+        selectedCoupon.value = couponData ? { ...couponData } : null;
     }
     isModalVisible.value = true;
 }
 
-// 關閉 Modal
 function closeModal() {
     isModalVisible.value = false;
+    selectedCoupon.value = null; // 清除選中數據
 }
 
-// 讀取/搜尋優惠券
-const callFind = async (page = 1) => {
-    current.value = page;
-    try {
-        const response = await axiosapi.post("/coupons/find", {
-            start: (page - 1) * rows.value,
-            rows: rows.value,
-            couponName: findName.value || null,
-        });
+// --- API 呼叫 ---
 
-        coupons.value = response.data.list || [];
-        total.value = response.data.count;
-        pages.value = Math.ceil(total.value / rows.value);
-    } catch (error) {
-        Swal.fire("錯誤!", "查詢失敗", "error");
+// 讀取/搜尋優惠券列表 (Admin API)
+const callFind = async (page = 0) => {
+    // 防止無效頁碼
+    if (page < 0 || (pagination.totalPages > 0 && page >= pagination.totalPages)) {
+        console.warn(`請求的頁碼 ${page} 無效。`);
+        return;
     }
-};
 
-// 🔥 新增優惠券
-async function addNewCoupon(newCoupon) {
+    isLoading.value = true;
+    pagination.currentPage = page;
     try {
-        console.log("發送新增(優惠券)請求:", newCoupon);
-        // 1) 建立優惠券本體
-        const resp = await axiosapi.post("/coupons", JSON.stringify(newCoupon), {
-            headers: { "Content-Type": "application/json" },
-        });
-        if (!resp.data.success) {
-            throw new Error(resp.data.message || "新增失敗");
-        }
+        // 組合查詢參數
+        const params = {
+            page: pagination.currentPage,
+            size: pagination.size,
+            // 可根據 searchQuery.text 添加更多條件到 criteria Map
+            // 例如：如果 text 包含數字，則視為 shopId 或 couponId 搜尋？
+            // 這裡簡化為只搜尋名稱/代碼 (後端 findCouponsInternal 處理)
+            couponName: searchQuery.text || null,
+            // couponCode: searchQuery.text || null, // 可同時搜尋代碼
+        };
 
-        // 2) 若有上傳圖片 → newCoupon.photo 為 Base64
-        //    photoId = couponId
-        if (newCoupon.photo && newCoupon.couponId) {
-            console.log("發送新增(圖片)請求, photoId=", newCoupon.couponId);
-            const detailResp = await axiosapi.post(
-                "/coupons/detail",
-                JSON.stringify({
-                    photoId: parseInt(newCoupon.couponId), // couponId 與 photoId 相同
-                    photo: newCoupon.photo,
-                }),
-                { headers: { "Content-Type": "application/json" } }
-            );
-            if (!detailResp.data.success) {
-                throw new Error(detailResp.data.message || "圖片新增失敗");
-            }
-        }
+        // *** 呼叫 Admin 的查詢 API ***
+        // GET /admin/coupons?page=0&size=4&couponName=xxx
+        const response = await axiosapi.get("/admin/coupons", { params });
 
-        Swal.fire("成功!", "新增成功", "success");
-        closeModal();
-        callFind(); // 重新查詢
-    } catch (error) {
-        console.error("新增失敗:", error);
-        Swal.fire("錯誤!", error.message || "新增失敗", "error");
-    }
-}
-
-async function updateCoupon(updatedCoupon) {
-    try {
-        console.log("發送更新請求:", updatedCoupon);
-
-        const response = await axiosapi.put(
-            `/coupons/${updatedCoupon.couponId}`, // API 路徑符合後端格式
-            JSON.stringify(updatedCoupon), // 轉成 JSON 字串
-            { headers: { "Content-Type": "application/json" } } // 設定請求標頭
-        );
-
-        console.log("API 回應:", response.data);
-
-        if (response.data.success) {
-            Swal.fire("成功!", response.data.message || "修改優惠券成功", "success");
-            closeModal();
-            callFind(); // 重新載入優惠券
+        if (response.data && response.data.success && response.data.data) {
+            const data = response.data.data;
+            coupons.value = data.list || [];
+            pagination.totalItems = data.totalItems;
+            pagination.totalPages = data.totalPages;
         } else {
-            throw new Error(response.data.message || "修改失敗");
+            throw new Error(response.data?.message || "查詢回應格式錯誤");
         }
     } catch (error) {
-        console.error("修改失敗", error);
-        Swal.fire("錯誤!", error.message || "修改失敗", "error");
+        console.error("查詢優惠券失敗:", error);
+        Swal.fire("錯誤!", `查詢優惠券失敗: ${error.response?.data?.message || error.message}`, "error");
+        coupons.value = []; // 清空
+        pagination.totalItems = 0;
+        pagination.totalPages = 0;
+    } finally {
+        isLoading.value = false;
     }
 };
 
-
-// **初始化讀取優惠券資料**
-const fetchCoupons = async () => {
+// 處理來自 Modal 的新增事件
+async function handleCreateCoupon(newCouponData) {
     try {
-        const response = await axiosapi.post("/coupons/find", "{}"); // 發送空的 JSON 來獲取所有優惠券
-        if (response.data && response.data.list) {
-            coupons.value = response.data.list;
+        // *** 呼叫 Admin 的直接新增 API ***
+        // POST /admin/coupons
+        // newCouponData 應包含 shop: { shopId: xxx }
+        const response = await axiosapi.post("/admin/coupons", newCouponData);
+
+        if (response.data && response.data.success) {
+            Swal.fire("成功!", "優惠券已新增", "success");
+            closeModal();
+            callFind(0); // 新增後回到第一頁
+            fetchMonthlyStats(); // 更新圖表
+        } else {
+            throw new Error(response.data?.message || "新增失敗");
         }
     } catch (error) {
-        console.error("讀取優惠券失敗:", error);
+        console.error("新增優惠券失敗:", error);
+        Swal.fire("錯誤!", `新增優惠券失敗: ${error.response?.data?.message || error.message}`, "error");
+        // 不關閉 Modal，讓使用者可以修正
     }
-};
+}
 
-// **刪除優惠券**
-const onDeleteCoupon = async (couponId) => {
+// 處理來自 Modal 的修改事件
+async function handleModifyCoupon(updatedCouponData) {
+    try {
+        // *** 呼叫 Admin 的直接修改 API ***
+        // PUT /admin/coupons/{couponId}
+        const couponId = updatedCouponData.couponId;
+        const response = await axiosapi.put(`/admin/coupons/${couponId}`, updatedCouponData);
+
+        if (response.data && response.data.success) {
+            Swal.fire("成功!", "優惠券已更新", "success");
+            closeModal();
+            callFind(pagination.currentPage); // 留在當前頁面刷新
+            // 圖表數據通常不需要因為修改而更新
+        } else {
+            throw new Error(response.data?.message || "更新失敗");
+        }
+    } catch (error) {
+        console.error("更新優惠券失敗:", error);
+        Swal.fire("錯誤!", `更新優惠券失敗: ${error.response?.data?.message || error.message}`, "error");
+        // 不關閉 Modal
+    }
+}
+
+// 處理來自 Card 的刪除請求 (確認)
+async function confirmDelete(couponId) {
     const result = await Swal.fire({
         title: "確定要刪除嗎?",
-        text: "此動作無法復原!",
+        text: `即將刪除優惠券 ID: ${couponId}，此動作無法復原!`,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#d33",
@@ -214,41 +232,110 @@ const onDeleteCoupon = async (couponId) => {
     });
 
     if (result.isConfirmed) {
-        try {
-            const response = await axiosapi.delete(`/coupons/${couponId}`);
-
-            if (response.data.success) {
-                // 更新本地資料
-                coupons.value = coupons.value.filter(coupon => coupon.couponId !== couponId);
-
-                Swal.fire({
-                    title: "刪除成功!",
-                    text: response.data.message,
-                    icon: "success",
-                });
-            } else {
-                Swal.fire({
-                    title: "刪除失敗!",
-                    text: response.data.message || "請稍後再試。",
-                    icon: "error",
-                });
-            }
-        } catch (error) {
-            console.error("刪除失敗:", error);
-            Swal.fire({
-                title: "刪除失敗!",
-                text: "發生錯誤，請稍後再試。",
-                icon: "error",
-            });
-        }
+        deleteCoupon(couponId);
     }
-};
+}
 
-// **修改優惠券**
-const onUpdateCoupon = (couponId) => {
-    console.log("修改優惠券 ID:", couponId);
-};
+// 實際執行刪除
+async function deleteCoupon(couponId) {
+    try {
+        // *** 呼叫 Admin 的直接刪除 API ***
+        // DELETE /admin/coupons/{couponId}
+        const response = await axiosapi.delete(`/admin/coupons/${couponId}`);
+        if (response.data && response.data.success) {
+            Swal.fire("已刪除!", "優惠券已成功刪除。", "success");
+            // 判斷刪除後是否需要跳轉頁面
+            const isLastItemOnPage = coupons.value.length === 1 && pagination.currentPage > 0;
+            callFind(isLastItemOnPage ? pagination.currentPage - 1 : pagination.currentPage);
+            fetchMonthlyStats(); // 更新圖表
+        } else {
+            throw new Error(response.data?.message || "刪除失敗");
+        }
+    } catch (error) {
+        console.error("刪除優惠券失敗:", error);
+        Swal.fire("錯誤!", `刪除優惠券失敗: ${error.response?.data?.message || error.message}`, "error");
+    }
+}
 
-// 首次載入
-callFind();
+
+// --- 圖表相關 ---
+// 取得每月統計數據 (需要後端提供新 API)
+async function fetchMonthlyStats() {
+    try {
+        // *** 假設後端有一個 API 回傳統計數據 ***
+        //GET / admin / coupons / stats / monthly
+        const response = await axiosapi.get("/admin/coupons/stats/monthly");
+        if (response.data && response.data.success) {
+            monthlyStats.value = response.data.stats; // 更新響應式數據
+            // 如果 chartRef.value 存在，可以調用其更新方法
+            // if(chartRef.value) chartRef.value.updateChart(monthlyStats.value);
+        }
+
+        // --- 暫時使用假數據 ---
+        // const months = ['1月', '2月', '3月', '4月', '5月', '6月']; // 假設近 6 個月
+        // monthlyStats.value = {
+        //     labels: months,
+        //     newCounts: months.map(() => Math.floor(Math.random() * 30)), // 隨機新增數
+        //     currentCounts: months.map(() => Math.floor(Math.random() * 100) + 50) // 隨機目前數
+        // };
+        // console.log("更新圖表數據:", monthlyStats.value);
+        // // 確保圖表元件已掛載後再更新
+        // // 使用 nextTick 或 setTimeout 可能更可靠，或在 chart 元件內部 watch props
+        // setTimeout(() => {
+        //     if (chartRef.value?.updateChart) { // 假設 chart 元件有 updateChart 方法
+        //         chartRef.value.updateChart(monthlyStats.value);
+        //     }
+        // }, 0);
+        // // --- 結束假數據 ---
+
+    } catch (error) {
+        console.error("取得統計數據失敗:", error);
+        // 可以顯示錯誤訊息
+    }
+}
+
+// --- 導航 ---
+function navigateToApplicationReview() {
+    // 使用 Vue Router 導航到審核頁面
+    // router.push({ name: 'AdminCouponApplicationReview' }); // 假設路由名稱
+    alert("導航到審核頁面 (待實現)");
+}
+
+
+// --- 分頁計算 ---
+const visiblePages = computed(() => {
+    const total = pagination.totalPages;
+    const current = pagination.currentPage;
+    const maxVisible = 5; // 最多顯示 5 個頁碼按鈕
+    if (total <= maxVisible) {
+        return Array.from({ length: total }, (_, i) => i);
+    } else {
+        let startPage = Math.max(0, current - Math.floor(maxVisible / 2));
+        let endPage = startPage + maxVisible - 1;
+        if (endPage >= total) {
+            endPage = total - 1;
+            startPage = endPage - maxVisible + 1;
+        }
+        return Array.from({ length: maxVisible }, (_, i) => startPage + i);
+    }
+});
+
+// --- 生命週期鉤子 ---
+onMounted(() => {
+    callFind(0); // 初始載入第一頁
+    fetchMonthlyStats(); // 初始載入圖表數據
+});
+
 </script>
+
+<style scoped>
+/* 可選: 添加特定樣式 */
+.pagination .page-link {
+    cursor: pointer;
+}
+
+.pagination .page-item.disabled .page-link {
+    pointer-events: none;
+    opacity: 0.6;
+}
+</style>

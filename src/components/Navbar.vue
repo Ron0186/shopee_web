@@ -106,14 +106,13 @@
         <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
           使用者條款</router-link>
       </li>
-      <li v-if="userStore.username" @click="logoutToAdmin">
-        <a class="admin-link">🔐 優惠券申請</a>
+      <li v-if="userStore.isSeller && userStore.shopId">
+        <router-link to="/seller/coupon/apply" @click="toggleDrawer">🎟️ 優惠券申請</router-link>
       </li>
       <li v-if="userStore.username" @click="logoutToAdmin">
         <a class="admin-link">🔐 前往後台</a>
       </li>
-      <li v-if="userStore.username" @click="logoutToAdmin">
-        <a class="admin-link">🔐 前往後台</a>
+      <li v-if="userStore.isAdmin" @click="logoutToAdmin"> <a class="admin-link">🔐 前往後台</a>
       </li>
     </ul>
   </div>
