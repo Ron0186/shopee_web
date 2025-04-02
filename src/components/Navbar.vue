@@ -14,8 +14,7 @@
         登入</router-link>
       <router-link to="/user/register" v-if="!userStore.username">📝
         註冊</router-link>
-      <router-link to="/shop/apply" v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
-        我要當賣家!!</router-link>
+
 
       <!-- 新增賣家中心按鈕 -->
       <router-link :to="'/store/' + userStore.shopId" v-if="
@@ -28,7 +27,8 @@
       </router-link>
 
       <!-- ✅ 訂單管理 + 通知角標 -->
-      <router-link v-if="userStore.username" :to="userStore.isSeller ? '/seller/orders' : '/user/orders'"
+      <router-link v-if="userStore.username"
+        :to="userStore.isSeller ? '/seller/orders' : '/user/orders'"
         class="position-relative">
         📦 訂單管理
         <!-- 賣家：待處理訂單通知 -->
@@ -41,19 +41,32 @@
         <span v-if="userStore.isUser && shippedCount > 0"
           class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
           {{ shippedCount }}
-        </span>
+        </span> 
       </router-link>
 
       <router-link to="/submitReview">📝 評價商品</router-link>
       <router-link v-if="userStore.isSeller" to="/seller-setting">⚙️
         賣家設定</router-link>
-      <router-link v-if="userStore.isSeller" to="/revenue">📊
+      <router-link v-if="userStore.isSeller" to="/revenue">⚙️
         營收表現</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
-      <span v-if="userStore.username" @click="logout" class="logout-link">
-        <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
-      </span>
-      <span v-if="userStore.username" @click="logoutToAdmin" class="logout-link admin-logout">
+
+      <!-- 使用者名稱下拉選單 -->
+      <div v-if="userStore.username" class="user-dropdown">
+        <button class="username-btn" @click="toggleUserMenu">
+           {{ userStore.username }} <span class="dropdown-icon">▼</span>
+        </button>
+        <div class="user-dropdown-content" v-if="userMenuOpen">
+          <router-link to="/memberCenter" @click="userMenuOpen = false">👤 會員中心</router-link>
+          <router-link to="/shop/apply" 
+        v-if="userStore.token && !userStore.roles.includes('SELLER')" @click="userMenuOpen = false">📝
+        申請成為賣家</router-link>
+          <div @click="logout" class="dropdown-item">登出</div>
+        </div>
+      </div>
+
+      <span v-if="userStore.username" @click="logoutToAdmin"
+        class="logout-link admin-logout">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
       </span>
     </div>
@@ -72,7 +85,8 @@
               衣服</router-link>
           </li>
           <li>
-            <router-link to="/shop?category=electronics" @click="toggleDrawer">📱 電子產品</router-link>
+            <router-link to="/shop?category=electronics"
+              @click="toggleDrawer">📱 電子產品</router-link>
           </li>
           <li>
             <router-link to="/shop?category=home" @click="toggleDrawer">🏠
@@ -105,14 +119,6 @@
       <li>
         <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
           使用者條款</router-link>
-      </li>
-      <li v-if="userStore.username">
-        <router-link to="/seller/coupon/apply" @click="toggleDrawer">🎟️ 優惠券申請</router-link>
-      </li>
-      <li v-if="userStore.username" @click="logoutToAdmin">
-        <a class="admin-link">🔐 前往後台</a>
-      </li>
-      <li v-if="userStore.isAdmin" @click="logoutToAdmin"> <a class="admin-link">🔐 前往後台</a>
       </li>
     </ul>
   </div>
@@ -296,7 +302,7 @@ const handleNotificationClick = (chatRoomId) => {
   right: 0;
   background-color: white;
   min-width: 160px;
-  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
   z-index: 1001;
   border-radius: 4px;
   margin-top: 5px;
