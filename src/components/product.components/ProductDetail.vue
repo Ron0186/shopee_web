@@ -124,9 +124,8 @@
             </div>
 
             <div class="action-buttons">
-              <button class="add-to-cart" @click="addToCart">
-                <span class="icon">🛒</span> 加入購物車
-              </button>
+              <button @click="addToCart">加入購物車</button>
+
               <button class="buy-now" @click="buyNow">
                 <span class="icon">💳</span> 立即購買
               </button>
@@ -241,6 +240,8 @@ import { ref, watch, onMounted } from "vue";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useRouter } from "vue-router";
+import { useUserStore } from "@/stores/user.js"; // 根據你的實際路徑
+const userStore = useUserStore();
 const router = useRouter();
 
 const props = defineProps({
@@ -386,22 +387,39 @@ const increaseQuantity = () => {
   quantity.value++;
 };
 
-// 加入購物車
-const addToCart = () => {
-  if (!product.value) return;
+const addToCart = async () => {
+  try {
+    const skuId = product.value?.skuList?.[0]?.skuId;
+    if (!skuId) {
+      Swal.fire("錯誤", "無法取得 SKU ID", "error");
+      return;
+    }
 
-  emit("add-to-cart", {
-    productId: props.productId,
-    quantity: quantity.value,
-  });
+    const payload = {
+      userId: userStore.userId,
+      skuId,
+      quantity: quantity.value,
+    };
 
-  Swal.fire({
-    title: "成功",
-    text: `已添加 ${quantity.value} 件商品到購物車`,
-    icon: "success",
-    showConfirmButton: false,
-    timer: 1500,
-  });
+    console.log("📦 加入購物車中...", payload);
+
+    await axios.post("/api/cart/add", payload, { withCredentials: true }); // ✅ 加上這裡！
+
+    Swal.fire({
+      title: "成功",
+      text: `已添加 ${quantity.value} 件商品到購物車`,
+      icon: "success",
+      showConfirmButton: false,
+      timer: 1500,
+    });
+  } catch (error) {
+    console.error("❌ 加入購物車失敗:", error);
+    Swal.fire({
+      title: "加入失敗",
+      text: "請稍後再試",
+      icon: "error",
+    });
+  }
 };
 
 // onMounted 載入詳情

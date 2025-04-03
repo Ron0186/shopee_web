@@ -2,13 +2,19 @@
   <div class="checkout-container">
     <h2>💳 立即結帳</h2>
 
-    <div v-if="skuInfo">
-      <div class="product-info">
-        <p><strong>商品名稱：</strong> {{ skuInfo.productName }}</p>
-        <p><strong>單價：</strong> {{ skuInfo.price }} 元</p>
-        <p><strong>數量：</strong> {{ quantity }}</p>
-        <p><strong>小計：</strong> {{ totalPrice.toLocaleString() }} 元</p>
+    <div v-if="cartItems.length > 0">
+      <div class="product-info" v-for="item in cartItems" :key="item.skuId">
+        <p><strong>商品名稱：</strong> {{ item.name }}</p>
+        <p><strong>單價：</strong> {{ item.price }} 元</p>
+        <p><strong>數量：</strong> {{ item.quantity }}</p>
+        <p>
+          <strong>小計：</strong>
+          {{ (item.price * item.quantity).toLocaleString() }} 元
+        </p>
+        <hr />
       </div>
+
+      <h3>總計：{{ totalPrice.toLocaleString() }} 元</h3>
 
       <form @submit.prevent="submitOrder">
         <div class="form-group">
@@ -60,139 +66,134 @@
           </select>
         </div>
 
-        <button type="submit" class="submit-btn">立即送出並付款</button>
+        <button type="submit" class="submit-btn" :disabled="isSubmitting">
+          {{ isSubmitting ? "處理中..." : "立即送出並付款" }}
+        </button>
       </form>
     </div>
 
-    <div v-else class="loading">載入商品資料中...</div>
+    <div v-else class="loading">載入購物車中...</div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, computed, watch } from "vue";
-import { useRoute } from "vue-router";
 import axios from "@/plugins/axios";
-import { taiwanAddress } from "@/assets/taiwanAddress.js";
+import { useUserStore } from "@/stores/user";
+import { taiwanAddress } from "@/assets/taiwanAddress";
 
-const route = useRoute();
-const skuId = ref(Number(route.query.skuId));
-const quantity = ref(Number(route.query.qty || 1));
+const userStore = useUserStore();
+const cartItems = ref([]);
+const isSubmitting = ref(false);
 
-const skuInfo = ref(null);
+// 表單資料
 const receiverName = ref("");
 const receiverPhone = ref("");
-const paymentMethod = ref("");
-const isSubmitting = ref(false);
 const receiverStreet = ref("");
-
 const selectedCity = ref("");
 const selectedDistrict = ref("");
 const zipCode = ref("");
-const cities = Object.keys(taiwanAddress); // 取得所有縣市名稱
+const paymentMethod = ref("");
+
+// 地址選項
+const cities = Object.keys(taiwanAddress);
 const districts = ref([]);
 
 watch(selectedCity, (city) => {
   if (!city) {
     districts.value = [];
-    zipCode.value = "";
     selectedDistrict.value = "";
+    zipCode.value = "";
     return;
   }
 
-  const districtsObj = taiwanAddress[city];
-  districts.value = Object.entries(districtsObj).map(([name, zip]) => ({
-    name,
-    zip,
-  }));
+  const list = taiwanAddress[city];
+  districts.value = Object.entries(list).map(([name, zip]) => ({ name, zip }));
   selectedDistrict.value = "";
   zipCode.value = "";
 });
 
-watch(selectedDistrict, (districtName) => {
-  const found = districts.value.find((d) => d.name === districtName);
+watch(selectedDistrict, (district) => {
+  const found = districts.value.find((d) => d.name === district);
   zipCode.value = found ? found.zip : "";
 });
 
-const totalPrice = computed(() => {
-  return skuInfo.value ? skuInfo.value.price * quantity.value : 0;
-});
+const totalPrice = computed(() =>
+  cartItems.value.reduce((sum, item) => sum + item.price * item.quantity, 0)
+);
 
-const fetchSkuInfo = async () => {
+// 取得購物車
+const fetchCart = async () => {
   try {
-    const res = await axios.get(`/api/skus/${skuId.value}`);
-    skuInfo.value = res.data;
+    const res = await axios.get(`/api/cart/${userStore.userId}`);
+    cartItems.value = res.data;
   } catch (err) {
-    alert("❌ 載入商品失敗");
+    console.error("❌ 無法取得購物車", err);
   }
 };
 
+// 提交訂單
 const submitOrder = async () => {
   if (isSubmitting.value) return;
   isSubmitting.value = true;
 
   try {
     const orderRequest = {
-      amount: totalPrice.value,
-      description: `用戶購買商品 SKU ${skuId.value}`,
-      itemName: skuInfo.value.productName,
-      merchantTradeNo: "ORDER" + Date.now(),
-      clientBackUrl: "http://localhost:5173/shop",
-      productId: skuInfo.value.productId,
-      quantity: quantity.value,
-      skuId: skuId.value,
+      items: cartItems.value.map((item) => ({
+        skuId: item.skuId,
+        quantity: item.quantity,
+        price: item.price,
+      })),
       receiverName: receiverName.value,
       receiverPhone: receiverPhone.value,
-      receiverAddress: receiverStreet.value,
       receiverCity: selectedCity.value,
       receiverDistrict: selectedDistrict.value,
       receiverZipCode: zipCode.value,
+      receiverAddress: receiverStreet.value,
       paymentMethod: paymentMethod.value,
-      price: skuInfo.value.price,
+      totalPrice: totalPrice.value,
     };
 
     const orderRes = await axios.post("/api/orders/create", orderRequest);
     const orderId = orderRes.data.orderId;
-
-    if (!orderId) {
-      alert("建立訂單失敗，請稍後再試");
-      return;
-    }
 
     const paymentRes = await axios.get(`/api/payment/redirect/${orderId}`);
     const newWindow = window.open("", "_blank");
     newWindow?.document.write(paymentRes.data.formHtml);
     newWindow?.document.close();
   } catch (err) {
-    console.error("送出訂單失敗：", err);
-    alert("送出訂單失敗，請檢查網路或填寫資料");
+    console.error("❌ 訂單送出失敗", err);
+    alert("訂單送出失敗，請檢查資訊是否正確");
   } finally {
     isSubmitting.value = false;
   }
 };
 
-onMounted(fetchSkuInfo);
+onMounted(fetchCart);
 </script>
 
 <style scoped>
 .checkout-container {
   max-width: 600px;
   margin: auto;
-  padding: 20px;
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-  font-family: "Microsoft JhengHei";
+  padding: 30px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  font-family: "Noto Sans TC", sans-serif;
+  color: #333;
 }
 
 h2 {
   text-align: center;
-  margin-bottom: 20px;
-  color: #333;
+  margin-bottom: 30px;
 }
 
-.product-info p {
-  margin: 5px 0;
-  font-size: 15px;
+.product-info {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
 }
 
 .form-group {
@@ -200,10 +201,9 @@ h2 {
 }
 
 label {
+  font-weight: 600;
   display: block;
-  font-weight: bold;
-  margin-bottom: 5px;
-  color: #333;
+  margin-bottom: 6px;
 }
 
 input,
@@ -211,23 +211,21 @@ select {
   width: 100%;
   padding: 10px;
   border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 14px;
+  border-radius: 6px;
 }
 
 .submit-btn {
-  display: block;
   width: 100%;
-  padding: 12px;
-  background-color: #ff4757;
+  padding: 14px;
+  background-color: #ff6b81;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   font-size: 16px;
-  margin-top: 20px;
   cursor: pointer;
 }
+
 .submit-btn:hover {
-  background-color: #e03b4b;
+  background-color: #e84118;
 }
 </style>

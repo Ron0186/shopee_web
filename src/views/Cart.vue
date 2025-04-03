@@ -17,14 +17,23 @@
           <tr v-for="item in cartItems" :key="item.cartId">
             <td>{{ item.name }}</td>
             <td>
-              <button @click="updateQuantity(item.cartId, item.quantity - 1)" :disabled="item.quantity <= 1">➖</button>
+              <button
+                @click="updateQuantity(item.cartId, item.quantity - 1)"
+                :disabled="item.quantity <= 1"
+              >
+                ➖
+              </button>
               {{ item.quantity }}
-              <button @click="updateQuantity(item.cartId, item.quantity + 1)">➕</button>
+              <button @click="updateQuantity(item.cartId, item.quantity + 1)">
+                ➕
+              </button>
             </td>
             <td>{{ item.price.toLocaleString() }} 元</td>
             <td>{{ (item.quantity * item.price).toLocaleString() }} 元</td>
             <td>
-              <button @click="removeFromCart(item.cartId, item.skuId)">刪除</button>
+              <button @click="removeFromCart(item.cartId, item.skuId)">
+                刪除
+              </button>
             </td>
           </tr>
         </tbody>
@@ -36,62 +45,64 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import axios from '@/plugins/axios'  // ✅ 這裡一定要正確
-import { useUserStore } from '@/stores/user'
+import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import axios from "@/plugins/axios"; // ✅ 這裡一定要正確
+import { useUserStore } from "@/stores/user";
 
-const router = useRouter()
-const userStore = useUserStore()
+const router = useRouter();
+const userStore = useUserStore();
 
-const cartItems = ref([])
-const userId = ref(userStore.userId)
+const cartItems = ref([]);
+const userId = ref(userStore.userId);
 
 const totalPrice = computed(() => {
-  return cartItems.value.reduce((sum, item) => sum + item.quantity * item.price, 0)
-})
+  return cartItems.value.reduce(
+    (sum, item) => sum + item.quantity * item.price,
+    0
+  );
+});
 
 const fetchCart = async () => {
   try {
-    const response = await axios.get(`/api/cart/${userId.value}`)
-    cartItems.value = response.data
+    const response = await axios.get(`/api/cart/${userId.value}`);
+    cartItems.value = response.data;
   } catch (error) {
-    console.error('獲取購物車資料失敗', error)
+    console.error("獲取購物車資料失敗", error);
   }
-}
+};
 
 const updateQuantity = async (cartId, newQuantity) => {
   if (newQuantity < 1) {
-    removeFromCart(cartId)
-    return
+    removeFromCart(cartId);
+    return;
   }
 
   try {
-    await axios.put(`/api/cart/${cartId}`, { quantity: newQuantity })
-    fetchCart()
+    await axios.put(`/api/cart/${cartId}`, { quantity: newQuantity });
+    fetchCart();
   } catch (error) {
-    console.error('❌ 更新購物車失敗', error)
+    console.error("❌ 更新購物車失敗", error);
   }
-}
+};
 
 const removeFromCart = async (cartId, skuId) => {
   try {
     await axios.delete(`/api/cart/remove`, {
-      params: { userId: userId.value, skuId }
-    })
-    fetchCart()
+      params: { userId: userId.value, skuId },
+    });
+    fetchCart();
   } catch (error) {
-    console.error('❌ 刪除失敗', error)
+    console.error("❌ 刪除失敗", error);
   }
-}
+};
 
 const checkout = () => {
-  router.push('/checkout')
-}
+  router.push("/quick-checkout");
+};
 
-onMounted(fetchCart)
+onMounted(fetchCart);
 </script>
-
 
 <style scoped>
 .cart-container {
@@ -103,7 +114,8 @@ table {
   width: 100%;
   border-collapse: collapse;
 }
-th, td {
+th,
+td {
   border: 1px solid #ddd;
   padding: 10px;
   text-align: center;

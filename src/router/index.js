@@ -203,12 +203,12 @@ const router = createRouter({
         },
 
         //下單頁面
-        {
-          path: "/checkout",
-          name: "Checkout",
-          component: () => import("@/views/pages/Checkout.vue"),
-          meta: { requiresAuth: true }, // 可選：需要登入才能進入
-        },
+        // {
+        //   path: "/checkout",
+        //   name: "Checkout",
+        //   component: () => import("@/views/pages/Checkout.vue"),
+        //   meta: { requiresAuth: true }, // 可選：需要登入才能進入
+        // },
         {
           path: "/quick-checkout",
           name: "QuickCheckout",
@@ -258,6 +258,11 @@ const router = createRouter({
           component: () =>
             import("@/components/order.components/OrderPayment.vue"),
           meta: { role: "USER" }, // 一般使用者用
+        },
+        {
+          path: "/payment/result/:orderId",
+          name: "PaymentResult",
+          component: () => import("@/views/front/PaymentResult.vue"),
         },
         {
           path: "/debug/payment/:id",
