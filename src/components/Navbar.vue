@@ -118,7 +118,7 @@
           使用者條款</router-link>
       </li>
       <li>
-        <router-link v-if="userStore.isSeller" to="seller/coupon/apply" @click="toggleDrawer">🎟️
+        <router-link v-if="userStore.isSeller" to="/seller/coupon/apply" @click="toggleDrawer">🎟️
           優惠券申請</router-link>
       </li>
       <li>
