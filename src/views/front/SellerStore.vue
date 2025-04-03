@@ -22,8 +22,18 @@
     <!-- 商品區塊  這是搜尋商品跟上架商品-->
     <div class="product-section">
       <div class="section-header">
-        <input type="text" class="search-bar" placeholder="🔍 搜尋商品..." v-model="searchQuery" @input="filterProducts" />
-        <button class="btn btn-add-product" v-if="isOwner" @click="goToMyProducts">
+        <input
+          type="text"
+          class="search-bar"
+          placeholder="🔍 搜尋商品..."
+          v-model="searchQuery"
+          @input="filterProducts"
+        />
+        <button
+          class="btn btn-add-product"
+          v-if="isOwner"
+          @click="goToMyProducts"
+        >
           ➕ 上架商品
         </button>
       </div>
@@ -38,23 +48,39 @@
         <div v-else-if="filteredProducts.length === 0" class="no-products">
           <p v-if="searchQuery">沒有符合「{{ searchQuery }}」的商品</p>
           <p v-else>商店目前沒有任何商品</p>
-          <button v-if="isOwner" class="btn btn-add-first" @click="goToMyProducts">
+          <button
+            v-if="isOwner"
+            class="btn btn-add-first"
+            @click="goToMyProducts"
+          >
             立即上架第一個商品
           </button>
         </div>
 
         <div v-else class="product-list">
-          <div class="product-card" v-for="product in filteredProducts" :key="product.productId"
-            @click="viewProductDetail(product.productId)">
-            <img :src="product.primaryImageUrl
-              ? product.primaryImageUrl.startsWith('http')
-                ? product.primaryImageUrl
-                : `${baseUrl}${product.primaryImageUrl}`
-              : defaultImage
-              " class="product-img" alt="商品圖片" />
+          <div
+            class="product-card"
+            v-for="product in filteredProducts"
+            :key="product.productId"
+            @click="viewProductDetail(product.productId)"
+          >
+            <img
+              :src="
+                product.primaryImageUrl
+                  ? product.primaryImageUrl.startsWith('http')
+                    ? product.primaryImageUrl
+                    : `${baseUrl}${product.primaryImageUrl}`
+                  : defaultImage
+              "
+              class="product-img"
+              alt="商品圖片"
+            />
             <div class="product-info">
               <p class="product-title">{{ product.productName }}</p>
-              <p class="product-price" v-if="product.minPrice === product.maxPrice">
+              <p
+                class="product-price"
+                v-if="product.minPrice === product.maxPrice"
+              >
                 $ {{ formatPrice(product.minPrice) }}
               </p>
               <p class="product-price" v-else>
@@ -68,10 +94,16 @@
               <p v-if="!product.active" class="not-active">未上架</p>
             </div>
             <div class="product-actions" v-if="isOwner" @click.stop>
-              <button class="btn btn-edit" @click="editProduct(product.productId)">
+              <button
+                class="btn btn-edit"
+                @click="editProduct(product.productId)"
+              >
                 ✏️ 編輯
               </button>
-              <button class="btn btn-delete" @click="confirmDeleteProduct(product.productId)">
+              <button
+                class="btn btn-delete"
+                @click="confirmDeleteProduct(product.productId)"
+              >
                 🗑️ 刪除
               </button>
             </div>
@@ -81,8 +113,13 @@
     </div>
 
     <!-- 商品詳情彈窗 -->
-    <ProductDetail v-model:visible="showProductDetail" :productId="selectedProductId" @close="handleProductModalClose"
-      @add-to-cart="handleAddToCart" @buy-now="handleBuyNow" />
+    <ProductDetail
+      v-model:visible="showProductDetail"
+      :productId="selectedProductId"
+      @close="handleProductModalClose"
+      @add-to-cart="handleAddToCart"
+      @buy-now="handleBuyNow"
+    />
   </div>
 </template>
 
@@ -185,10 +222,29 @@ const fetchProducts = async () => {
 
     if (response.data && response.data.content) {
       products.value = response.data.content;
+
+      // 處理每個商品，確保有價格信息
+      products.value = products.value.map((product) => {
+        // 如果沒有minPrice或maxPrice，從skuList中獲取
+        if (
+          (!product.minPrice || !product.maxPrice) &&
+          product.skuList &&
+          product.skuList.length > 0
+        ) {
+          const prices = product.skuList.map((sku) => sku.price);
+          if (prices.length > 0) {
+            product.minPrice = Math.min(...prices);
+            product.maxPrice = Math.max(...prices);
+          }
+        }
+        return product;
+      });
     } else if (Array.isArray(response.data)) {
       products.value = response.data;
+      // 處理同上...
     } else if (response.data && Array.isArray(response.data.products)) {
       products.value = response.data.products;
+      // 處理同上...
     } else {
       products.value = [];
     }
@@ -226,21 +282,155 @@ const handleProductModalClose = () => {
 
 // 處理加入購物車
 const handleAddToCart = (data) => {
-  console.log('加入購物車:', data);
+  console.log("加入購物車:", data);
   // 實現加入購物車的邏輯
 };
 
 // 處理立即購買
-const handleBuyNow = (data) => {
-  console.log('立即購買:', data);
-  // 實現立即購買的邏輯，例如跳轉到結帳頁面
-  router.push({
-    path: '/checkout',
-    query: {
-      productId: data.productId,
-      quantity: data.quantity
+// 處理立即購買
+const handleBuyNow = async (data) => {
+  try {
+    // 檢查用戶是否已登錄
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({
+        title: "請先登錄",
+        text: "您需要先登錄才能進行購買",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "前往登錄",
+        cancelButtonText: "取消",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          localStorage.setItem("redirectAfterLogin", window.location.href);
+          window.location.href = "/login";
+        }
+      });
+      return;
     }
-  });
+
+    const { productId, quantity } = data;
+
+    // 獲取產品資訊
+    const product = products.value.find((p) => p.productId === productId);
+    if (!product) {
+      throw new Error("商品不存在");
+    }
+
+    const price = product.minPrice;
+    // 確保金額大於0
+    if (!price || price <= 0) {
+      Swal.fire({
+        title: "錯誤",
+        text: "商品價格無效，無法完成購買",
+        icon: "error",
+        confirmButtonText: "確定",
+      });
+      return;
+    }
+
+    const amount = quantity * price; // 計算實際金額
+
+    Swal.fire({
+      title: "訂單建立中",
+      text: "請稍候...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    const orderRequest = {
+      productId: productId,
+      quantity: quantity,
+      amount: amount,
+      price: price,
+      productName: product.productName,
+    };
+
+    // 確保添加正確的認證頭
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+
+    console.log("發送訂單數據:", orderRequest);
+    console.log("使用的認證頭:", headers);
+
+    const response = await axios.post(
+      "/api/payment/orders/actions/create",
+      orderRequest,
+      {
+        headers,
+      }
+    );
+
+    // 成功建立訂單後，從response中取得訂單ID
+    if (
+      response.data &&
+      (response.data.orderId ||
+        (response.data.data && response.data.data.orderId))
+    ) {
+      // 兼容兩種可能的回應格式
+      const orderId = response.data.orderId || response.data.data.orderId;
+
+      // 獲取支付表單
+      const redirectResponse = await axios.get(
+        `/api/payment/redirect/${orderId}`,
+        {
+          headers,
+          responseType: "json",
+        }
+      );
+
+      if (redirectResponse.data && redirectResponse.data.formHtml) {
+        // 創建一個臨時div來插入HTML
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = redirectResponse.data.formHtml;
+
+        const form = tempDiv.querySelector("form");
+        if (form) {
+          document.body.appendChild(form);
+          Swal.close();
+          form.submit();
+        } else {
+          throw new Error("未找到支付表單");
+        }
+      } else if (redirectResponse.data && redirectResponse.data.redirectUrl) {
+        // 如果有重定向URL，直接跳轉
+        Swal.close();
+        window.location.href = redirectResponse.data.redirectUrl;
+      } else {
+        throw new Error("未獲得付款重定向信息");
+      }
+    } else {
+      throw new Error("訂單創建失敗");
+    }
+  } catch (error) {
+    console.error("下單失敗:", error);
+    Swal.close();
+
+    // 檢查是否是認證錯誤
+    if (error.response && error.response.status === 401) {
+      Swal.fire({
+        title: "登錄已過期",
+        text: "請重新登錄後再試",
+        icon: "warning",
+        confirmButtonText: "前往登錄",
+      }).then(() => {
+        localStorage.removeItem("token");
+        localStorage.setItem("redirectAfterLogin", window.location.href);
+        window.location.href = "/login";
+      });
+    } else {
+      Swal.fire({
+        title: "錯誤",
+        text: error.response?.data?.message || "下單失敗，請稍後再試",
+        icon: "error",
+        confirmButtonText: "確定",
+      });
+    }
+  }
 };
 
 // 編輯商品
