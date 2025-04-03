@@ -1,84 +1,67 @@
 <template>
-    <div class="container-fluid my-4">
-        <h3>後台管理者優惠券管理</h3>
+    <div class="container-fluid  px-0">
+        <div class="px-3 px-md-4">
+            <h3>後台管理者優惠券管理</h3>
 
-        <div class="row mb-3">
-            <div class="col-md-5 mb-2 mb-md-0">
-                <button class="btn btn-secondary text-nowrap" style="padding-left: 20px;" @click="
-                    navigateToApplicationReview">
-                    <i class="bi bi-list-check"></i> 前往審核優惠券申請
-                </button>
+            <div class="row mb-3">
+                <div class="col-md-5 mb-2 mb-md-0">
+                    <button class="btn btn-secondary text-nowrap" @click="navigateToApplicationReview">
+                        <i class="bi bi-list-check"></i> 前往審核優惠券申請
+                    </button>
+                </div>
+                <div class="col-md-auto mb-2 mb-md-0">
+                    <button class="btn btn-primary text-nowrap" @click="openModal('insert')">
+                        <i class="bi bi-plus-lg"></i> 直接新增優惠券
+                    </button>
+                </div>
             </div>
-            <div class=" col-md-auto mb-2 mb-md-0" style="padding-left: 0;">
-                <button class="btn btn-primary text-nowrap" @click="openModal('insert')">
-                    <i class="bi bi-plus-lg"></i> 直接新增優惠券
-                </button>
+
+            <div class="row mb-3 align-items-center">
+                <div class="col-md-5 mb-2 mb-md-0"> <input type="text" class="form-control" placeholder="搜尋名稱/代碼/商店ID"
+                        v-model="searchQuery.text" @keyup.enter="callFind(0)" /> </div>
+                <div class="col-md-3 mb-2 mb-md-0"> <button class="btn btn-info w-100" @click="callFind(0)"> <i
+                            class="bi bi-search"></i> 搜尋 </button> </div>
+                <div class="col-md-4 text-nowrap">
+                    <CouponSelect :total="pagination.totalItems" :options="[4, 8, 12, 16]" v-model="pagination.size"
+                        @change="callFind(0)" />
+                </div>
             </div>
         </div>
-
-        <div class="row mb-3 align-items-center">
-            <div class="col-md-5 mb-2 mb-md-0">
-                <input type="text" class="form-control" placeholder="搜尋名稱/代碼/商店ID" v-model="searchQuery.text"
-                    @keyup.enter="callFind(0)" />
-            </div>
-            <div class="col-md-3 mb-2 mb-md-0">
-                <button class="btn btn-info w-100" @click="callFind(0)">
-                    <i class="bi bi-search"></i> 搜尋
-                </button>
-            </div>
-            <div class="col-md-4 text-nowrap">
-                <CouponSelect :total="pagination.totalItems" :options="[4, 8, 12, 16]" v-model="pagination.size"
-                    @change="callFind(0)" />
-            </div>
-        </div>
-
         <CouponChart :chart-data-prop="monthlyStats" ref="chartRef" />
 
-        <div v-if="isLoading" class="text-center mt-3">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">載入中...</span>
+        <div class="px-3 px-md-4">
+            <div class="row coupon-list-header py-2 fw-bold border-bottom mt-3 d-none d-md-flex">
+                <div class="col-md-1 text-center">ID</div>
+                <div class="col-md-2">名稱</div>
+                <div class="col-md-2">代碼</div>
+                <div class="col-md-2">商店</div>
+                <div class="col-md-3 text-center">有效期限</div>
+                <div class="col-md-2 text-center">操作</div>
             </div>
-        </div>
-        <div v-else-if="coupons.length === 0 && !isLoading" class="alert alert-light text-center mt-3">
-            目前沒有符合條件的優惠券。
-        </div>
 
-        <div v-else class="row mt-3">
-            <AdminCouponCard v-for="coupon in coupons" :key="coupon.couponId" :coupon="coupon"
-                @editCoupon="openModal('update', coupon)" @deleteCoupon="confirmDelete" />
+            <div v-if="isLoading" class="text-center mt-3"> /* ... spinner ... */ </div>
+            <div v-else-if="coupons.length === 0 && !isLoading" class="alert alert-light text-center mt-3">
+                目前沒有符合條件的優惠券。
+            </div>
+
+            <div v-else class="coupon-list-container mt-1">
+                <AdminCouponListItem v-for="coupon in coupons" :key="coupon.couponId" :coupon="coupon"
+                    @editCoupon="openModal('update', coupon)" @deleteCoupon="confirmDelete" />
+            </div>
+
+            <nav v-if="pagination.totalPages > 1 && !isLoading" class="mt-4">
+                <ul class="pagination justify-content-center"> ... </ul>
+            </nav>
         </div>
-
-        <nav v-if="pagination.totalPages > 1 && !isLoading" class="mt-4">
-            <ul class="pagination justify-content-center">
-                <li class="page-item" :class="{ disabled: pagination.currentPage === 0 }">
-                    <a class="page-link" href="#" @click.prevent="callFind(0)">&laquo;</a>
-                </li>
-                <li class="page-item" :class="{ disabled: pagination.currentPage === 0 }">
-                    <a class="page-link" href="#" @click.prevent="callFind(pagination.currentPage - 1)">&lsaquo;</a>
-                </li>
-                <li v-for="page in visiblePages" :key="page" class="page-item"
-                    :class="{ active: page === pagination.currentPage }">
-                    <a class="page-link" href="#" @click.prevent="callFind(page)">{{ page + 1 }}</a>
-                </li>
-                <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
-                    <a class="page-link" href="#" @click.prevent="callFind(pagination.currentPage + 1)">&rsaquo;</a>
-                </li>
-                <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
-                    <a class="page-link" href="#" @click.prevent="callFind(pagination.totalPages - 1)">&raquo;</a>
-                </li>
-            </ul>
-        </nav>
-
         <AdminCouponModal :isVisible="isModalVisible" :isInsert="isInsert" :coupon="selectedCoupon"
             @closeModal="closeModal" @createCoupon="handleCreateCoupon" @modifyCoupon="handleModifyCoupon" />
     </div>
 </template>
-
 <script setup>
 import { ref, reactive, onMounted, computed } from "vue";
 import axiosapi from "@/plugins/axios"; // 假設這是你配置好的 axios 實例
 import Swal from "sweetalert2";
-import AdminCouponCard from "./AdminCouponCard.vue";
+import AdminCouponListItem from "./AdminCouponListItem.vue";
 import AdminCouponModal from "./AdminCouponModal.vue";
 import CouponSelect from "./CouponSelect.vue";
 import CouponChart from "./CouponChart.vue";
@@ -327,12 +310,27 @@ onMounted(() => {
     opacity: 0.6;
 }
 
-.container-fluid {
-    padding-top: 30px;
-}
-
 .col-md-4.text-nowrap {
     white-space: nowrap;
     overflow: visible;
+}
+
+.container-fluid {
+    padding-top: 60px;
+}
+
+
+.coupon-list-header {
+    background-color: #e9ecef;
+    /* 淺灰色背景 */
+    font-size: 0.9rem;
+    color: #495057;
+}
+
+/* 可選：為列表容器添加樣式 */
+.coupon-list-container {
+    max-height: 500px;
+
+    overflow-y: auto;
 }
 </style>
