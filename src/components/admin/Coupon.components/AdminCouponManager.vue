@@ -1,31 +1,34 @@
 <template>
-    <div class="container my-4">
+    <div class="container-fluid my-4">
         <h3>後台管理者優惠券管理</h3>
 
-        <div class="mb-3">
-            <button class="btn btn-secondary" @click="navigateToApplicationReview">
-                <i class="bi bi-list-check"></i> 前往審核優惠券申請
-            </button>
-        </div>
-
-        <div class="row mb-3 align-items-center">
-            <div class="col-md-4 mb-2 mb-md-0">
-                <button class="btn btn-primary w-100" @click="openModal('insert')">
+        <div class="row mb-3">
+            <div class="col-md-5 mb-2 mb-md-0">
+                <button class="btn btn-secondary text-nowrap" style="padding-left: 20px;" @click="
+                    navigateToApplicationReview">
+                    <i class="bi bi-list-check"></i> 前往審核優惠券申請
+                </button>
+            </div>
+            <div class=" col-md-auto mb-2 mb-md-0" style="padding-left: 0;">
+                <button class="btn btn-primary text-nowrap" @click="openModal('insert')">
                     <i class="bi bi-plus-lg"></i> 直接新增優惠券
                 </button>
             </div>
-            <div class="col-md-4 mb-2 mb-md-0">
+        </div>
+
+        <div class="row mb-3 align-items-center">
+            <div class="col-md-5 mb-2 mb-md-0">
                 <input type="text" class="form-control" placeholder="搜尋名稱/代碼/商店ID" v-model="searchQuery.text"
-                    @keyup.enter="callFind(1)" />
+                    @keyup.enter="callFind(0)" />
             </div>
-            <div class="col-md-4">
-                <CouponSelect :total="pagination.totalItems" :options="[4, 8, 12, 16]" v-model="pagination.size"
-                    @change="callFind(1)" />
-            </div>
-            <div class="col-md-4 mt-2">
-                <button class="btn btn-info w-100" @click="callFind(1)">
+            <div class="col-md-3 mb-2 mb-md-0">
+                <button class="btn btn-info w-100" @click="callFind(0)">
                     <i class="bi bi-search"></i> 搜尋
                 </button>
+            </div>
+            <div class="col-md-4 text-nowrap">
+                <CouponSelect :total="pagination.totalItems" :options="[4, 8, 12, 16]" v-model="pagination.size"
+                    @change="callFind(0)" />
             </div>
         </div>
 
@@ -39,6 +42,7 @@
         <div v-else-if="coupons.length === 0 && !isLoading" class="alert alert-light text-center mt-3">
             目前沒有符合條件的優惠券。
         </div>
+
         <div v-else class="row mt-3">
             <AdminCouponCard v-for="coupon in coupons" :key="coupon.couponId" :coupon="coupon"
                 @editCoupon="openModal('update', coupon)" @deleteCoupon="confirmDelete" />
@@ -56,7 +60,6 @@
                     :class="{ active: page === pagination.currentPage }">
                     <a class="page-link" href="#" @click.prevent="callFind(page)">{{ page + 1 }}</a>
                 </li>
-
                 <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
                     <a class="page-link" href="#" @click.prevent="callFind(pagination.currentPage + 1)">&rsaquo;</a>
                 </li>
@@ -322,5 +325,14 @@ onMounted(() => {
 .pagination .page-item.disabled .page-link {
     pointer-events: none;
     opacity: 0.6;
+}
+
+.container-fluid {
+    padding-top: 30px;
+}
+
+.col-md-4.text-nowrap {
+    white-space: nowrap;
+    overflow: visible;
 }
 </style>
