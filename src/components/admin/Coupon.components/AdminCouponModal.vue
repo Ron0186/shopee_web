@@ -239,23 +239,25 @@ function validateForm() {
 function submitForm() {
   formSubmitted.value = true; // 標記已嘗試提交，觸發驗證訊息顯示
   if (validateForm()) { // 在提交時才進行驗證
+    // 初始 payload 包含所有 localCoupon 屬性
     const payload = {
       ...localCoupon,
-      // 確保 shopId 直接在 payload 中，如果 API 需要的話
-      // shopId: localCoupon.shop.shopId, // 或者API直接接受 coupon 物件即可
     };
-    // 移除 shop 物件本身，如果 API 不需要巢狀物件
-    // delete payload.shop;
 
     if (props.isInsert) {
-      delete payload.couponId; // 新增時移除 ID
+      // *** 新增模式：明確移除不應由前端設定的欄位 ***
+      delete payload.couponId;
+      delete payload.createdAt; // <-- 新增移除
+      delete payload.updatedAt; // <-- 新增移除
       emit("createCoupon", payload);
     } else {
-      emit("modifyCoupon", payload); // 修改時包含 ID
+      // *** 編輯模式：也可以考慮移除，讓後端處理 updatedAt ***
+      // delete payload.createdAt; // createdAt 通常不應更改
+      // delete payload.updatedAt; // 讓後端設為當前時間
+      emit("modifyCoupon", payload); // 傳遞包含 couponId 的 payload
     }
   } else {
     console.log("表單驗證失敗:", errorMessage.value);
-    // 錯誤訊息已透過 errorMessage ref 顯示在模板中
   }
 }
 

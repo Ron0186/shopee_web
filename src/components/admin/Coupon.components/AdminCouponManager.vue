@@ -32,12 +32,14 @@
         <CouponChart :chart-data-prop="monthlyStats" ref="chartRef" />
 
         <div class="px-3 px-md-4">
-            <div class="row coupon-list-header py-2 fw-bold border-bottom mt-3 d-none d-md-flex">
+            <div class="row coupon-list-header py-2 fw-bold border-bottom mt-3 d-none d-md-flex align-items-center">
                 <div class="col-md-1 text-center">ID</div>
                 <div class="col-md-2">名稱</div>
-                <div class="col-md-2">代碼</div>
+                <div class="col-md-1 text-center">類型</div>
+                <div class="col-md-1 text-start">折扣值</div>
+                <div class="col-md-1 ps-3">代碼</div>
                 <div class="col-md-2">商店</div>
-                <div class="col-md-3 text-center">有效期限</div>
+                <div class="col-md-2 text-center">有效期限</div>
                 <div class="col-md-2 text-center">操作</div>
             </div>
 
@@ -55,6 +57,7 @@
                 <ul class="pagination justify-content-center"> ... </ul>
             </nav>
         </div>
+
         <AdminCouponModal :isVisible="isModalVisible" :isInsert="isInsert" :coupon="selectedCoupon"
             @closeModal="closeModal" @createCoupon="handleCreateCoupon" @modifyCoupon="handleModifyCoupon" />
     </div>
@@ -181,25 +184,43 @@ async function handleCreateCoupon(newCouponData) {
 }
 
 // 處理來自 Modal 的修改事件
-async function handleModifyCoupon(updatedCouponData) {
+async function handleModifyCoupon(updatedCouponDataFromModal) {
     try {
+        const couponId = updatedCouponDataFromModal.couponId;
+        if (!couponId) {
+            throw new Error("缺少 couponId 無法更新");
+        }
+
+        // *** 建立一個只包含可更新欄位的 payload ***
+        const payload = {
+            // 從 Modal 傳來的資料中挑選需要的欄位
+            couponName: updatedCouponDataFromModal.couponName,
+            couponCode: updatedCouponDataFromModal.couponCode,
+            description: updatedCouponDataFromModal.description,
+            discountType: updatedCouponDataFromModal.discountType,
+            discountValue: updatedCouponDataFromModal.discountValue,
+            startDate: updatedCouponDataFromModal.startDate, // 應為 'yyyy-MM-dd'
+            endDate: updatedCouponDataFromModal.endDate,     // 應為 'yyyy-MM-dd'
+            usageLimit: updatedCouponDataFromModal.usageLimit,
+            usagePerUser: updatedCouponDataFromModal.usagePerUser,
+            // shopId 通常不修改，或後端根據 couponId 自行處理
+            // shop: { shopId: updatedCouponDataFromModal.shop.shopId } // 如果後端需要傳遞 shopId
+        };
+        // *** 不要包含 createdAt 和 updatedAt ***
+
         // *** 呼叫 Admin 的直接修改 API ***
-        // PUT /admin/coupons/{couponId}
-        const couponId = updatedCouponData.couponId;
-        const response = await axiosapi.put(`/admin/coupons/${couponId}`, updatedCouponData);
+        const response = await axiosapi.put(`/admin/coupons/${couponId}`, payload); // *** 發送清理過的 payload ***
 
         if (response.data && response.data.success) {
             Swal.fire("成功!", "優惠券已更新", "success");
             closeModal();
-            callFind(pagination.currentPage); // 留在當前頁面刷新
-            // 圖表數據通常不需要因為修改而更新
+            callFind(pagination.currentPage);
         } else {
             throw new Error(response.data?.message || "更新失敗");
         }
     } catch (error) {
         console.error("更新優惠券失敗:", error);
         Swal.fire("錯誤!", `更新優惠券失敗: ${error.response?.data?.message || error.message}`, "error");
-        // 不關閉 Modal
     }
 }
 
