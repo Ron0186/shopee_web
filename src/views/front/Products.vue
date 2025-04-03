@@ -146,7 +146,11 @@
             </td>
             <td>{{ product.totalStock || 0 }}</td>
             <td>
-              <span :class="getStatusClass(product)">
+              <span
+                :class="getStatusClass(product)"
+                class="product-status"
+                :data-status="product.active"
+              >
                 {{ getStatusText(product) }}
               </span>
             </td>
@@ -171,7 +175,7 @@
                   <button
                     type="button"
                     class="btn btn-outline-secondary btn-sm dropdown-toggle"
-                    id="dropdownBtn{{ product.productId }}"
+                    id="'dropdownBtn-' + product.productId"
                     data-bs-toggle="dropdown"
                     aria-expanded="false"
                   >
@@ -179,11 +183,11 @@
                   </button>
                   <ul
                     class="dropdown-menu"
-                    aria-labelledby="dropdownBtn{{ product.productId }}"
+                    aria-labelledby="'dropdownBtn-' + product.productId"
                   >
                     <li>
                       <a
-                        class="dropdown-item"
+                        class="dropdown-item toggle-active-item"
                         href="#"
                         @click.prevent="toggleActive(product)"
                       >
@@ -300,7 +304,7 @@
                 <ul class="dropdown-menu dropdown-menu-end">
                   <li>
                     <a
-                      class="dropdown-item"
+                      class="dropdown-item toggle-active-item"
                       href="#"
                       @click.prevent="toggleActive(product)"
                     >
@@ -578,14 +582,14 @@ const fetchProducts = async () => {
       return;
     }
 
-    // 構建查詢參數
+    // 构建查询参数
     const params = {
       shopId: shopId,
       page: currentPage.value,
       size: pageSize.value,
     };
 
-    // 根據標籤進行過濾
+    // 根据标签进行过滤
     if (activeTab.value !== "all") {
       if (activeTab.value === "active") {
         params.active = true;
@@ -596,7 +600,7 @@ const fetchProducts = async () => {
       }
     }
 
-    // 關鍵字搜尋
+    // 关键字搜索
     if (searchKeyword.value.trim()) {
       params.nameKeyword = searchKeyword.value.trim();
     }
@@ -606,7 +610,7 @@ const fetchProducts = async () => {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    // 處理回傳的數據
+    // 处理返回的数据
     if (response.data && response.data.content) {
       products.value = response.data.content;
       totalItems.value = response.data.totalElements || 0;
@@ -626,18 +630,16 @@ const fetchProducts = async () => {
       totalPages.value = 1;
     }
 
-    // 批量獲取商品細節而不是單獨請求每個商品
-    await processBatchProductData();
+    // 在这里处理商品数据，不使用await
+    processBatchProductData().catch((err) =>
+      console.error("处理批量数据失败:", err)
+    );
   } catch (error) {
-    console.error("載入失敗:", error.response || error);
-
+    console.error("載入失敗:", error);
+    // 简化错误处理，不使用async/await弹窗
     Swal.fire({
       title: "載入失敗",
-      text:
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.message ||
-        "載入商品列表時發生未知錯誤",
+      text: error.response?.data?.message || "載入商品列表時發生未知錯誤",
       icon: "error",
     });
   }
@@ -728,48 +730,62 @@ const goToPromotionPage = (productId) => {
 // 切換商品上下架狀態
 const toggleActive = async (product) => {
   try {
+    const productId = product.productId;
     const newActive = !product.active;
     const actionText = newActive ? "上架" : "下架";
 
-    // 確認操作
-    const result = await Swal.fire({
-      title: `確定要${actionText}此商品嗎？`,
-      text: `商品將被${actionText}`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: `確定${actionText}`,
-      cancelButtonText: "取消",
+    if (!confirm(`確定要${actionText}此商品嗎？`)) {
+      return;
+    }
+
+    // 立即更新UI状态
+    product.active = newActive;
+
+    // 找到并更新状态文本显示
+    const statusElements = document.querySelectorAll(
+      `[data-product-id="${productId}"] .product-status`
+    );
+    statusElements.forEach((el) => {
+      el.textContent = newActive ? "架上商品" : "未上架/尚未刊登";
+      el.className = newActive
+        ? "text-success product-status"
+        : "text-warning product-status";
     });
 
-    if (result.isConfirmed) {
-      const response = await axios.put(
-        `/api/products/${product.productId}`,
+    // 在后台发送API请求
+    axios
+      .put(
+        `/api/products/${productId}`,
         { active: newActive },
         { headers: { Authorization: `Bearer ${token}` } }
-      );
+      )
+      .then((response) => {
+        if (response.status >= 200 && response.status < 300) {
+          alert(`${actionText}成功`);
+        }
+      })
+      .catch((error) => {
+        // 恢复原状态
+        const productToRevert = products.value.find(
+          (p) => p.productId === productId
+        );
+        if (productToRevert) {
+          productToRevert.active = !newActive;
 
-      if (response.status >= 200 && response.status < 300) {
-        await Swal.fire({
-          title: `${actionText}成功`,
-          icon: "success",
-          timer: 1500,
-        });
-
-        // 更新本地數據
-        product.active = newActive;
-
-        // 重新載入商品列表
-        await fetchProductsAndInitDropdowns();
-      }
-    }
+          // 恢复状态文本显示
+          statusElements.forEach((el) => {
+            el.textContent = !newActive ? "架上商品" : "未上架/尚未刊登";
+            el.className = !newActive
+              ? "text-success product-status"
+              : "text-warning product-status";
+          });
+        }
+        alert(
+          "操作失敗: " + (error.response?.data?.message || "更改商品狀態失敗")
+        );
+      });
   } catch (error) {
-    Swal.fire({
-      title: "操作失敗",
-      text: error.response?.data?.message || "更改商品狀態失敗",
-      icon: "error",
-    });
+    alert("發生錯誤: " + error.message);
   }
 };
 
@@ -814,15 +830,36 @@ const deleteProduct = async (id) => {
 // 初始化 Bootstrap 下拉選單
 const initializeDropdowns = () => {
   nextTick(() => {
-    // 確保 DOM 已經更新
-    if (typeof bootstrap !== "undefined") {
-      document
-        .querySelectorAll(".dropdown-toggle")
-        .forEach((dropdownToggle) => {
-          new bootstrap.Dropdown(dropdownToggle);
-        });
-    } else {
-      console.warn("Bootstrap JavaScript 未載入，下拉選單可能無法正常運作");
+    try {
+      // 确保DOM已更新且Bootstrap已加载
+      setTimeout(() => {
+        if (window.bootstrap && window.bootstrap.Dropdown) {
+          // 获取所有下拉菜单触发元素
+          const dropdownTriggerList =
+            document.querySelectorAll(".dropdown-toggle");
+          console.log("找到下拉菜单元素：", dropdownTriggerList.length);
+
+          // 为每个下拉菜单创建实例
+          dropdownTriggerList.forEach((el) => {
+            new window.bootstrap.Dropdown(el);
+          });
+
+          console.log("下拉菜单初始化完成");
+        } else {
+          console.warn("Bootstrap JavaScript对象不可用，尝试手动加载");
+          // 手动加载Bootstrap
+          const script = document.createElement("script");
+          script.src =
+            "https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js";
+          script.onload = () => {
+            console.log("Bootstrap手动加载完成，重新初始化下拉菜单");
+            initializeDropdowns();
+          };
+          document.body.appendChild(script);
+        }
+      }, 300); // 稍微延迟确保DOM和Bootstrap都已加载
+    } catch (error) {
+      console.error("初始化下拉菜单时出错：", error);
     }
   });
 };
@@ -830,11 +867,15 @@ const initializeDropdowns = () => {
 // 元件掛載時取得「我的商品」列表
 onMounted(() => {
   fetchProducts().then(() => {
-    initializeDropdowns();
+    // 延迟一点时间确保DOM完全渲染
+    setTimeout(() => {
+      initializeDropdowns();
+    }, 100);
   });
 });
 
 // 每次數據更新後重新初始化下拉選單
+// 确保以下函数在表格数据更新后调用
 const fetchProductsAndInitDropdowns = async () => {
   await fetchProducts();
   initializeDropdowns();

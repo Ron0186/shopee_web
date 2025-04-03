@@ -772,7 +772,7 @@ const loadProductData = async () => {
 };
 
 const confirmGenerateSkuList = () => {
-  if (isEdit.value && generatedSkus.value.length > 0) {
+  if (props.isEdit && generatedSkus.value.length > 0) {
     Swal.fire({
       title: "確認操作",
       text: "在編輯模式下，重新生成 SKU 列表可能會導致資料丟失。是否繼續？",
@@ -1406,11 +1406,6 @@ const validateBasicInfo = (silent = false) => {
 const nextStep = async () => {
   if (!validateBasicInfo()) return;
 
-  // 新增模式先保存基本資訊
-  if (!props.isEdit && !productData.productId) {
-    await saveBasicInfo();
-  }
-
   // 在切换到 SKU 标签前，确保 SKU 数据已加载
   if (
     props.isEdit &&
@@ -1671,73 +1666,109 @@ const updateProductWithSku = async () => {
 
 const submitProductWithSku = async () => {
   try {
-    if (!productData.productId) {
-      const saved = await saveBasicInfo();
-      if (!saved || !productData.productId) {
-        Swal.fire({
-          title: "錯誤",
-          text: "未能獲取商品ID",
-          icon: "error",
-        });
-        return;
-      }
-    }
-
-    if (skipSku.value || generatedSkus.value.length === 0) {
-      closeModal();
-      Swal.fire({
-        title: "新增成功",
-        text: "商品已成功新增",
-        icon: "success",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-      emit("refresh");
+    // 驗證基本資料
+    if (!validateBasicInfo()) {
+      activeTab.value = "basic";
       return;
     }
 
-    if (!validateGeneratedSkus()) {
+    // 如果有 SKU 資料，驗證其有效性
+    if (generatedSkus.value.length > 0 && !validateGeneratedSkus()) {
       return;
     }
 
     isSubmitting.value = true;
 
-    // 創建SKU數據
-    const skuData = generatedSkus.value.map((sku) => ({
-      specPairs: { ...sku.specPairs },
-      price: sku.price,
-      stock: sku.stock,
-    }));
+    // 創建 FormData 對象
+    const formData = new FormData();
 
-    const response = await axios.post(
-      `/api/products/${productData.productId}/skus/batch`,
-      skuData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    // 添加商品基本資訊 (使用請求參數)
+    formData.append("productName", productData.productName);
+    formData.append("description", productData.description || "");
+    formData.append("category1Id", productData.category1Id);
+    formData.append("category2Id", productData.category2Id);
+    formData.append("active", productData.active);
 
+    // 添加 SKU 資料 (使用 skusJson 參數)
+    if (generatedSkus.value.length > 0) {
+      const skusData = generatedSkus.value.map((sku) => ({
+        specPairs: { ...sku.specPairs },
+        price: parseFloat(sku.price), // 確保價格是數字
+        stock: parseInt(sku.stock, 10), // 確保庫存是整數
+      }));
+      formData.append("skusJson", JSON.stringify(skusData));
+    }
+
+    // 添加圖片文件 (使用 images 參數名)
+    if (newImages.value.length > 0) {
+      newImages.value.forEach((img) => {
+        if (img.file) {
+          formData.append("images", img.file);
+        }
+      });
+    }
+
+    // 顯示進度提示
+    Swal.fire({
+      title: "處理中",
+      html: "正在提交商品資料，請稍候...",
+      didOpen: () => {
+        Swal.showLoading();
+      },
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      allowEnterKey: false,
+    });
+
+    // 使用 complete API
+    console.log("提交商品資料到 complete API");
+    const response = await axios.post("/api/products/complete", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+      timeout: 30000, // 設置較長的超時時間
+    });
+
+    console.log("API 回應:", response);
+
+    // 處理 API 回應
     if (response.status >= 200 && response.status < 300) {
-      closeModal();
+      // 關閉處理中提示
+      Swal.close();
+
+      // 顯示成功訊息
       Swal.fire({
         title: "新增成功",
-        text: "商品及SKU已成功新增",
+        text: "商品及相關資料已成功新增",
         icon: "success",
         timer: 1500,
         showConfirmButton: false,
       });
+
+      // 關閉模態窗並刷新資料
+      closeModal();
       emit("refresh");
     } else {
-      throw new Error("新增SKU失敗");
+      throw new Error("新增商品失敗：" + response.statusText);
     }
   } catch (error) {
-    console.error("新增SKU錯誤:", error);
+    // 關閉處理中提示
+    Swal.close();
+
+    console.error("新增商品錯誤:", error);
+
+    // 顯示錯誤訊息
+    let errorMsg = "無法新增商品";
+    if (error.response?.data?.message) {
+      errorMsg = error.response.data.message;
+    } else if (error.message) {
+      errorMsg = error.message;
+    }
+
     Swal.fire({
       title: "新增失敗",
-      text: error.response?.data?.message || "無法新增SKU",
+      text: errorMsg,
       icon: "error",
     });
   } finally {
