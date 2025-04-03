@@ -54,7 +54,12 @@
             </div>
 
             <nav v-if="pagination.totalPages > 1 && !isLoading" class="mt-4">
-                <ul class="pagination justify-content-center"> ... </ul>
+                <ul class="pagination justify-content-center">
+                    <li v-for="page in visiblePages" :key="page" class="page-item"
+                        :class="{ active: page === pagination.currentPage }">
+                        <a class="page-link" href="#" @click.prevent="callFind(page)">{{ page + 1 }}</a>
+                    </li>
+                </ul>
             </nav>
         </div>
 
@@ -63,7 +68,7 @@
     </div>
 </template>
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import axiosapi from "@/plugins/axios"; // 假設這是你配置好的 axios 實例
 import Swal from "sweetalert2";
 import AdminCouponListItem from "./AdminCouponListItem.vue";
@@ -97,6 +102,7 @@ const monthlyStats = ref({ // 傳遞給圖表的數據結構
     newCounts: [], // 新增數量 [10, 15, ...]
     currentCounts: [] // 目前數量 [50, 60, ...]
 });
+
 
 // --- Modal 控制 ---
 function openModal(action, couponData = null) {
@@ -294,29 +300,47 @@ function navigateToApplicationReview() {
 
 
 // --- 分頁計算 ---
-const visiblePages = computed(() => {
-    const total = pagination.totalPages;
-    const current = pagination.currentPage;
-    const maxVisible = 5; // 最多顯示 5 個頁碼按鈕
-    if (total <= maxVisible) {
-        return Array.from({ length: total }, (_, i) => i);
+// *** 用 ref 取代 computed ***
+const visiblePages = ref([]); // 初始化為空陣列
+
+// --- *** 使用 watch 監聽分頁數據變化，手動更新 visiblePages *** ---
+watch([() => pagination.totalPages, () => pagination.currentPage], ([newTotalPages, newCurrentPage]) => {
+    const total = Number(newTotalPages);
+    const current = Number(newCurrentPage);
+    const maxVisible = 5;
+    console.log(`WATCH triggered: total=${total}, current=${current}`);
+
+    let pages = [];
+
+    if (isNaN(total) || total <= 1) {
+        console.log('WATCH: Setting visiblePages to [] because total is NaN or <= 1');
+    } else if (total <= maxVisible) {
+        for (let i = 0; i < total; i++) {
+            pages.push(i);
+        }
+        console.log('WATCH: Setting visiblePages (<= maxVisible):', pages);
     } else {
         let startPage = Math.max(0, current - Math.floor(maxVisible / 2));
         let endPage = startPage + maxVisible - 1;
         if (endPage >= total) {
             endPage = total - 1;
-            startPage = endPage - maxVisible + 1;
+            startPage = Math.max(0, endPage - maxVisible + 1);
         }
-        return Array.from({ length: maxVisible }, (_, i) => startPage + i);
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        console.log('WATCH: Setting visiblePages (> maxVisible):', pages);
     }
-});
+    visiblePages.value = pages; // *** 更新 ref 的值 ***
+}, { immediate: true }); // immediate: true 確保初始載入時也計算一次
+
 
 // --- 生命週期鉤子 ---
 onMounted(() => {
     callFind(0); // 初始載入第一頁
     fetchMonthlyStats(); // 初始載入圖表數據
 });
-
+console.log('Visible Pages:', visiblePages.value);
 </script>
 
 <style scoped>
@@ -347,10 +371,10 @@ onMounted(() => {
     color: #495057;
 }
 
-/* 可選：為列表容器添加樣式 */
-.coupon-list-container {
-    max-height: 500px;
-
-    overflow-y: auto;
+.nav {
+    background-color: yellow !important;
+    border: 5px solid red !important;
+    position: relative;
+    z-index: 9999 !important;
 }
 </style>
