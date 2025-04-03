@@ -3,25 +3,27 @@
         <div class="px-3 px-md-4">
             <h3>後台管理者優惠券管理</h3>
 
-            <div class="row mb-3">
+            <div class="row mb-4">
                 <div class="col-md-5 mb-2 mb-md-0">
                     <button class="btn btn-secondary text-nowrap" @click="navigateToApplicationReview">
                         <i class="bi bi-list-check"></i> 前往審核優惠券申請
                     </button>
-                </div>
-                <div class="col-md-auto mb-2 mb-md-0">
-                    <button class="btn btn-primary text-nowrap" @click="openModal('insert')">
+
+                    <button class="btn btn-primary text-nowrap" style="margin-left:15px ;" @click="openModal('insert')">
                         <i class="bi bi-plus-lg"></i> 直接新增優惠券
                     </button>
                 </div>
             </div>
 
-            <div class="row mb-3 align-items-center">
-                <div class="col-md-5 mb-2 mb-md-0"> <input type="text" class="form-control" placeholder="搜尋名稱/代碼/商店ID"
-                        v-model="searchQuery.text" @keyup.enter="callFind(0)" /> </div>
-                <div class="col-md-3 mb-2 mb-md-0"> <button class="btn btn-info w-100" @click="callFind(0)"> <i
-                            class="bi bi-search"></i> 搜尋 </button> </div>
-                <div class="col-md-4 text-nowrap">
+            <div class="row mb-4 align-items-center">
+                <div class="col-md-4 mb-2 mb-md-0">
+                    <input type="text" class="form-control" placeholder="搜尋名稱/代碼/商店ID" v-model="searchQuery.text"
+                        @keyup.enter="callFind(0)" />
+                </div>
+                <div class="col-md-3 mb-2 mb-md-0">
+                    <button class="btn btn-info w-100" @click="callFind(0)"> <i class="bi bi-search"></i> 搜尋 </button>
+                </div>
+                <div class="col-md-4 text-nowrap px-0 text-md-end">
                     <CouponSelect :total="pagination.totalItems" :options="[4, 8, 12, 16]" v-model="pagination.size"
                         @change="callFind(0)" />
                 </div>
