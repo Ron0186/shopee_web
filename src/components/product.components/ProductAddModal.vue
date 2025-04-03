@@ -460,6 +460,29 @@ watch(
   }
 );
 
+const onSubmit = async () => {
+  try {
+    console.log("提交前的商品數據:", formData.value);
+    console.log(
+      "active狀態:",
+      formData.value.active,
+      "類型:",
+      typeof formData.value.active
+    );
+
+    // 確保active是布爾值而不是字符串
+    if (typeof formData.value.active === "string") {
+      formData.value.active = formData.value.active.toLowerCase() === "true";
+      console.log("轉換後的active:", formData.value.active);
+    }
+
+    // 繼續原有的提交邏輯
+    // ...
+  } catch (error) {
+    // ...
+  }
+};
+
 // 元件掛載時獲取分類資料
 onMounted(() => {
   if (props.isOpen) {

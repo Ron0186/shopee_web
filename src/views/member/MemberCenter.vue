@@ -1,6 +1,5 @@
 <template>
-    <div
-        class="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg container">
+    <div class="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg container">
         <h2 class="text-2xl font-semibold text-gray-700 mb-4">會員中心</h2>
 
         <div v-if="loading" class="text-center text-gray-500">載入中...</div>
@@ -11,16 +10,14 @@
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">編輯個人資訊</label>
                 <div class="icon-group">
-                    <img src="@/assets/angle-small-right.png"
-                        class="icon ml-auto" @click="goToPage('/profile')" />
+                    <img src="@/assets/angle-small-right.png" class="icon ml-auto" @click="goToPage('/profile')" />
                 </div>
             </div>
 
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">變更密碼</label>
                 <div class="icon-group">
-                    <img src="@/assets/angle-small-right.png"
-                        class="icon ml-auto"
+                    <img src="@/assets/angle-small-right.png" class="icon ml-auto"
                         @click="goToPage('/changePassword')" />
                 </div>
             </div>
@@ -28,25 +25,21 @@
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">配送資訊</label>
                 <div class="icon-group">
-                    <img src="@/assets/angle-small-right.png"
-                        class="icon ml-auto" @click="goToPage('/address')" />
+                    <img src="@/assets/angle-small-right.png" class="icon ml-auto" @click="goToPage('/address')" />
                 </div>
             </div>
 
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">購買清單</label>
                 <div class="icon-group">
-                    <img src="@/assets/angle-small-right.png"
-                        class="icon ml-auto"
-                        @click="goToPage('/user/orders')" />
+                    <img src="@/assets/angle-small-right.png" class="icon ml-auto" @click="goToPage('/user/orders')" />
                 </div>
             </div>
 
             <div class="mb-4 flex items-center">
                 <label class="font-semibold">我的優惠券</label>
                 <div class="icon-group">
-                    <img src="@/assets/angle-small-right.png"
-                        class="icon ml-auto"
+                    <img src="@/assets/angle-small-right.png" class="icon ml-auto"
                         @click="goToPage('/MemberCoupons')" />
                 </div>
             </div>
@@ -57,8 +50,7 @@
                     @click="goToPage('/profile/wallet')" />
             </div> -->
 
-            <button @click="logout"
-                class="w-full bg-red-500 text-black py-2 rounded mt-4 hover:bg-red-600">
+            <button @click="logout" class="w-full bg-red-500 text-black py-2 rounded mt-4 hover:bg-red-600">
                 登出
             </button>
         </div>

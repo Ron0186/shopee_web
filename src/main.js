@@ -10,12 +10,18 @@ import piniaPluginPersistedstate from "pinia-plugin-persistedstate";
 import { BModal, BButton } from 'bootstrap-vue-next';
 
 import { useChatStore } from '@/stores/chatStore'; // 正確導入 Store
-import { useHelpStore } from "./stores/HelpStore";
+
 // ✅ 確保正確引入 Bootstrap 核心樣式 & JS
 import "bootstrap/dist/css/bootstrap.min.css";
 import "bootstrap/dist/js/bootstrap.bundle.min.js";
 import "bootstrap-vue-next/dist/bootstrap-vue-next.css";
 // import "bootstrap-icons/font/bootstrap-icons.css";
+
+//font awesome
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { faStar as fasStar } from '@fortawesome/free-solid-svg-icons'
+import { faStar as farStar, faStarHalfStroke } from '@fortawesome/free-regular-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
 
 const pinia = createPinia();
 pinia.use(piniaPluginPersistedstate);
@@ -43,6 +49,11 @@ app.component('BButton', BButton);
 app.use(vue3GoogleLogin, {
     clientId: '595128745585-61ldfgee16s2n72fd44hdanqq5hjnlj4.apps.googleusercontent.com'
 });
+
+//font awesome
+// ✅ 然後再註冊 FontAwesome
+library.add(fasStar, farStar, faStarHalfStroke)
+app.component("font-awesome-icon", FontAwesomeIcon)
 
 // 只掛載一次應用程式
 app.mount("#app");

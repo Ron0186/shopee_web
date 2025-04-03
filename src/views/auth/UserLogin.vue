@@ -2,28 +2,28 @@
   <div class="login-container">
     <div class="login-card">
       <h2 class="login-title">登入</h2>
+      
+      <!-- reCAPTCHA 開關 -->
+      <div class="recaptcha-toggle-container">
+        <span>reCAPTCHA:</span>
+        <label class="toggle-switch">
+          <input type="checkbox" v-model="enableRecaptcha" @change="handleRecaptchaToggle">
+          <span class="toggle-slider"></span>
+        </label>
+        <span>{{ enableRecaptcha ? '開啟' : '關閉' }}</span>
+      </div>
+      
       <form @submit.prevent="login" class="login-form">
         <div class="form-group">
           <label for="username">使用者名稱</label>
-          <input
-            type="text"
-            id="username"
-            v-model="username"
-            class="form-input"
-            placeholder="請輸入使用者名稱"
-          />
+          <input type="text" id="username" v-model="username" class="form-input" placeholder="請輸入使用者名稱" />
         </div>
 
         <div class="form-group">
           <label for="password">密碼</label>
           <div class="password-container">
-            <input
-              :type="showPassword ? 'text' : 'password'"
-              id="password"
-              v-model="password"
-              class="form-input"
-              placeholder="請輸入密碼"
-            />
+            <input :type="showPassword ? 'text' : 'password'" id="password" v-model="password" class="form-input"
+              placeholder="請輸入密碼" />
             <span class="eye-icon" @click="togglePasswordVisibility">
               <i v-if="showPassword" class="bi bi-eye"></i>
               <i v-else class="bi bi-eye-slash"></i>
@@ -31,8 +31,8 @@
           </div>
         </div>
 
-        <!-- reCAPTCHA v2 勾選框 -->
-        <div class="form-group recaptcha-container">
+        <!-- reCAPTCHA v2 勾選框，只有在啟用時顯示 -->
+        <div v-if="enableRecaptcha" class="form-group recaptcha-container">
           <div
             ref="recaptchaContainer"
             class="g-recaptcha"
@@ -75,18 +75,10 @@
         <div class="quick-login">
           <h3 class="quick-login-title">快速登入</h3>
           <div class="quick-login-buttons">
-            <button
-              type="button"
-              @click="quickLogin('Waylay')"
-              class="quick-login-btn"
-            >
+            <button type="button" @click="quickLogin('Waylay')" class="quick-login-btn">
               <i class="bi bi-lightning-charge"></i> Waylay
             </button>
-            <button
-              type="button"
-              @click="quickLogin('Cypher')"
-              class="quick-login-btn"
-            >
+            <button type="button" @click="quickLogin('Cypher')" class="quick-login-btn">
               <i class="bi bi-shield-lock"></i> Cypher
             </button>
           </div>
@@ -114,6 +106,42 @@ const showPassword = ref(false); // 添加密碼顯示切換狀態
 const captchaError = ref(false);
 const recaptchaContainer = ref(null);
 const recaptchaLoaded = ref(false);
+
+// 新增 reCAPTCHA 功能開關
+const enableRecaptcha = ref(false);
+
+// 從 localStorage 讀取開關狀態，確保頁面重載後狀態保持不變
+onMounted(() => {
+  const savedState = localStorage.getItem('recaptchaEnabled');
+  if (savedState !== null) {
+    enableRecaptcha.value = savedState === 'true';
+  }
+  const error = route.query.error; // 從路由物件獲取查詢參數
+  if (error === 'account_banned') {
+    Swal.fire({
+      icon: 'error', // 圖示 (error, warning, success, info, question)
+      title: '帳號狀態異常', // 標題
+      text: '您的帳號已被禁用，請聯繫客服。', // 提示文字
+      confirmButtonText: '確定' // 按鈕文字
+      // 您可以添加更多 SweetAlert2 的配置選項
+    });  }
+});
+
+// 處理 reCAPTCHA 切換開關
+function handleRecaptchaToggle() {
+  // 保存開關狀態到 localStorage
+  localStorage.setItem('recaptchaEnabled', enableRecaptcha.value);
+  
+  if (enableRecaptcha.value) {
+    // 如果開啟，則初始化 reCAPTCHA
+    nextTick(() => {
+      initializeRecaptcha();
+    });
+  } else {
+    // 如果關閉，則重置錯誤狀態
+    captchaError.value = false;
+  }
+}
 
 // 切換密碼可見性
 function togglePasswordVisibility() {
@@ -151,6 +179,9 @@ function loadRecaptchaScript() {
 
 // 初始化 reCAPTCHA
 async function initializeRecaptcha() {
+  // 如果 reCAPTCHA 未啟用，則不載入
+  if (!enableRecaptcha.value) return;
+
   // 確保腳本已載入
   if (!recaptchaLoaded.value) {
     await loadRecaptchaScript();
@@ -183,20 +214,30 @@ async function initializeRecaptcha() {
 watch(
   () => route.fullPath,
   () => {
-    // 路由變化後，確保 reCAPTCHA 重新初始化
-    nextTick(() => {
-      initializeRecaptcha();
-    });
+    // 路由變化後，如果 reCAPTCHA 已啟用，確保 reCAPTCHA 重新初始化
+    if (enableRecaptcha.value) {
+      nextTick(() => {
+        initializeRecaptcha();
+      });
+    }
   }
 );
 
 // 組件掛載後
 onMounted(async () => {
-  await initializeRecaptcha();
+  // 如果 reCAPTCHA 已啟用，則初始化
+  if (enableRecaptcha.value) {
+    await initializeRecaptcha();
+  }
 });
 
 // 驗證 reCAPTCHA 是否已勾選
 function validateRecaptcha() {
+  // 如果 reCAPTCHA 未啟用，直接返回 true
+  if (!enableRecaptcha.value) {
+    return true;
+  }
+  
   if (window.grecaptcha) {
     const response = window.grecaptcha.getResponse();
     if (response.length === 0) {
@@ -213,7 +254,7 @@ function validateRecaptcha() {
 
 // 重設 reCAPTCHA
 function resetRecaptcha() {
-  if (window.grecaptcha) {
+  if (enableRecaptcha.value && window.grecaptcha) {
     window.grecaptcha.reset();
   }
   captchaError.value = false;
@@ -249,13 +290,19 @@ async function login() {
   const data = {
     username: username.value,
     password: password.value,
-    recaptchaResponse: recaptchaResponse, // 將 reCAPTCHA 回應傳送到後端
+    recaptchaResponse: recaptchaResponse === true ? null : recaptchaResponse, // 根據是否啟用 reCAPTCHA 傳遞不同的值
   };
 
   // 清除之前的 Authorization header (避免和其他登入狀態衝突)
   axios.defaults.headers.common["Authorization"] = ``;
+  
   try {
-    const response = await axios.post("/api/auth/login", data);
+    // 根據 reCAPTCHA 狀態選擇不同的 API
+    const loginUrl = enableRecaptcha.value 
+      ? "/api/auth/login" 
+      : "/api/auth/login/withoutReCaptcha";
+    
+    const response = await axios.post(loginUrl, data);
 
     if (response.data.success) {
       const decodedToken = jwtDecode(response.data.token);
@@ -281,7 +328,8 @@ async function login() {
         response.data.token,
         decodedToken.roles
       );
-
+      console.log("[Login] 更新後 userStore 狀態:", { userId: userStore.userId, username: userStore.username, roles: JSON.stringify(userStore.roles), token: userStore.token });
+      // ** 檢查這裡的 userId 是否變成了 44 **
       // 如果用戶是賣家，獲取他們的商店 ID
       if (decodedToken.roles && decodedToken.roles.includes("SELLER")) {
         try {
@@ -299,7 +347,7 @@ async function login() {
         }
       }
 
-      userStore.reloadUserData();
+
       if (result.isConfirmed) {
         router.push("/shop");
       }
@@ -334,7 +382,9 @@ async function login() {
       icon: "error",
     });
     // 登入失敗時重設 reCAPTCHA
-    resetRecaptcha();
+    if (enableRecaptcha.value) {
+      resetRecaptcha();
+    }
   }
 }
 
@@ -352,7 +402,7 @@ async function quickLogin(user) {
   username.value = userData.username; // 自動填入帳號
   password.value = userData.password; // 自動填入密碼
 
-  // 在快速登入時，需要用戶仍然手動勾選 reCAPTCHA
+  // 在快速登入時，如果啟用了 reCAPTCHA，用戶仍需手動勾選
   await login(); // 呼叫 login 函數
 }
 
@@ -375,8 +425,10 @@ window.addEventListener("storage", (event) => {
 
 <style scoped>
 :root {
-  --primary-color: #ff9b20; /* 修改為橙色，與註冊頁面一致 */
-  --primary-hover: #e7840b; /* 修改為深橙色 */
+  --primary-color: #ff9b20;
+  /* 修改為橙色，與註冊頁面一致 */
+  --primary-hover: #e7840b;
+  /* 修改為深橙色 */
   --error-color: #dc3545;
   --success-color: #28a745;
   --warning-color: #ffc107;
@@ -390,36 +442,98 @@ window.addEventListener("storage", (event) => {
   --input-radius: 6px;
 }
 
-/* 整體容器 */
+/* 整體容器 - 調整高度和大小 */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 85vh; /* 從100vh改為85vh，考慮到navbar和footer的空間 */
-  background-color: var(--bg-color);
-  padding: 15px; /* 減少內邊距 */
+  min-height: 75vh;
+  padding: 15px;
+  /* 移除背景色設定，使用網站原有背景色 */
 }
 
 .login-card {
   width: 100%;
-  max-width: 420px; /* 略微縮小最大寬度 */
-  background-color: var(--card-bg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
-  padding: 20px; /* 減少內邊距 */
+  max-width: 500px; /* 稍微加寬 */
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
+  padding: 25px; /* 稍微增加內邊距 */
+  border: 1px solid #e8e8e8;
 }
 
 .login-title {
   text-align: center;
-  margin-bottom: 20px; /* 減少下邊距 */
-  color: var(--primary-color);
+  margin-bottom: 16px;
+  color: #ff9b20;
   font-weight: 600;
+  font-size: 1.5rem; /* 增大標題 */
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 15px; /* 減少表單元素間距 */
+  gap: 14px; /* 增加間距 */
+}
+
+/* reCAPTCHA 開關樣式 */
+.recaptcha-toggle-container {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+  gap: 8px;
+  font-size: 14px; /* 增大字體 */
+  color: #555;
+}
+
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px; /* 稍微放大 */
+  height: 24px; /* 稍微放大 */
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.toggle-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: .4s;
+  border-radius: 24px;
+}
+
+.toggle-slider:before {
+  position: absolute;
+  content: "";
+  height: 18px; /* 調整大小 */
+  width: 18px; /* 調整大小 */
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .4s;
+  border-radius: 50%;
+}
+
+input:checked + .toggle-slider {
+  background-color: #ff9b20;
+}
+
+input:focus + .toggle-slider {
+  box-shadow: 0 0 1px #ff9b20;
+}
+
+input:checked + .toggle-slider:before {
+  transform: translateX(24px);
 }
 
 /* 表單元素 */
@@ -430,24 +544,25 @@ window.addEventListener("storage", (event) => {
 
 .form-input {
   width: 100%;
-  padding: 10px 12px; /* 減少輸入框內邊距 */
-  border: 1px solid var(--border-color);
-  border-radius: var(--input-radius);
-  font-size: 15px; /* 略微縮小字體 */
-  transition: all 0.2s ease;
+  padding: 9px 12px; /* 增加內邊距 */
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 15px; /* 增大字體 */
+  transition: border-color 0.2s ease;
 }
 
 .form-input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.1);
+  border-color: #ff9b20;
+  box-shadow: 0 0 0 2px rgba(255, 155, 32, 0.1);
   outline: none;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px; /* 減少標籤下邊距 */
+  margin-bottom: 5px; /* 增加下邊距 */
   font-weight: 500;
-  color: var(--text-color);
+  color: #333;
+  font-size: 15px; /* 增大字體 */
 }
 
 /* 密碼容器相關樣式 */
@@ -458,28 +573,23 @@ window.addEventListener("storage", (event) => {
 
 .password-container input {
   width: 100%;
-  padding-right: 40px; /* 為眼睛圖標預留空間 */
+  padding-right: 38px; /* 調整右內邊距 */
 }
 
 .eye-icon {
   position: absolute;
-  right: 8px;
+  right: 10px; /* 調整位置 */
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
   z-index: 10;
   user-select: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px; /* 減小尺寸 */
-  height: 30px; /* 減小尺寸 */
-  color: var(--text-light);
+  color: #666;
   transition: color 0.2s;
 }
 
 .eye-icon:hover {
-  color: var(--primary-color);
+  color: #ff9b20;
 }
 
 /* reCAPTCHA 相關樣式 */
@@ -487,39 +597,39 @@ window.addEventListener("storage", (event) => {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 8px 0; /* 減少上下間距 */
+  margin: 8px 0; /* 增加間距 */
 }
 
 .captcha-error {
-  color: var(--error-color);
-  font-size: 12px; /* 略微縮小字體 */
-  margin-top: 3px; /* 減少上邊距 */
+  color: #dc3545;
+  font-size: 12px; /* 增大字體 */
+  margin-top: 3px; /* 增加上邊距 */
 }
 
 /* 按鈕樣式 */
 .submit-button {
-  background-color: #ff9b20; /* 使用橙色，與註冊頁面一致 */
+  background-color: #ff9b20;
   color: white;
   border: none;
-  border-radius: var(--input-radius);
-  padding: 10px 15px; /* 減少內邊距 */
-  font-size: 15px; /* 略微縮小字體 */
+  border-radius: 4px;
+  padding: 10px 14px; /* 增加內邊距 */
+  font-size: 16px; /* 增大字體 */
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px; /* 減少圖標與文字間距 */
+  gap: 8px; /* 增加間距 */
   width: 100%;
 }
 
 .submit-button:hover {
-  background-color: #e7840b; /* 懸停時的深橙色 */
+  background-color: #e7840b;
 }
 
 .submit-button:disabled {
-  background-color: #cccccc;
+  background-color: #ccc;
   cursor: not-allowed;
 }
 
@@ -532,22 +642,22 @@ window.addEventListener("storage", (event) => {
 
 .forgot-password {
   justify-content: flex-end;
-  margin-top: -5px; /* 減少上邊距 */
-  margin-bottom: 5px; /* 減少下邊距 */
+  margin-top: -4px;
+  margin-bottom: 4px;
 }
 
 .form-links a {
-  color: var(--primary-color);
+  color: #ff9b20;
   text-decoration: none;
-  font-size: 13px; /* 略微縮小字體 */
+  font-size: 14px; /* 增大字體 */
   display: inline-flex;
   align-items: center;
-  gap: 4px; /* 減少圖標與文字間距 */
+  gap: 5px; /* 增加間距 */
   transition: color 0.2s;
 }
 
 .form-links a:hover {
-  color: var(--primary-hover);
+  color: #e7840b;
   text-decoration: underline;
 }
 
@@ -555,7 +665,7 @@ window.addEventListener("storage", (event) => {
 .divider {
   position: relative;
   text-align: center;
-  margin: 15px 0; /* 減少上下間距 */
+  margin: 14px 0; /* 增加上下邊距 */
 }
 
 .divider::before {
@@ -565,57 +675,63 @@ window.addEventListener("storage", (event) => {
   left: 0;
   width: 100%;
   height: 1px;
-  background-color: var(--border-color);
+  background-color: #e0e0e0;
 }
 
 .divider span {
   position: relative;
-  background-color: var(--card-bg);
-  padding: 0 10px;
-  color: var(--text-light);
-  font-size: 14px;
+  background-color: #fff;
+  padding: 0 10px; /* 增加左右內邊距 */
+  color: #888;
+  font-size: 14px; /* 增大字體 */
+  padding: 0 15px; /* 增加左右內邊距 */
+
 }
 
 /* 社交登入按鈕 */
 .social-login {
   display: flex;
   justify-content: center;
-  margin-bottom: 8px; /* 減少下邊距 */
+  margin-bottom: 10px; /* 增加下邊距 */
 }
 
 /* 快速登入區塊 */
 .quick-login {
-  margin-top: 15px; /* 減少上邊距 */
-  border-top: 1px solid var(--border-color);
-  padding-top: 15px; /* 減少上內邊距 */
+  margin-top: 14px; /* 增加上邊距 */
+  border-top: 1px solid #eee;
+  padding-top: 14px; /* 增加上內邊距 */
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  padding: 12px; /* 增加內邊距 */
 }
 
 .quick-login-title {
-  font-size: 15px; /* 略微縮小字體 */
+  font-size: 15px; /* 增大字體 */
   font-weight: 600;
-  color: var(--text-color);
-  margin-bottom: 10px; /* 減少下邊距 */
+  color: #444;
+  margin-bottom: 10px; /* 增加下邊距 */
   text-align: center;
 }
 
 .quick-login-buttons {
   display: flex;
   justify-content: center;
-  gap: 12px; /* 減少按鈕間距 */
+  gap: 20px; /* 增加按鈕之間的間距 */
 }
+
 
 .quick-login-btn {
   background-color: #6c757d;
   color: white;
   border: none;
-  border-radius: var(--input-radius);
-  padding: 8px 12px; /* 減少內邊距 */
-  font-size: 13px; /* 略微縮小字體 */
+  border-radius: 4px;
+  padding: 8px 12px; /* 增加內邊距 */
+  font-size: 14px; /* 增大字體 */
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 4px; /* 減少圖標與文字間距 */
+  gap: 6px; /* 增加間距 */
 }
 
 .quick-login-btn:hover {
@@ -624,13 +740,14 @@ window.addEventListener("storage", (event) => {
 
 .register-link {
   justify-content: center;
-  margin-top: 8px; /* 減少上邊距 */
+  margin-top: 8px; /* 增加上邊距 */
 }
 
 /* 響應式設計 */
 @media (max-width: 768px) {
   .login-card {
-    padding: 20px;
+    max-width: 95%;
+    padding: 20px; /* 增加內邊距 */
   }
 
   .quick-login-buttons {
