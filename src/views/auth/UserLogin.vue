@@ -116,6 +116,15 @@ onMounted(() => {
   if (savedState !== null) {
     enableRecaptcha.value = savedState === 'true';
   }
+  const error = route.query.error; // 從路由物件獲取查詢參數
+  if (error === 'account_banned') {
+    Swal.fire({
+      icon: 'error', // 圖示 (error, warning, success, info, question)
+      title: '帳號狀態異常', // 標題
+      text: '您的帳號已被禁用，請聯繫客服。', // 提示文字
+      confirmButtonText: '確定' // 按鈕文字
+      // 您可以添加更多 SweetAlert2 的配置選項
+    });  }
 });
 
 // 處理 reCAPTCHA 切換開關

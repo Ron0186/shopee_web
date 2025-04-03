@@ -65,7 +65,7 @@
         </div>
       </div>
 
-      <span v-if="userStore.username" @click="logoutToAdmin"
+      <span @click="logoutToAdmin"
         class="logout-link admin-logout">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
       </span>

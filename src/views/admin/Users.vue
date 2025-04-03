@@ -180,27 +180,45 @@
         </div>
 
         <nav v-if="users.length > 0" class="mt-4">
-          <ul class="pagination justify-content-center">
-            <li class="page-item" :class="{ disabled: currentPage === 0 }">
-              <button class="page-link" @click="fetchUsers(0)" title="第一頁">
-                <i class="bi bi-chevron-double-left"></i>
-              </button>
-            </li>
-            <li class="page-item" :class="{ disabled: currentPage === 0 }">
-              <button class="page-link" @click="prevPage">
-                <i class="bi bi-chevron-left"></i> 上一頁
-              </button>
-            </li>
-            <li class="page-item disabled">
-              <span class="page-link">第 {{ currentPage + 1 }} 頁 / 共 {{ totalPages }} 頁</span>
-            </li>
-            <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
-              <button class="page-link" @click="nextPage">
-                下一頁 <i class="bi bi-chevron-right"></i>
-              </button>
-            </li>
-          </ul>
-        </nav>
+  <ul class="pagination justify-content-center">
+    <!-- 第一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: currentPage === 0 }">
+      <button class="page-link" @click="fetchUsers(0)" title="第一頁">
+        <i class="bi bi-chevron-double-left"></i>
+      </button>
+    </li>
+    
+    <!-- 上一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: currentPage === 0 }">
+      <button class="page-link" @click="prevPage">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+    </li>
+    
+    <!-- 頁碼按鈕 -->
+    <template v-for="index in getPageNumbers()" :key="index">
+      <li class="page-item" :class="{ active: currentPage === index }">
+        <button class="page-link" @click="fetchUsers(index)">
+          {{ index + 1 }}
+        </button>
+      </li>
+    </template>
+    
+    <!-- 下一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
+      <button class="page-link" @click="nextPage">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </li>
+    
+    <!-- 最後一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
+      <button class="page-link" @click="fetchUsers(totalPages - 1)" title="最後一頁">
+        <i class="bi bi-chevron-double-right"></i>
+      </button>
+    </li>
+  </ul>
+</nav>
       </div>
     </div>
 
@@ -296,6 +314,35 @@ const handleSaveRoles = async (updatedUserData) => {
   } finally {
     loading.value = false;
   }
+};
+// 在 data 中添加
+const maxDisplayedPages = ref(5); // 最多顯示的頁碼數量
+
+// 添加頁碼計算方法
+const getPageNumbers = () => {
+  if (totalPages.value <= 1) return [];
+  
+  // 如果總頁數小於等於最大顯示頁碼數，則顯示所有頁碼
+  if (totalPages.value <= maxDisplayedPages.value) {
+    return Array.from({ length: totalPages.value }, (_, i) => i);
+  }
+  
+  // 計算起始和結束頁碼
+  let start = Math.max(0, currentPage.value - Math.floor(maxDisplayedPages.value / 2));
+  let end = Math.min(totalPages.value - 1, start + maxDisplayedPages.value - 1);
+  
+  // 如果結束頁碼已經接近總頁數，則調整起始頁碼
+  if (end >= totalPages.value - 1) {
+    start = Math.max(0, totalPages.value - maxDisplayedPages.value);
+  }
+  
+  // 如果起始頁碼已經是 0，則調整結束頁碼
+  if (start === 0) {
+    end = Math.min(totalPages.value - 1, maxDisplayedPages.value - 1);
+  }
+  
+  // 生成頁碼陣列
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 };
 
 const fetchUsers = async (page = 0, name = searchName.value) => {
