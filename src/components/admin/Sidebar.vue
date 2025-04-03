@@ -30,19 +30,13 @@ async function logout() {
     <router-link to="/admin/category-management">📑 商品分類</router-link>
     <router-link to="/admin/products/tags">🔖 商品標籤</router-link>
     <router-link to="/admin/users">👥 會員管理</router-link>
-    <router-link
-      to="/admin/administrators"
-      v-if="userStore.roles.includes('SUPER_ADMIN')"
-      >👥 管理員管理</router-link
-    >
-    <router-link to="/admin/users/customers">🙍‍♂️ 客戶管理</router-link>
+    <router-link to="/admin/administrators" v-if="userStore.roles.includes('SUPER_ADMIN')">👥 管理員管理</router-link>
+    <router-link to="/admin/product-review">👔 商品管理</router-link>
     <router-link to="/admin/shop/review">🛍 商店申請管理</router-link>
-    <router-link to="/coupon/AdminCouponManager">🎟️ 優惠券管理</router-link>
+    <router-link to="/coupon/adminCouponManager">🎟️ 優惠券管理</router-link>
     <router-link to="/admin/analytics">📊 數據分析</router-link>
     <router-link to="/admin/analytics/sales">📈 銷售報告</router-link>
-    <router-link to="/admin/analytics/user-behavior"
-      >👥 用戶行為分析</router-link
-    >
+    <router-link to="/admin/analytics/user-behavior">👥 用戶行為分析</router-link>
     <router-link to="/admin/settings">⚙️ 系統設定</router-link>
     <router-link to="/admin/settings/admins">🔧 管理員帳號</router-link>
     <router-link to="/admin/settings/platform">🛠 平台設定</router-link>

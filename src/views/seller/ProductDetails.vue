@@ -109,7 +109,7 @@ const token = localStorage.getItem('token')
 
 onMounted(async () => {
     try {
-        const res = await axios.get(`http://localhost:8081/api/product/byShop?shopId=${shopId}`, {
+        const res = await axios.get(`http://localhost:8081/api/products/shop/${shopId}`, {
             headers: { Authorization: `Bearer ${token}` }
         })
         shopData.value = res.data

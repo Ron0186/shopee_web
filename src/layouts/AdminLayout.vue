@@ -19,15 +19,19 @@ import Sidebar from "@/components/admin/Sidebar.vue";
 <style scoped>
 .admin-container {
   display: flex;
+
 }
 
 .content {
-  /* margin-left: 240px; */
-  /* 讓內容不會被 Sidebar 擋住 */
-  padding: 20px;
-  /* width: calc(100% - 240px); */
-  /* margin-top: 60px; */
-  /* 避開固定 Navbar */
+  padding: 25px;
+  /* 保留內容區域的內邊距 */
+  flex-grow: 1;
+  /* 讓 content 填滿剩餘寬度 */
+  overflow-y: auto;
+  /* 如果 content 內容過長，允許垂直滾動 */
+
+  /* 可能需要 min-width: 0; 防止在 flex 佈局中內容溢出導致父容器變寬 */
+  min-width: 0;
 }
 </style>
 // Compare this snippet from src/components/admin/Sidebar.vue:

@@ -112,11 +112,21 @@
         </button>
       </div>
     </div>
+
+    <!-- 商品詳情彈窗 -->
+    <ProductDetail
+      v-model:visible="showProductDetail"
+      :productId="selectedProductId"
+      @close="handleProductModalClose"
+      @add-to-cart="handleAddToCart"
+      @buy-now="handleBuyNow"
+    />
   </div>
 </template>
 
 <script setup>
 import SellerStoreInfo from "@/components/SellerStore/SellerStoreInfo.vue";
+import ProductDetail from "@/components/product.components/ProductDetail.vue";
 import { ref, onMounted, watch, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "@/plugins/axios";
@@ -144,6 +154,21 @@ const defaultImage = "/src/assets/default-image.png"; // 預設商品圖片路�
 const currentPage = ref(0);
 const pageSize = ref(12);
 const totalPages = ref(0);
+// 商品詳情彈窗相關
+const showProductDetail = ref(false);
+const selectedProductId = ref(null);
+
+// 根據搜尋條件過濾商品
+const filteredProducts = computed(() => {
+  if (!searchQuery.value) return products.value;
+
+  const query = searchQuery.value.toLowerCase();
+  return products.value.filter(
+    (product) =>
+      product.productName.toLowerCase().includes(query) ||
+      (product.description && product.description.toLowerCase().includes(query))
+  );
+});
 
 // 取得商店資訊
 const fetchShopData = async () => {
@@ -265,7 +290,34 @@ const goToMyProducts = () => {
 
 // 查看商品詳情
 const viewProductDetail = (productId) => {
-  router.push(`/products/${productId}`);
+  // router.push(`/products/${productId}`); ///////////
+  // 使用彈窗顯示商品詳情
+  selectedProductId.value = productId;
+  showProductDetail.value = true;
+};
+
+// 處理商品彈窗關閉
+const handleProductModalClose = () => {
+  showProductDetail.value = false;
+};
+
+// 處理加入購物車
+const handleAddToCart = (data) => {
+  console.log("加入購物車:", data);
+  // 實現加入購物車的邏輯
+};
+
+// 處理立即購買
+const handleBuyNow = (data) => {
+  console.log("立即購買:", data);
+  // 實現立即購買的邏輯，例如跳轉到結帳頁面
+  router.push({
+    path: "/checkout",
+    query: {
+      productId: data.productId,
+      quantity: data.quantity,
+    },
+  });
 };
 
 // 移除了編輯商品和刪除商品的相關函數
@@ -494,6 +546,7 @@ onMounted(async () => {
   0% {
     transform: rotate(0deg);
   }
+
   100% {
     transform: rotate(360deg);
   }

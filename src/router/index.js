@@ -1,11 +1,10 @@
-import SearchResult from "@/components/SearchResult.vue";
-import HelpCenter from "@/views/pages/HelpCenter.vue";
 import UpdateHomeAddress from "@/views/member/UpdateHomeAddress.vue";
 import UpdateCVSAddress from "@/views/member/UpdateCVSAddress.vue";
 import ProductDetails from "@/views/seller/ProductDetails.vue";
 import OrderDetails from "@/views/seller/OrderDetails.vue";
 import SkuDetails from "@/views/seller/SkuDetails.vue";
 import ReviewDetails from "@/views/seller/ReviewDetails.vue";
+import ChatRoomComponent from "@/views/pages/CustomerService/ChatRoom.vue"; // <-- 改為靜態導入
 
 import { createRouter, createWebHistory } from "vue-router";
 
@@ -145,14 +144,14 @@ const router = createRouter({
           component: () => import("@/views/member/CVSAddressCreate.vue"),
         },
         {
-          path: "/memberOrders",
-          name: "memberOrders",
-          component: () => import("@/views/member/MemberOrders.vue"),
-        },
-        {
           path: "/memberCoupons",
           name: "memberCoupons",
-          component: () => import("@/views/member/MemberCoupons.vue"),
+          component: () => import("@/views/member/MemberCoupon.vue"),
+        },
+        {
+          path: "/memberOrders",
+          name: "memberOrders",
+          component: () => import("@/views/member/MemberOrder.vue"),
         },
         {
           path: "/updateHomeAddress/:addressId",
@@ -201,6 +200,11 @@ const router = createRouter({
           name: "review-details",
           component: ReviewDetails,
           props: true,
+        },
+        {
+          path: "/revenueSummary",
+          name: "revenueSummary",
+          component: () => import("@/views/seller/RevenueSummary.vue"),
         },
 
         //下單頁面
@@ -281,7 +285,7 @@ const router = createRouter({
         {
           path: "/chat/:chatRoomId",
           name: "ChatRoom",
-          component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
+          component: ChatRoomComponent, // <-- 直接使用靜態導入的組件
           meta: { requiresAuth: true },
         },
 
@@ -343,6 +347,12 @@ const router = createRouter({
             title: "連結帳號",
             requiresAuth: false, // 此頁面不需要身份驗證
           },
+        },
+        {
+          path: "seller/coupon/apply", // 注意這是相對路徑
+          name: "CouponApply",
+          component: () => import("@/views/front/CouponApplicationForm.vue"),
+          meta: { requiresAuth: true, role: "SELLER" }, // 設定路由元信息
         },
       ],
     },
@@ -450,6 +460,12 @@ const router = createRouter({
           component: () => import("@/views/admin/Administrators.vue"),
         },
         {
+          // 管理員商品頁面
+          path: "product-review",
+          name: "ProductReview",
+          component: () => import("@/views/admin/ProductReview.vue"),
+        },
+        {
           // 分類管理頁面
           path: "category-management",
           name: "categoryManagement",
@@ -486,12 +502,12 @@ const router = createRouter({
           name: "Reviews",
           component: () => import("@/views/admin/Reviews.vue"),
         },
-        {
-          // 優惠券頁面
-          path: "coupons",
-          name: "Coupons",
-          component: () => import("@/views/admin/Coupons.vue"),
-        },
+        // {
+        //   // 優惠券頁面
+        //   path: "coupons",
+        //   name: "Coupons",
+        //   component: () => import("@/views/admin/Coupons.vue"),
+        // },
         {
           // 審核商店申請頁面
           path: "shop/review",
