@@ -1,7 +1,18 @@
+<<<<<<< HEAD
 import SearchResult from "@/components/SearchResult.vue";
 import HelpCenter from "@/views/pages/HelpCenter.vue";
 import UpdateHomeAddress from "@/views/member/UpdateHomeAddress.vue";
 import UpdateCVSAddress from "@/views/member/UpdateCVSAddress.vue";
+=======
+
+import UpdateHomeAddress from "@/views/member/UpdateHomeAddress.vue";
+import UpdateCVSAddress from "@/views/member/UpdateCVSAddress.vue";
+import ProductDetails from '@/views/seller/ProductDetails.vue';
+import OrderDetails from '@/views/seller/OrderDetails.vue'
+import SkuDetails from '@/views/seller/SkuDetails.vue'
+import ReviewDetails from '@/views/seller/ReviewDetails.vue'
+import ChatRoomComponent from "@/views/pages/CustomerService/ChatRoom.vue"; // <-- 改為靜態導入
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
 
 import { createRouter, createWebHistory } from "vue-router";
 
@@ -61,16 +72,23 @@ const router = createRouter({
           name: "help-center",
           component: () => import("@/views/pages/HelpCenter.vue"),
         },
-        // 幫助中心搜尋內容頁面
+        // 幫助中心搜尋內容頁面 留哪個自己判斷~
+        // {
+        //   path: "/search",
+        //   name: "search-link",
+        //   component: SearchResult,
+        //   props: (route) => ({ query: route.query.q }),
+        // },
         {
           path: "/search",
           name: "search-link",
-          component: SearchResult,
+          component: () => import("@/components/SearchResult.vue"),
           props: (route) => ({ query: route.query.q }),
         },
         {
           path: "/article/:id",
           name: "article-link",
+<<<<<<< HEAD
           component: HelpCenter,
           props: true,
           path: "/search",
@@ -81,6 +99,8 @@ const router = createRouter({
         {
           path: "/article/:id",
           name: "article-link",
+=======
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
           component: () => import("@/views/pages/HelpCenter.vue"),
           props: true,
         },
@@ -118,6 +138,7 @@ const router = createRouter({
           name: "ApplyShop",
           component: () => import("@/views/front/ApplyShop.vue"),
         },
+<<<<<<< HEAD
 
         //客服中心
         {
@@ -126,22 +147,246 @@ const router = createRouter({
           component: () =>
             import("@/views/pages/CustomerService/CustomerService.vue"),
         },
+=======
+        //會員中心
+        {
+          path: '/memberCenter',
+          name: 'memberCenter',
+          component: () => import('@/views/member/MemberCenter.vue')
+        },
+        {
+          path: '/profile',
+          name: 'profile',
+          component: () => import('@/views/member/Profile.vue')
+        },
+        {
+          path: '/address',
+          name: 'address',
+          component: () => import('@/views/member/Address.vue')
+        },
+        {
+          path: '/HomeAddressCreate',
+          name: 'HomeAddressCreate',
+          component: () => import('@/views/member/HomeAddressCreate.vue')
+        },
+        {
+          path: '/CVSAddressCreate',
+          name: 'CVSAddressCreate',
+          component: () => import('@/views/member/CVSAddressCreate.vue')
+        },
+        {
+          path: '/memberCoupons',
+          name: 'memberCoupons',
+          component: () => import('@/views/member/MemberCoupon.vue')
+        },
+        {
+          path: '/memberOrders',
+          name: 'memberOrders',
+          component: () => import('@/views/member/MemberOrder.vue')
+        },
+        {
+          path: '/updateHomeAddress/:addressId',
+          name: 'UpdateHomeAddress',
+          component: UpdateHomeAddress,
+          props: true // 讓 route 參數能當作 props 傳給元件
+        },
+        {
+          path: '/updateCVSAddress/:addressId',
+          name: 'UpdateCVSAddress',
+          component: UpdateCVSAddress,
+          props: true // 讓 route 參數能當作 props 傳給元件
+        },
+        {
+          path: '/changePassword',
+          name: 'changePassword',
+          component: () => import('@/views/member/ChangePassword.vue')
+        },
+        //賣家營收
+        {
+          path: '/revenue',
+          name: 'revenue',
+          component: () => import('@/views/seller/RevenueDetails.vue')
+        },
+        {
+          path: '/product-details',
+          name: 'product-details',
+          component: ProductDetails,
+          props: true
+        },
+        {
+          path: '/order-details',
+          name: 'order-details',
+          component: OrderDetails,
+          props: true
+        },
+        {
+          path: '/sku-details',
+          name: 'sku-details',
+          component: SkuDetails,
+          props: true
+        },
+        {
+          path: '/review-details',
+          name: 'review-details',
+          component: ReviewDetails,
+          props: true
+        },
+        {
+          path: '/revenueSummary',
+          name: 'revenueSummary',
+          component: () => import('@/views/seller/RevenueSummary.vue')
+        },
+
+        //下單頁面
+        {
+          path: "/checkout",
+          name: "Checkout",
+          component: () => import("@/views/pages/Checkout.vue"),
+          meta: { requiresAuth: true }, // 可選：需要登入才能進入
+        },
+
+        //評價頁面
+        {
+          path: "/submitReview",
+          name: "SubmitReview",
+          component: () => import("@/views/pages/SubmitReview.vue"),
+        },
+
+        {
+          path: "/seller-setting",
+          name: "SellerSetting",
+          component: () => import("@/views/pages/SellerSetting.vue"),
+          meta: { requiresAuth: true, requiresSeller: true },
+        },
+
+        {
+          path: "/403",
+          name: "Forbidden",
+          component: () => import("@/views/errors/Forbidden.vue"),
+        },
+
+        // 添加支付結帳頁面
+        {
+          path: "/checkout/:orderId",
+          name: "OrderCheckout",
+          component: () => import("@/views/CheckoutPage.vue"),
+          meta: { role: "USER" }, // 一般使用者用
+        },
+        {
+          path: "/checkout/pay/:orderId",
+          name: "OrderPayment",
+          component: () =>
+            import("@/components/order.components/OrderPayment.vue"),
+          meta: { requiresAuth: true },
+        },
+
+        // 添加支付結果頁面
+        {
+          path: "/checkout/payment/:orderId",
+          name: "OrderPaymentAlias",
+          component: () =>
+            import("@/components/order.components/OrderPayment.vue"),
+          meta: { role: "USER" }, // 一般使用者用
+        },
+        {
+          path: "/debug/payment/:id",
+          name: "DebugPayment",
+          component: () => import("@/views/DebugPaymentPage.vue"),
+        },
+        // ,
+        // {
+        //   path: '/wishlist',
+        //   name: 'Wishlist',
+        //   component: () => import('@/views/Placeholder.vue')
+        // },
+        // {
+        //   path: '/order-tracking',
+        //   name: 'OrderTracking',
+        //   component: () => import('@/views/Placeholder.vue')
+        // }
+        //客服中心
+        // {
+        //   path: "/chat/:chatRoomId",
+        //   name: "ChatRoom",
+        //   component: () => import("@/views/pages/CustomerService/ChatRoom.vue"),
+        // },
+
+        //聊天室頁面
+        {
+          path: "/chat/:chatRoomId",
+          name: "ChatRoom",
+          component: ChatRoomComponent, // <-- 直接使用靜態導入的組件
+          meta: { requiresAuth: true },
+        },
+
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
         //賣家商店頁
         {
           path: "/store/:shopId",
           name: "Store",
           component: () => import("@/views/front/SellerStore.vue"),
         },
+<<<<<<< HEAD
+=======
+
+        // 「我的商品」頁面
+        {
+          path: "/seller/shops/:shopId/products",
+          name: "Products",
+          component: () => import("@/views/front/Products.vue"),
+          meta: { requiresAuth: true }, // 如果需要登入驗證
+        },
+        // SKU 管理頁面
+        {
+          path: "/seller/shops/:shopId/products/:productId/skus",
+          name: "ProductSkuManagement",
+          component: () => import("@/views/front/ProductSkuManagement.vue"),
+          meta: { requiresAuth: true, role: "seller" },
+        },
+
+        //賣家數據分析頁
+        {
+          path: "/seller/analytics",
+          name: "SellerAnalytics",
+          component: () => import("@/views/front/SellerAnalytics.vue"),
+          meta: { role: "SELLER", requiresAuth: true }, // 只有 SELLER 角色的用戶可以訪問，並需要登入
+        },
+
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
         //google登入後回填頁
         {
           path: "/fill-phone",
           name: "FillPhone",
           component: () => import("@/views/auth/FillPhone.vue"),
         },
+<<<<<<< HEAD
         {
           path: '/login/oauth2/success',
           name: 'OAuth2Success',
           component: () => import("@/views/auth/OAuth2Success.vue"),
+=======
+        //google登入後成功頁
+        {
+          path: "/login/oauth2/success",
+          name: "OAuth2Success",
+          component: () => import("@/views/auth/OAuth2Success.vue"),
+        },
+        //google綁定帳號頁
+        {
+          path: "/link-account",
+          name: "LinkAccount",
+          component: () => import("@/views/auth/LinkAccount.vue"),
+          meta: {
+            title: "連結帳號",
+            requiresAuth: false, // 此頁面不需要身份驗證
+          },
+        },
+        {
+          path: "seller/coupon/apply", // 注意這是相對路徑
+          name: "CouponApply",
+          component: () => import("@/views/front/CouponApplicationForm.vue"),
+          meta: { requiresAuth: true, role: "SELLER" } // 設定路由元信息
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
         }
       ],
     },
@@ -164,7 +409,7 @@ const router = createRouter({
       children: [
         {
           // 首頁儀表板
-          path: "/dashboard",
+          path: "dashboard",
           name: "Dashboard",
           component: () => import("@/views/admin/Dashboard.vue"),
         },
@@ -192,6 +437,32 @@ const router = createRouter({
           name: "PaymentMethodManagement",
           component: () => import("@/views/admin/PaymentMethodManagement.vue"),
         },
+        {
+          // 管理付款狀態頁面
+          path: "payment-status-management",
+          name: "PaymentStatusManagement",
+          component: () => import("@/views/admin/PaymentStatusManagement.vue"),
+        },
+        {
+          // 管理物流方式頁面
+          path: "shipment-method-management",
+          name: "ShipmentMethodManagement",
+          component: () => import("@/views/admin/ShipmentMethodManagement.vue"),
+        },
+        {
+          // 管理物流狀態頁面
+          path: "shipment-status-management",
+          name: "ShipmentStatusManagement",
+          component: () => import("@/views/admin/ShipmentStatusManagement.vue"),
+        },
+
+        {
+          // 整合管理付款/物流頁面
+          path: "integrated-management",
+          name: "IntegratedManagement",
+          component: () => import("@/views/admin/IntegratedManagement.vue"),
+        },
+
         {
           // 後台管理頁面
           path: "admin-management",
@@ -223,11 +494,18 @@ const router = createRouter({
           component: () => import("@/views/admin/Administrators.vue"),
         },
         {
+          // 管理員商品頁面
+          path: "product-review",
+          name: "ProductReview",
+          component: () => import("@/views/admin/ProductReview.vue"),
+        },
+        {
           // 分類管理頁面
           path: "category-management",
           name: "categoryManagement",
           component: () => import("@/views/admin/CategoryManagement.vue"),
         },
+<<<<<<< HEAD
         {
           // 「我的商品」頁面
           path: "/my-products/:shopId",
@@ -235,6 +513,9 @@ const router = createRouter({
           component: () => import("@/views/admin/Products.vue"),
           meta: { requiresAuth: true }, // 如果需要登入驗證
         },
+=======
+
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
         {
           // 商品分類頁面
           path: "product-category",
@@ -255,7 +536,7 @@ const router = createRouter({
         },
         {
           // 訂單頁面
-          path: "AdminOrders",
+          path: "orders",
           name: "AdminOrders",
           component: () => import("@/views/admin/AdminOrders.vue"),
         },
@@ -265,12 +546,12 @@ const router = createRouter({
           name: "Reviews",
           component: () => import("@/views/admin/Reviews.vue"),
         },
-        {
-          // 優惠券頁面
-          path: "coupons",
-          name: "Coupons",
-          component: () => import("@/views/admin/Coupons.vue"),
-        },
+        // {
+        //   // 優惠券頁面
+        //   path: "coupons",
+        //   name: "Coupons",
+        //   component: () => import("@/views/admin/Coupons.vue"),
+        // },
         {
           // 審核商店申請頁面
           path: "shop/review",
@@ -287,6 +568,16 @@ const router = createRouter({
             ),
           props: true,
         },
+<<<<<<< HEAD
+=======
+        // {
+        //   //test add selector
+        //   path: '/add/test',
+        //   name: 'add-test',
+        //   component: () => import("@/views/member/test.vue"),
+
+        // },
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
       ],
     },
     // {
@@ -296,6 +587,7 @@ const router = createRouter({
     //   props: true,
     // },
     //會員中心
+<<<<<<< HEAD
     {
       path: "/memberCenter",
       name: "memberCenter",
@@ -343,6 +635,55 @@ const router = createRouter({
       component: UpdateCVSAddress,
       props: true, // 讓 route 參數能當作 props 傳給元件
     },
+=======
+    // {
+    //   path: "/memberCenter",
+    //   name: "memberCenter",
+    //   component: () => import("@/views/member/MemberCenter.vue"),
+    // },
+    // {
+    //   path: "/profile",
+    //   name: "profile",
+    //   component: () => import("@/views/member/Profile.vue"),
+    // },
+    // {
+    //   path: "/address",
+    //   name: "address",
+    //   component: () => import("@/views/member/Address.vue"),
+    // },
+    // {
+    //   path: "/HomeAddressCreate",
+    //   name: "HomeAddressCreate",
+    //   component: () => import("@/views/member/HomeAddressCreate.vue"),
+    // },
+    // {
+    //   path: "/CVSAddressCreate",
+    //   name: "CVSAddressCreate",
+    //   component: () => import("@/views/member/CVSAddressCreate.vue"),
+    // },
+    // {
+    //   path: "/memberOrders",
+    //   name: "memberOrders",
+    //   component: () => import("@/views/member/MemberOrders.vue"),
+    // },
+    // {
+    //   path: "/memberCoupons",
+    //   name: "memberCoupons",
+    //   component: () => import("@/views/member/MemberCoupons.vue"),
+    // },
+    // {
+    //   path: "/updateHomeAddress/:addressId",
+    //   name: "UpdateHomeAddress",
+    //   component: UpdateHomeAddress,
+    //   props: true, // 讓 route 參數能當作 props 傳給元件
+    // },
+    // {
+    //   path: "/updateCVSAddress/:addressId",
+    //   name: "UpdateCVSAddress",
+    //   component: UpdateCVSAddress,
+    //   props: true, // 讓 route 參數能當作 props 傳給元件
+    // },
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
   ],
 });
 

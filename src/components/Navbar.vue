@@ -14,15 +14,68 @@
         登入</router-link>
       <router-link to="/user/register" v-if="!userStore.username">📝
         註冊</router-link>
+<<<<<<< HEAD
       <router-link to="/shop/apply" v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
         我要當賣家!!</router-link>
       <router-link to="/profile">👤 會員中心</router-link>
       <router-link v-if="userStore.username" :to="userStore.isSeller ? '/seller/orders' : '/user/orders'">
         📦 訂單管理
+=======
+
+
+      <!-- 新增賣家中心按鈕 -->
+      <router-link :to="'/store/' + userStore.shopId" v-if="
+        userStore.token &&
+        userStore.isSeller &&
+        userStore.shopId &&
+        userStore.shopId !== 'undefined'
+      ">
+        🏪 賣家中心
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
       </router-link>
+
+      <!-- ✅ 訂單管理 + 通知角標 -->
+      <router-link v-if="userStore.username"
+        :to="userStore.isSeller ? '/seller/orders' : '/user/orders'"
+        class="position-relative">
+        📦 訂單管理
+        <!-- 賣家：待處理訂單通知 -->
+        <span v-if="userStore.isSeller && pendingCount > 0"
+          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
+          {{ pendingCount }}
+        </span>
+
+        <!-- 買家：配送中通知 -->
+        <span v-if="userStore.isUser && shippedCount > 0"
+          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
+          {{ shippedCount }}
+        </span> 
+      </router-link>
+
+      <router-link to="/submitReview">📝 評價商品</router-link>
+      <router-link v-if="userStore.isSeller" to="/seller-setting">⚙️
+        賣家設定</router-link>
+      <router-link v-if="userStore.isSeller" to="/revenue">⚙️
+        營收表現</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
-      <span v-if="userStore.username" @click="logout" class="logout-link">
-        <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
+
+      <!-- 使用者名稱下拉選單 -->
+      <div v-if="userStore.username" class="user-dropdown">
+        <button class="username-btn" @click="toggleUserMenu">
+           {{ userStore.username }} <span class="dropdown-icon">▼</span>
+        </button>
+        <div class="user-dropdown-content" v-if="userMenuOpen">
+          <router-link to="/memberCenter" @click="userMenuOpen = false">👤 會員中心</router-link>
+          <router-link to="/shop/apply" 
+        v-if="userStore.token && !userStore.roles.includes('SELLER')" @click="userMenuOpen = false">📝
+        申請成為賣家</router-link>
+          <div @click="logout" class="dropdown-item">登出</div>
+        </div>
+      </div>
+
+      <span v-if="userStore.username" @click="logoutToAdmin"
+        class="logout-link admin-logout">
+        <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
       </span>
     </div>
   </nav>
@@ -60,7 +113,11 @@
           通知</router-link>
       </li>
       <li>
+<<<<<<< HEAD
         <router-link to="/customerService" @click="toggleDrawer">📞 客服 &
+=======
+        <router-link to="/helpCenter" @click="toggleDrawer">📞 客服 &
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
           幫助中心</router-link>
       </li>
       <li>
@@ -79,18 +136,16 @@
 </template>
 
 <script setup>
-import { ref, } from "vue";
-import { useUserStore } from '@/stores/user';
+import { ref, onMounted, onUnmounted } from "vue";
+import { useUserStore } from "@/stores/user";
 import Swal from "sweetalert2";
 import router from "@/router/index";
+import axios from "@/plugins/axios";
 
 const userStore = useUserStore();
 const drawerOpen = ref(false);
 const categoryOpen = ref(false);
-
-
-
-
+const userMenuOpen = ref(false);
 
 const toggleDrawer = () => {
   drawerOpen.value = !drawerOpen.value;
@@ -100,18 +155,91 @@ const toggleCategory = () => {
   categoryOpen.value = !categoryOpen.value;
 };
 
+const toggleUserMenu = () => {
+  userMenuOpen.value = !userMenuOpen.value;
+};
+
+// 點擊其他地方關閉使用者選單
+const handleClickOutside = (event) => {
+  const userDropdown = document.querySelector('.user-dropdown');
+  if (userDropdown && !userDropdown.contains(event.target) && userMenuOpen.value) {
+    userMenuOpen.value = false;
+  }
+};
+
+// 監聽全局點擊事件
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside);
+  if (userStore.token) {
+    fetchNotificationCount(); // 回傳通知列
+  }
+});
+
+// 清理事件監聽器
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+
+const pendingCount = ref(0); // 賣家通知數
+const shippedCount = ref(0); // 買家通知數
+
+// ✅ 通知角標查詢
+const fetchNotificationCount = async () => {
+  if (!userStore.token) return;
+
+  try {
+    if (userStore.isSeller) {
+      const res = await axios.get(
+        `/api/orders/notification/pending-count/seller`
+      );
+      pendingCount.value = res.data;
+    } else if (userStore.isUser) {
+      const res = await axios.get(
+        `/api/orders/notification/shipped-count/user`
+      );
+      shippedCount.value = res.data;
+    }
+  } catch (err) {
+    console.error("🔴 無法取得訂單通知數量", err);
+  }
+};
+
 // ✅ 登出功能
 async function logout() {
+  axios.defaults.headers.common["Authorization"] = ``;
   userStore.clearUserData();
+  userMenuOpen.value = false; // 關閉下拉選單
   const response = await Swal.fire({
     title: "您已成功登出",
     icon: "success",
     confirmButtonText: "OK",
   });
   if (response.isConfirmed) {
-    router.push('/shop');
+    router.push("/shop");
   }
 }
+
+// ✅ 登出並跳轉至後台登入頁
+async function logoutToAdmin() {
+  axios.defaults.headers.common["Authorization"] = ``;
+  userStore.clearUserData();
+  userMenuOpen.value = false; // 關閉下拉選單
+  const response = await Swal.fire({
+    title: "已登出前台",
+    text: "正在前往後台登入頁面",
+    icon: "success",
+    confirmButtonText: "OK",
+  });
+  if (response.isConfirmed) {
+    window.location.href = "/admin/login";
+  }
+}
+
+// 當通知元件點擊時，導向相應聊天室頁面
+const handleNotificationClick = (chatRoomId) => {
+  console.log("即將導向聊天室：", chatRoomId);
+  router.push(`/chat/${chatRoomId}`);
+};
 </script>
 
 <style scoped>
@@ -140,10 +268,10 @@ async function logout() {
   background: #ff9b20;
 }
 
-/* 📌 會員中心 & 購物車 */
 .nav-icons {
   display: flex;
   gap: 10px;
+  align-items: center;
 }
 
 .nav-icons a {
@@ -156,7 +284,61 @@ async function logout() {
   text-decoration: underline;
 }
 
-/* 📌 漢堡選單 (側邊欄) */
+/* 使用者下拉選單樣式 */
+.user-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.username-btn {
+  background-color: #f7e9d2;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  color: #000000;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dropdown-icon {
+  font-size: 10px;
+}
+
+.user-dropdown-content {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: white;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+  z-index: 1001;
+  border-radius: 4px;
+  margin-top: 5px;
+}
+
+.user-dropdown-content a,
+.user-dropdown-content .dropdown-item {
+  color: black;
+  padding: 12px 16px;
+  text-decoration: none;
+  display: block;
+  font-size: 14px;
+  border-bottom: 1px solid #f1f1f1;
+}
+
+.user-dropdown-content a:hover,
+.user-dropdown-content .dropdown-item:hover {
+  background-color: #f1f1f1;
+  cursor: pointer;
+}
+
+.user-dropdown-content .dropdown-item:last-child {
+  border-bottom: none;
+}
+
 .sidebar {
   position: fixed;
   left: -250px;
@@ -190,7 +372,6 @@ async function logout() {
   display: block;
 }
 
-/* 📌 商城分類選單 */
 .dropdown button {
   background: none;
   border: none;
@@ -218,15 +399,40 @@ async function logout() {
   display: block;
 }
 
-/*登出相關 */
 .logout-link {
   color: #000;
   text-decoration: none;
-  font-size: 16px
+  font-size: 16px;
+  cursor: pointer;
 }
 
 .logout-link:hover {
-  cursor: pointer;
   text-decoration: underline;
+}
+
+/* 後台登入按鈕樣式 */
+.admin-logout {
+  margin-left: 10px;
+  font-weight: 500;
+  color: #2c3e50;
+}
+
+.admin-link {
+  cursor: pointer;
+  color: #2c3e50;
+  font-weight: 500;
+}
+
+.admin-link:hover {
+  text-decoration: underline;
+}
+
+.badge {
+  background-color: red;
+  color: white;
+  border-radius: 50%;
+  padding: 2px 6px;
+  margin-left: 4px;
+  font-size: 12px;
 }
 </style>

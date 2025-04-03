@@ -1,6 +1,6 @@
 <template>
     <div>
-        <label>宅配地址：</label>
+
         <div class="dropdown">
             <select v-model="selectedCounty" @change="updateDistricts" required>
                 <option value="">選擇縣市</option>
@@ -36,7 +36,13 @@ import { ref, watch, onMounted } from 'vue';
 import { taiwanAddress } from '@/assets/taiwanAddress.js';
 
 const props = defineProps({
-    modelValue: String
+    modelValue: {
+        type: Object,
+        default: () => ({
+            fullAddress: '',
+            zipCode: ''
+        })
+    }
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -49,15 +55,20 @@ const address = ref('');
 watch(
     () => props.modelValue,
     (newVal) => {
-        if (newVal) parseAddress(newVal);
+        if (newVal && typeof newVal.fullAddress === 'string') {
+            parseAddress(newVal.fullAddress); // ✅ 取 fullAddress 出來
+        }
     },
     { immediate: true }
 );
 
 // 組合地址 → 傳回父元件
-watch([selectedCounty, selectedDistrict, address], () => {
-    if (selectedCounty.value && selectedDistrict.value) {
-        emit('update:modelValue', `${selectedCounty.value} ${selectedDistrict.value} ${address.value}`);
+watch([selectedCounty, selectedDistrict, address, selectedZipcode], () => {
+    if (selectedCounty.value && selectedDistrict.value && address.value && selectedZipcode.value) {
+        emit('update:modelValue', {
+            fullAddress: `${selectedCounty.value} ${selectedDistrict.value} ${address.value}`,
+            zipCode: selectedZipcode.value
+        });
     }
 });
 
@@ -70,6 +81,7 @@ function updateDistricts() {
 function updateZipcode() {
     selectedZipcode.value = taiwanAddress[selectedCounty.value]?.[selectedDistrict.value] || '';
 }
+
 
 function parseAddress(fullAddress) {
 

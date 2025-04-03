@@ -14,24 +14,25 @@
             </button>
         </div>
 
-        <!-- 主要地址 (宅配地址) -->
+        <!-- 宅配地址 -->
         <div v-if="activeTab === 'primary'" class="address-card">
             <h3>🏠 宅配地址</h3>
             <div v-if="primaryAddress.length > 0">
-                <div v-for="(address, index) in primaryAddress" :key="index"
-                    class="address-block">
+                <div v-for="(address, index) in sortedPrimaryAddress"
+                    :key="index" class="address-block">
                     <div class="icon-group">
-                        <img src="@/assets/data-processing.png" class="icon"
-                            @click="goToUpdatePage(address.userAddressId)" />
-                        <img src="@/assets/trash.png" class="icon"
+                        <img src="@/assets/trash.png" class="icon" title="刪除地址"
                             @click="deleteAddress(address.userAddressId)" />
                     </div>
-                    <p><strong>地址：</strong>{{
-                        address.city }}{{ address.district }}{{
-                            address.streetEtc }}</p>
+                    <p><strong>地址：</strong>{{ address.city }}{{ address.district
+                        }}{{ address.streetEtc }}</p>
                     <p><strong>郵遞區號：</strong>{{ address.zipCode }}</p>
                     <p><strong>收件人：</strong>{{ address.recipientName }}</p>
                     <p><strong>電話：</strong>{{ address.recipientPhone }}</p>
+                    <p v-if="address.isDefault">
+                        <strong>✅ 預設地址</strong>
+                    </p>
+
                 </div>
             </div>
             <button type="submit" class="func"
@@ -39,24 +40,29 @@
             <button type="button" class="func" @click="cancel">取消</button>
         </div>
 
-        <!-- 次要地址 (超商取貨地址) -->
+        <!-- 超商取貨地址 -->
         <div v-if="activeTab === 'secondary'" class="address-card">
             <h3>📦 超商取貨</h3>
             <div v-if="secondaryAddress.length > 0">
-                <div v-for="(address, index) in secondaryAddress" :key="index"
-                    class="address-block">
+                <div v-for="(address, index) in sortedSecondaryAddress"
+                    :key="index" class="address-block">
                     <div class="icon-group">
-                        <img src="@/assets/data-processing.png" class="icon"
-                            @click="goToCVSUpdatePage(address.userAddressId)" />
-                        <img src="@/assets/trash.png" class="icon"
+                        <img src="@/assets/trash.png" class="icon" title="刪除地址"
                             @click="deleteAddress(address.userAddressId)" />
                     </div>
-                    <p><strong>地址：</strong>{{
-                        address.city }}{{ address.district }}{{
-                            address.streetEtc }}</p>
+                    <p><strong>地址：</strong>{{ address.city }}{{ address.district
+                        }}{{ address.streetEtc }}</p>
                     <p><strong>郵遞區號：</strong>{{ address.zipCode }}</p>
                     <p><strong>收件人：</strong>{{ address.recipientName }}</p>
                     <p><strong>電話：</strong>{{ address.recipientPhone }}</p>
+                    <p>
+                        <strong>預設：</strong>
+                        <span v-if="address.isDefault">✅ 是</span>
+                        <span v-else>
+                            <button
+                                @click="confirmSetDefault(address.userAddressId, 2)">設為預設</button>
+                        </span>
+                    </p>
                 </div>
             </div>
             <button type="submit" class="func"
@@ -68,117 +74,124 @@
     </div>
 </template>
 
-
 <script>
 import { useRouter } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 import axios from 'axios';
+import Swal from 'sweetalert2';
 
 export default {
     data() {
         return {
             userId: null,
-            primaryAddress: [],  // 主要地址 (宅配)
-            secondaryAddress: [], // 次要地址 (超商取貨)
+            primaryAddress: [],
+            secondaryAddress: [],
             message: "",
             activeTab: "primary",
             router: useRouter(),
         };
+    },
+    computed: {
+        sortedPrimaryAddress() {
+            return [...this.primaryAddress].sort((a, b) => b.isDefault - a.isDefault);
+        },
+        sortedSecondaryAddress() {
+            return [...this.secondaryAddress].sort((a, b) => b.isDefault - a.isDefault);
+        }
     },
     mounted() {
         this.loadUserId();
         if (this.userId) {
             this.fetchAddresses();
         } else {
-            this.router.push('/user/login'); // 未登入則跳轉登入頁
+            this.router.push('/user/login');
         }
     },
     methods: {
         setActiveTab(tab) {
-            this.activeTab = tab;  // 切換分頁
-        },
-        goToUpdatePage(addressId) {
-            this.router.push({ name: 'UpdateHomeAddress', params: { addressId } }); // 跳轉到更新地址頁面
-        }, goToCVSUpdatePage(addressId) {
-            this.router.push({ name: 'UpdateCVSAddress', params: { addressId } }); // 跳轉到更新超商地址頁面
+            this.activeTab = tab;
         },
         goToHomeAddressUpdate() {
-            this.router.push({ name: 'HomeAddressCreate' }); // 跳轉到新增宅配地址頁面
+            this.router.push({ name: 'HomeAddressCreate' });
         },
         goToCVSAddressUpdate() {
-            this.router.push({ name: 'CVSAddressCreate' }); // 跳轉到新增超商取貨地址頁面
+            this.router.push({ name: 'CVSAddressCreate' });
+        },
+        confirmSetDefault(addressId, typeId) {
+            if (confirm("確定要將此地址設為預設嗎？")) {
+                this.setAsDefault(addressId, typeId);
+            }
         },
         async deleteAddress(addressId) {
-            if (!confirm("確定要刪除此地址嗎？")) return;
+            const result = await Swal.fire({
+                title: '確認刪除？',
+                text: "此操作將刪除此地址！",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '刪除',
+                cancelButtonText: '取消'
+            });
 
-            try {
-                const token = sessionStorage.getItem("token");
-                await axios.delete(`http://localhost:8081/api/user/address/${this.userId}/${addressId}`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
-
-                this.message = "地址刪除成功！";
-                console.log("✅ 地址刪除成功");
-
-                // 重新獲取地址數據
-                this.fetchAddresses();
-
-            } catch (error) {
-                console.error("刪除地址失敗:", error);
-                this.message = "刪除失敗，請稍後再試！";
+            if (result.isConfirmed) {
+                try {
+                    const token = localStorage.getItem("token");
+                    await axios.delete(`http://localhost:8081/api/user/address/${this.userId}/${addressId}`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
+                    await Swal.fire('刪除成功', '地址已被刪除。', 'success');
+                    this.fetchAddresses();
+                } catch (error) {
+                    Swal.fire('錯誤', '刪除失敗，請稍後再試！', 'error');
+                }
             }
         },
         loadUserId() {
-            const token = sessionStorage.getItem("token");
+            const token = localStorage.getItem("token");
             if (!token) {
-                console.warn("未找到 Token，跳轉至登入頁");
                 this.router.push('/user/login');
                 return;
             }
             try {
                 const decodedToken = jwtDecode(token);
                 this.userId = decodedToken.userId;
-                this.sub = decodedToken.sub;
-                console.log("解析的 JWT User ID:", this.userId);
-                console.log("解析的 JWT User Name:", this.sub);
             } catch (error) {
-                console.error("無法解析 JWT:", error);
                 this.router.push('/user/login');
             }
         },
         async fetchAddresses() {
             try {
-                const token = sessionStorage.getItem("token");
-
-                // 查詢主要地址 (宅配地址)
+                const token = localStorage.getItem("token");
                 const primaryRes = await axios.get(`http://localhost:8081/api/user/address/${this.userId}/type/1`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-
-                // 查詢次要地址 (超商取貨地址)
                 const secondaryRes = await axios.get(`http://localhost:8081/api/user/address/${this.userId}/type/2`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-
-                console.log("🏠 主要地址 API 回應:", primaryRes.data);
-                console.log("📦 次要地址 API 回應:", secondaryRes.data);
-
-                this.primaryAddress = primaryRes.data;  // API 回應的是陣列
-                this.secondaryAddress = secondaryRes.data;
-
+                this.primaryAddress = primaryRes.data.sort(a => a.isDefault ? -1 : 1);
+                this.secondaryAddress = secondaryRes.data.sort(a => a.isDefault ? -1 : 1);
             } catch (error) {
                 console.error("獲取地址數據失敗:", error);
-                this.router.push('/user/login');
             }
         },
-
+        async setAsDefault(addressId, typeId) {
+            try {
+                const token = localStorage.getItem("token");
+                await axios.put(`http://localhost:8081/api/user/address/${this.userId}/set-default/${addressId}`, {
+                    typeId: typeId
+                }, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                this.message = "已設為預設地址 ✅";
+                this.fetchAddresses();
+            } catch (err) {
+                this.message = "設為預設地址失敗，請稍後再試！";
+            }
+        },
         cancel() {
             this.router.push('/memberCenter');
         }
     }
-}
-
-
+};
 </script>
 
 <style scoped>
@@ -196,7 +209,6 @@ h3 {
     text-align: center;
 }
 
-/* Navbar 樣式 */
 .navbar {
     display: flex;
     justify-content: space-around;
@@ -219,7 +231,6 @@ h3 {
     font-weight: bold;
 }
 
-/* 地址卡片 */
 .address-card {
     padding: 15px;
     background: #f9f9f9;
@@ -227,14 +238,12 @@ h3 {
     margin-bottom: 15px;
 }
 
-/* 圖示組 */
 .icon-group {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
 }
 
-/* 圖示 */
 .icon {
     width: 24px;
     height: 24px;
@@ -257,12 +266,18 @@ h3 {
 }
 
 .func:hover {
-    background-color: #3e8e41
+    background-color: #3e8e41;
 }
 
 .func:active {
     background-color: #3e8e41;
     box-shadow: 0 5px #666;
     transform: translateY(4px);
+}
+
+.message {
+    text-align: center;
+    margin-top: 10px;
+    color: green;
 }
 </style>

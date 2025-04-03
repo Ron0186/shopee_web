@@ -49,9 +49,15 @@
         title: '登入錯誤',
         text: '無法獲取登入資訊',
         icon: 'error',
+<<<<<<< HEAD
         confirmButtonText: '返回首頁'
       }).then(() => {
         router.push('/login');
+=======
+        confirmButtonText: '返回登入頁面'
+      }).then(() => {
+        router.push('/user/login');
+>>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
       });
     }
   });

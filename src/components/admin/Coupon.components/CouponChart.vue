@@ -1,102 +1,144 @@
 <template>
-  <div class="coupon-chart">
+  <div class="coupon-chart mb-4">
     <canvas ref="chartCanvas"></canvas>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, defineExpose } from "vue";
+import { ref, onMounted, onBeforeUnmount, defineExpose, watch } from "vue";
 import { Chart, registerables } from "chart.js";
 
 Chart.register(...registerables);
 
+const props = defineProps({
+  chartDataProp: { // 從父元件接收數據
+    type: Object,
+    default: () => ({ labels: [], newCounts: [], currentCounts: [] })
+  }
+});
+
 const chartCanvas = ref(null);
 let chartInstance = null;
 
-// 設定 Y 軸 ticks
-const yAxisTicks = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 200, 300];
-
+// 初始圖表數據結構
 const chartData = ref({
-  labels: ["1月", "2月", "3月", "4月", "5月"],
+  labels: props.chartDataProp.labels || [], // 使用 prop 的 labels
   datasets: [
     {
-      label: "新增優惠券",
-      borderColor: "blue",
-      backgroundColor: "rgba(0, 0, 255, 0.2)",
-      fill: true,
-      data: [0, 0, 0, 0, 0],
+      label: '新增數量', // 紅色系
+      data: props.chartDataProp.newCounts || [],
+      backgroundColor: 'rgba(255, 99, 132, 0.5)', // 半透明紅
+      borderColor: 'rgba(255, 99, 132, 1)', // 實心紅
+      borderWidth: 1
     },
     {
-      label: "刪除優惠券",
-      borderColor: "red",
-      backgroundColor: "rgba(255, 0, 0, 0.2)",
-      fill: true,
-      data: [0, 0, 0, 0, 0],
-    },
-  ],
+      label: '目前有效數量', // 藍色系
+      data: props.chartDataProp.currentCounts || [],
+      backgroundColor: 'rgba(54, 162, 235, 0.5)', // 半透明藍
+      borderColor: 'rgba(54, 162, 235, 1)', // 實心藍
+      borderWidth: 1
+    }
+  ]
 });
 
-const initChart = () => {
-  if (chartInstance) {
-    chartInstance.destroy(); // 先銷毀舊圖表，避免錯誤
+// 初始化或更新圖表
+const initOrUpdateChart = (newData) => {
+  if (!chartCanvas.value) return; // 確保 canvas 存在
+
+  // 更新 chartData 的值
+  if (newData) {
+    chartData.value.labels = newData.labels || [];
+    // 確保 datasets 存在且有兩個元素
+    if (chartData.value.datasets && chartData.value.datasets.length >= 2) {
+      chartData.value.datasets[0].data = newData.newCounts || [];
+      chartData.value.datasets[1].data = newData.currentCounts || [];
+    } else {
+      // 如果 datasets 結構不對，重新建立
+      console.warn("Chart datasets structure incorrect, re-initializing.");
+      chartData.value.datasets = [
+        { label: '新增數量', data: newData.newCounts || [], backgroundColor: 'rgba(255, 99, 132, 0.5)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1 },
+        { label: '目前有效數量', data: newData.currentCounts || [], backgroundColor: 'rgba(54, 162, 235, 0.5)', borderColor: 'rgba(54, 162, 235, 1)', borderWidth: 1 }
+      ];
+    }
   }
 
-  if (chartCanvas.value) {
+
+  if (chartInstance) {
+    // 如果圖表已存在，更新數據並重新渲染
+    chartInstance.data = chartData.value;
+    chartInstance.update();
+  } else {
+    // 如果圖表不存在，則建立新圖表
     chartInstance = new Chart(chartCanvas.value, {
-      type: "line",
+      type: 'bar', // *** 改為長條圖 ***
       data: chartData.value,
       options: {
         responsive: true,
         maintainAspectRatio: false,
         scales: {
           y: {
-            // 強制使用指定 ticks
-            type: "linear",
+            beginAtZero: true, // Y 軸從 0 開始
             ticks: {
-              callback: function (value, index, values) {
-                // 只顯示自訂 ticks
-                return yAxisTicks.includes(value) ? value : null;
-              },
+              // 自動計算刻度可能比固定 ticks 更好
+              stepSize: 10 // 可以建議步長
             },
-            // 建議的最小值
-            min: 0,
-            // 建議的最大值, 你可以設更高,
-            suggestedMax: 300,
+            title: {
+              display: true,
+              text: '張數'
+            }
           },
+          x: {
+            title: {
+              display: true,
+              text: '月份'
+            }
+          }
         },
-      },
+        plugins: {
+          legend: {
+            position: 'top', // 圖例放上方
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+          }
+        }
+      }
     });
   }
 };
 
-// 按下「新增優惠券」後
-const incrementAddCount = () => {
-  // 假設 5 月
-  chartData.value.datasets[0].data[4]++;
-  chartInstance.update();
-};
+// 監聽從父元件傳來的數據變化
+watch(() => props.chartDataProp, (newData) => {
+  console.log("Chart data updated:", newData);
+  initOrUpdateChart(newData);
+}, { deep: true }); // 深度監聽物件變化
 
-// 按下「刪除」後
-const incrementDeleteCount = () => {
-  chartData.value.datasets[1].data[4]++;
-  chartInstance.update();
-};
+
+onMounted(() => {
+  initOrUpdateChart(props.chartDataProp); // 初始繪製
+});
 
 onBeforeUnmount(() => {
   if (chartInstance) {
-    chartInstance.destroy();
+    chartInstance.destroy(); // 元件銷毀前銷毀圖表實例
   }
 });
 
-onMounted(initChart);
-
-// 將方法暴露給外部使用
-defineExpose({ initChart, incrementAddCount, incrementDeleteCount });
+// 將更新方法暴露給父元件 (如果父元件需要主動觸發更新)
+defineExpose({
+  updateChart: initOrUpdateChart
+});
 </script>
 
 <style scoped>
 .coupon-chart {
   width: 100%;
-  height: 300px;
+  min-height: 300px;
+  /* 給定最小高度 */
+  height: 40vh;
+  /* 或者使用相對高度 */
+  max-height: 400px;
+  /* 最大高度限制 */
 }
 </style>
