@@ -1,62 +1,58 @@
 <template>
     <div class="container-fluid my-4 px-md-4">
-        <h3><i class="bi bi-journal-check"></i> 審核優惠券申請</h3>
-        <p>請審核以下由賣家提交的優惠券申請。點擊核准將會建立/刪除對應的優惠券。</p>
+        <h3><i class="bi bi-journal-check me-2"></i>審核優惠券申請</h3>
+        <p>請審核以下由賣家提交的優惠券申請。點擊核准將會建立/修改/刪除對應的優惠券。</p>
 
-        <div v-if="isLoading" class="text-center mt-5">
-            <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
-                <span class="visually-hidden">載入申請列表中...</span>
-            </div>
-            <p class="mt-2">載入中...</p>
+        <div class="mb-3">
+            <button class="btn btn-outline-secondary btn-sm" @click="goBack">
+                <router-link to="/coupon/adminCouponManager" style="text-decoration: none;"> <i
+                        class="bi bi-arrow-left"></i> 返回優惠券管理列表</router-link>
+
+            </button>
         </div>
-        <div v-else-if="loadError" class="alert alert-danger mt-3">
-            載入申請列表失敗：{{ loadError }}
-        </div>
-        <div v-else-if="pendingApplications.length === 0" class="alert alert-light text-center mt-3 border">
-            目前沒有待審核的優惠券申請。
-        </div>
+
+        <div v-if="isLoading" class="text-center mt-5">...</div>
+        <div v-else-if="loadError" class="alert alert-danger mt-3">...</div>
+        <div v-else-if="pendingApplications.length === 0" class="alert alert-light text-center mt-3 border">...</div>
 
         <div v-else class="table-responsive mt-3">
-            <table class="table table-hover table-bordered align-middle review-table caption-top">
-                <caption>待審核申請列表 ({{ pendingApplications.length }} 筆)</caption>
+            <table class="table table-hover table-bordered align-middle review-table caption-top small">
+                <caption>待審核申請列表 (共 {{ pendingApplications.length }} 筆)</caption>
                 <thead class="table-light sticky-top">
                     <tr>
-                        <th scope="col" class="text-center small">#ID</th>
-                        <th scope="col" class="text-center">類型</th>
-                        <th scope="col">申請商店</th>
-                        <th scope="col">申請人</th>
-                        <th scope="col" class="text-nowrap">申請日期</th>
-                        <th scope="col" class="text-center small">目標券ID</th>
-                        <th scope="col" style="min-width: 250px;">建議內容摘要</th>
-                        <th scope="col" class="text-center" style="min-width: 130px;">操作</th>
+                        <th scope="col" class="text-center col-1">#ID</th>
+                        <th scope="col" class="text-center col-1">類型</th>
+                        <th scope="col" class="col-2">申請商店 (ID)</th>
+                        <th scope="col" class="col-2">申請人 (ID)</th>
+                        <th scope="col" class="text-nowrap col-2">申請日期</th>
+                        <th scope="col" class="col-3">建議內容摘要</th>
+                        <th scope="col" class="text-center col-1">操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr v-for="app in pendingApplications" :key="app.applicationId">
-                        <td class="text-center small">{{ app.applicationId }}</td>
+                        <td class="text-center">{{ app.applicationId }}</td>
                         <td class="text-center">
                             <span :class="getBadgeClass(app.applicationType)" class="badge">
                                 {{ formatApplicationType(app.applicationType) }}
                             </span>
                         </td>
-                        <td class="small text-nowrap">
-                            <span :title="`商店ID: ${app.requestedShopId}`">
+                        <td> <span :title="`商店ID: ${app.requestedShopId}`">
                                 {{ app.requestedShopName || `ID: ${app.requestedShopId}` }}
                             </span>
                         </td>
-                        <td class="small text-nowrap">
-                            <span :title="`用戶ID: ${app.requestedBySellerId}`">
+                        <td> <span :title="`用戶ID: ${app.requestedBySellerId}`">
                                 {{ app.requestedBySellerName || `ID: ${app.requestedBySellerId}` }}
                             </span>
                         </td>
-                        <td class="small text-nowrap">{{ formatDateTime(app.applicationDate) }}</td>
-                        <td class="text-center small">{{ app.targetCouponId || '-' }}</td>
+                        <td class="text-nowrap">{{ formatDateTime(app.applicationDate) }}</td>
                         <td>
-                            <ul v-if="app.applicationType !== 'DELETE'" class="list-unstyled mb-0 small summary-list">
+                            <ul v-if="app.applicationType !== 'DELETE'" class="list-unstyled mb-0 summary-list">
                                 <li v-if="app.couponName"><strong>名稱:</strong> {{ app.couponName }}</li>
                                 <li v-if="app.couponCode"><strong>代碼:</strong> {{ app.couponCode }}</li>
-                                <li v-if="app.discountType"><strong>折扣:</strong> {{ formatDiscountType(app.discountType)
-                                    }} {{ formatDiscountValue(app.discountValue, app.discountType) }}</li>
+                                <li v-if="app.discountType != null"><strong>折扣:</strong> {{
+                                    formatDiscountType(app.discountType) }} {{ formatDiscountValue(app.discountValue,
+                                        app.discountType) }}</li>
                                 <li v-if="app.startDate"><strong>期限:</strong> {{ formatDate(app.startDate) }} ~ {{
                                     formatDate(app.endDate) }}</li>
                                 <li v-if="app.usageLimit != null"><strong>限制:</strong> 總 {{ app.usageLimit }} / 每人 {{
@@ -65,11 +61,10 @@
                                     <strong>描述:</strong> {{ app.description }}
                                 </li>
                             </ul>
-                            <span v-else class="text-muted small"> (刪除申請無建議內容)</span>
+                            <span v-else class="text-muted fst-italic"> (刪除申請無建議內容)</span>
                         </td>
-                        <td class="text-center action-buttons">
-                            <button class="btn btn-success btn-sm me-1 mb-1" @click="handleApprove(app)"
-                                :disabled="isProcessing === app.applicationId"
+                        <td class="text-center action-buttons"> <button class="btn btn-success btn-sm me-1 mb-1"
+                                @click="handleApprove(app)" :disabled="isProcessing === app.applicationId"
                                 :title="`核准 ${formatApplicationType(app.applicationType)} 申請`">
                                 <span v-if="isProcessing === app.applicationId && currentAction === 'approve'"
                                     class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
@@ -88,7 +83,6 @@
                 </tbody>
             </table>
         </div>
-
     </div>
 </template>
 
@@ -254,34 +248,28 @@ onMounted(() => {
 
 <style scoped>
 .container-fluid {
-    padding-top: 50px;
+    padding-top: 25px;
+}
+
+.review-table th,
+.review-table td {
+    vertical-align: middle;
+    padding: 0.5rem 0.75rem;
 }
 
 .review-table th {
     white-space: nowrap;
     background-color: #f8f9fa;
-    vertical-align: middle;
-    /* 表頭也垂直居中 */
 }
 
-.review-table td {
-    vertical-align: middle;
-    font-size: 0.9rem;
-    /* 稍微縮小表格內文字 */
-}
-
-.review-table .badge {
-    /* 調整 badge 大小 */
-    font-size: 0.75em;
-    padding: 0.3em 0.6em;
-    font-weight: 500;
+.review-table .small {
+    font-size: 0.875em;
 }
 
 .summary-list {
     padding-left: 0;
     margin-bottom: 0;
-    line-height: 1.4;
-    /* 調整行高 */
+    line-height: 1.5;
 }
 
 .summary-list li {
@@ -289,34 +277,45 @@ onMounted(() => {
 }
 
 .description-truncate {
-    /* 描述截斷 */
     display: block;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 200px;
-    /* 限制最大寬度，可調整 */
+    max-width: 220px;
 }
 
+/* 可調整寬度 */
 .action-buttons button {
-    /* min-width: 70px; */
-    /* 移除最小寬度，讓按鈕更緊湊 */
     margin-bottom: 0.25rem;
-    padding: 0.25rem 0.5rem;
-    /* 調整按鈕 padding */
-    font-size: 0.8rem;
-    /* 調整按鈕字體大小 */
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
 }
 
 .action-buttons .btn i {
-    vertical-align: text-bottom;
-    /* 圖標對齊 */
+    margin-right: 0.25rem;
 }
 
 .sticky-top {
-    padding-top: 60px;
-    /* 假設 Navbar 高度為 60px，讓表頭可以吸頂 */
+    position: sticky;
+    top: 35px;
     z-index: 900;
-    /* 確保在內容之上 */
+}
+
+.badge {
+    font-weight: 500;
+}
+
+.caption-top {
+    caption-side: top;
+    text-align: left;
+    color: #6c757d;
+    padding-bottom: 0.5rem;
+}
+
+.table-responsive {
+    max-height: calc(100vh - 200px);
+    overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
 }
 </style>
