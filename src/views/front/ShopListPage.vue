@@ -30,22 +30,28 @@
             找不到符合條件的商店。
         </div>
 
-        <div v-else class="list-group shop-list mt-3">
+        <div class="list-group shop-list mt-3">
             <a href="#" v-for="shop in shops" :key="shop.shopId"
-                class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
+                class="list-group-item list-group-item-action px-0 py-2"
                 :class="{ active: selectedShopId === shop.shopId }" @click.prevent="selectShop(shop.shopId)">
-                <div class="shop-info text-truncate me-3">
-                    <span class="fw-bold me-2">#{{ shop.shopId }}</span>
-                    <span class="me-3" :title="shop.shopName">{{ shop.shopName }}</span>
-                    <small class="text-muted" :title="shop.userName"> (賣家: {{ shop.userName || 'N/A' }})</small>
+                <div class="row align-items-center gx-2">
+                    <div class="col-auto text-center ps-3">
+                        <span class="fw-bold small">#{{ shop.shopId }}</span>
+                    </div>
+                    <div class="col text-truncate"> <span :title="shop.shopName">{{ shop.shopName }}</span>
+                        <small class="text-muted ms-2" :title="shop.userName">(賣家: {{ shop.userName || 'N/A' }})</small>
+                    </div>
+                    <div class="col-auto ms-auto pe-3">
+                        <button class="btn btn-primary btn-sm flex-shrink-0" @click.stop="navigateToShop(shop.shopId)"
+                            :disabled="selectedShopId !== shop.shopId" title="進入商店頁面">
+                            <i class="bi bi-box-arrow-in-right"></i>
+                            <span class="d-none d-sm-inline ms-1">進入</span>
+                        </button>
+                    </div>
                 </div>
-                <button class="btn btn-primary btn-sm flex-shrink-0" @click.stop="navigateToShop(shop.shopId)"
-                    :disabled="selectedShopId !== shop.shopId" title="進入商店頁面">
-                    <i class="bi bi-box-arrow-in-right"></i>
-                    <span class="d-none d-sm-inline ms-1">進入</span>
-                </button>
             </a>
         </div>
+
 
         <nav v-if="pagination.totalPages > 1 && !isLoading" class="mt-4 d-flex justify-content-center">
             <ul class="pagination pagination-sm mb-0">
@@ -158,36 +164,64 @@ onMounted(() => {
 <style scoped>
 .shop-list-page {
     padding-bottom: 3rem;
-    /* 確保底部有足夠空間給分頁 */
 }
 
-.shop-list .list-group-item {
-    cursor: pointer;
+.list-group-item {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
     transition: background-color 0.15s ease-in-out;
-    font-size: 0.95rem;
-    /* 調整字體大小 */
+    overflow: hidden;
 }
 
-.shop-list .list-group-item.active {
+.list-group-item.active {
     z-index: 2;
     background-color: #cfe2ff;
-    border-color: #9ec5fe;
+    border-color: #cfe2ff;
     color: #0a58ca;
 }
 
-.shop-info {
-    min-width: 0;
-    padding-right: 1rem;
+.list-group-item.active .text-muted {
+    color: #0a58ca !important;
+    opacity: 0.8;
 }
 
-.pagination {
-    margin-bottom: 0;
-}
-
-.pagination-sm .page-link {
-    padding: 0.25rem 0.5rem;
+.btn-sm {
+    padding: 0.2rem 0.5rem;
     font-size: 0.8rem;
 }
 
-/* 縮小分頁按鈕 */
+.small {
+    font-size: 0.9em;
+}
+
+.text-truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.text-end {
+    text-align: right !important;
+}
+
+.ps-3 {
+    padding-left: 1rem !important;
+}
+
+.pe-3 {
+    padding-right: 1rem !important;
+}
+
+.ms-auto {
+    margin-left: auto !important;
+}
+
+
+.col-md-4 {
+    /* 確保賣家欄位不會過窄 */
+    min-width: 120px;
+    /* 可選 */
+}
+
+/* Bootstrap margin start auto utility */
 </style>
