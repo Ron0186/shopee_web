@@ -126,15 +126,12 @@ const callFind = async (page = 0) => {
     isLoading.value = true;
     pagination.currentPage = page;
     try {
-        // 組合查詢參數
+        // *** 修改：組合查詢參數，使用 searchText ***
         const params = {
             page: pagination.currentPage,
             size: pagination.size,
-            // 可根據 searchQuery.text 添加更多條件到 criteria Map
-            // 例如：如果 text 包含數字，則視為 shopId 或 couponId 搜尋？
-            // 這裡簡化為只搜尋名稱/代碼 (後端 findCouponsInternal 處理)
-            couponName: searchQuery.text || null,
-            // couponCode: searchQuery.text || null, // 可同時搜尋代碼
+            // 將搜尋框內容作為通用 searchText 傳遞
+            searchText: searchQuery.text || null,
         };
 
         // *** 呼叫 Admin 的查詢 API ***

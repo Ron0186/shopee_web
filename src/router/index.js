@@ -495,12 +495,12 @@ const router = createRouter({
           name: "Reviews",
           component: () => import("@/views/admin/Reviews.vue"),
         },
-        {
-          // 優惠券頁面
-          path: "coupons",
-          name: "Coupons",
-          component: () => import("@/views/admin/Coupons.vue"),
-        },
+        // {
+        //   // 優惠券頁面
+        //   path: "coupons",
+        //   name: "Coupons",
+        //   component: () => import("@/views/admin/Coupons.vue"),
+        // },
         {
           // 審核商店申請頁面
           path: "shop/review",

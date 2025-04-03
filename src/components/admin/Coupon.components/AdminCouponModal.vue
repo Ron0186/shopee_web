@@ -102,7 +102,7 @@
 
             <div class="modal-footer">
               <button type="button" class="btn btn-secondary" @click="closeModal">取消</button>
-              <button type="submit" class="btn btn-primary" :disabled="!isFormValid">
+              <button type="submit" class="btn btn-primary">
                 {{ isInsert ? "新增" : "儲存更新" }}
               </button>
             </div>
@@ -116,8 +116,8 @@
       </div>
     </div>
   </div>
+  <div v-if="isVisible" class="modal-backdrop fade show"></div>
 </template>
-
 <script setup>
 import { ref, computed, watch, reactive } from "vue";
 
