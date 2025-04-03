@@ -75,9 +75,9 @@ import AdminCouponListItem from "./AdminCouponListItem.vue";
 import AdminCouponModal from "./AdminCouponModal.vue";
 import CouponSelect from "./CouponSelect.vue";
 import CouponChart from "./CouponChart.vue";
-// import { useRouter } from 'vue-router'; // 如果需要導航
+import { useRouter } from 'vue-router'; // 如果需要導航
 
-// const router = useRouter(); // 用於導航
+const router = useRouter(); // 用於導航
 
 // --- 狀態管理 ---
 const coupons = ref([]); // 儲存從後端獲取的優惠券列表 (AdminCouponDTO)
@@ -293,9 +293,8 @@ async function fetchMonthlyStats() {
 
 // --- 導航 ---
 function navigateToApplicationReview() {
-    // 使用 Vue Router 導航到審核頁面
-    // router.push({ name: 'AdminCouponApplicationReview' }); // 假設路由名稱
-    alert("導航到審核頁面 (待實現)");
+    router.push('/admin/coupon/applicationReview');
+
 }
 
 
@@ -369,12 +368,5 @@ console.log('Visible Pages:', visiblePages.value);
     /* 淺灰色背景 */
     font-size: 0.9rem;
     color: #495057;
-}
-
-.nav {
-    background-color: yellow !important;
-    border: 5px solid red !important;
-    position: relative;
-    z-index: 9999 !important;
 }
 </style>

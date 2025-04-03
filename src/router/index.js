@@ -517,6 +517,16 @@ const router = createRouter({
             ),
           props: true,
         },
+        {
+          //前往審核優惠券申請頁面
+          path: "/admin/coupon/applicationReview",
+          name: "applicationReview-link",
+          component: () =>
+            import(
+              "@/components/admin/Coupon.components/CouponApplicationReview.vue"
+            ),
+          props: true,
+        },
         // {
         //   //test add selector
         //   path: '/add/test',
