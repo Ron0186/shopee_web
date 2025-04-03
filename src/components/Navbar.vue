@@ -121,6 +121,10 @@
         <router-link v-if="userStore.isSeller" to="seller/coupon/apply" @click="toggleDrawer">🎟️
           優惠券申請</router-link>
       </li>
+      <router-link :to="{ name: 'ShopListPage' }" class="btn btn-outline-primary">
+        <i class="bi bi-shop-window"></i> 查看商店列表
+      </router-link>
+
     </ul>
   </div>
 </template>

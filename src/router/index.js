@@ -346,6 +346,12 @@ const router = createRouter({
           name: "CouponApply",
           component: () => import("@/views/front/CouponApplicationForm.vue"),
           meta: { requiresAuth: true, role: "SELLER" } // 設定路由元信息
+        },
+        {
+          path: "/shops/list", // 或者 'shop-list' 等你喜歡的路徑
+          name: "ShopListPage", // 給路由命名
+          component: () => import("@/views/front/ShopListPage.vue"), // 指向新元件
+          // meta: { requiresAuth: true } // 看是否需要登入才能查看列表
         }
       ],
     },
