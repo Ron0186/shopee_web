@@ -74,56 +74,52 @@
           </p>
         </div>
 
-        <!-- 顏色選擇 -->
-        <div class="mb-3">
-          <p class="mb-2">顏色：{{ selectedColor || "請選擇" }}</p>
-          <div class="d-flex">
+        <!-- 動態生成每種規格的選擇器 -->
+        <div v-for="(values, specName) in specs" :key="specName" class="mb-3">
+          <p class="mb-2">
+            {{ specName }}：{{ selectedSpecs[specName] || "請選擇" }}
+          </p>
+
+          <!-- 顏色規格使用顏色圓點 -->
+          <div v-if="specName === '顏色'" class="d-flex">
             <div
-              v-for="(color, index) in colors"
+              v-for="(item, index) in values"
               :key="index"
               class="color-option me-2 mb-2"
-              @click="selectColor(color)"
+              @click="selectSpec(specName, item.value)"
             >
               <div
                 class="color-circle"
                 :style="{
-                  backgroundColor: color.hexCode,
+                  backgroundColor: item.hexCode,
                   border:
-                    selectedColor === color.name
+                    selectedSpecs[specName] === item.value
                       ? '2px solid #000'
                       : '1px solid #ddd',
                 }"
-                :title="color.name"
+                :title="item.value"
               ></div>
             </div>
           </div>
-        </div>
 
-        <!-- 尺寸選擇 -->
-        <div class="mb-4">
-          <p class="mb-2">尺寸：{{ selectedSize || "請選擇" }}</p>
-          <div class="d-flex flex-wrap">
+          <!-- 其他規格使用按鈕 -->
+          <div v-else class="d-flex flex-wrap">
             <button
-              v-for="size in sizes"
-              :key="size"
+              v-for="(item, index) in values"
+              :key="index"
               type="button"
               class="btn me-2 mb-2"
               :class="
-                selectedSize === size ? 'btn-dark' : 'btn-outline-secondary'
+                selectedSpecs[specName] === item.value
+                  ? 'btn-dark'
+                  : 'btn-outline-secondary'
               "
-              style="min-width: 50px; border-radius: 50%"
-              @click="selectSize(size)"
+              style="min-width: 50px"
+              @click="selectSpec(specName, item.value)"
             >
-              {{ size }}
+              {{ item.value }}
             </button>
           </div>
-          <a
-            href="#"
-            class="text-decoration-none"
-            @click.prevent="showSizeGuide = true"
-          >
-            <i class="bi bi-rulers me-1"></i>尺寸相關資訊
-          </a>
         </div>
 
         <!-- 配送方式 -->
@@ -190,7 +186,7 @@
             >
               <i class="bi bi-plus"></i>
             </button>
-            <span class="ms-3">庫存充足</span>
+            <span class="ms-3">{{ stockStatus }}</span>
           </div>
         </div>
 
@@ -535,7 +531,11 @@ const currentPrice = computed(() => {
 
 // 是否可以加入購物車
 const canAddToCart = computed(() => {
-  return selectedColor.value && selectedSize.value && quantity.value > 0;
+  // 檢查是否所有規格都已選擇
+  const allSpecsSelected = Object.keys(specs.value).every(
+    (specName) => selectedSpecs.value[specName]
+  );
+  return allSpecsSelected && quantity.value > 0;
 });
 
 // 監聽 Modal 顯示
@@ -631,65 +631,162 @@ const addToCart = () => {
 const fetchProductDetail = async () => {
   try {
     console.log("獲取商品詳情, 商品ID:", productId);
-    // 實際使用時請替換為真實API路徑
-    const response = await axios.get(`/api/products/${productId}`);
+
+    // 使用新的API路徑獲取完整商品詳情
+    const response = await axios.get(`/api/products/${productId}/detail`);
 
     if (response.status === 200 && response.data) {
       console.log("商品詳情原始回應:", response.data);
-      product.value = response.data;
+
+      // 設置商品基本信息
+      product.value = response.data.product;
+
+      // 設置SKU資料
+      skus.value = response.data.skus || [];
 
       // 處理圖片資源
       if (
-        response.data.productImages &&
-        Array.isArray(response.data.productImages) &&
-        response.data.productImages.length > 0
+        response.data.product.productImages &&
+        Array.isArray(response.data.product.productImages) &&
+        response.data.product.productImages.length > 0
       ) {
-        productImages.value = response.data.productImages.map((img) =>
+        productImages.value = response.data.product.productImages.map((img) =>
           typeof img === "string" ? { imagePath: img } : img
         );
         console.log("商品圖片數據:", productImages.value);
-      } else if (response.data.primaryImageUrl || response.data.image) {
-        // 如果沒有 productImages 但有 primaryImageUrl 或 image
+      } else if (
+        response.data.product.primaryImageUrl ||
+        response.data.product.image
+      ) {
         console.log("使用主圖/圖片字段:", {
-          primaryImageUrl: response.data.primaryImageUrl,
-          image: response.data.image,
+          primaryImageUrl: response.data.product.primaryImageUrl,
+          image: response.data.product.image,
         });
-      } else {
-        console.log("沒有找到商品圖片，將使用默認測試圖片");
-        // 假設的測試圖片，實際應用中應使用真實的商品圖片
-        productImages.value = [
-          "/assets/product-1.jpg",
-          "/assets/product-2.jpg",
-          "/assets/product-3.jpg",
-          "/assets/product-4.jpg",
-        ].map((path) => ({ imagePath: path }));
       }
     }
+
+    // 處理規格信息
+    processSpecifications(response.data.specifications);
   } catch (error) {
     console.error("獲取商品詳情失敗:", error);
-
-    // 載入失敗時使用默認數據 (僅用於開發測試)
-    product.value = {
-      productId: "356852",
-      productName: "男裝 男女適穿 牛仔boxy工作襯衫[5分袖][童版]",
-      description:
-        "這款工作襯衫採用柔軟舒適的布料，簡約設計風格適合男女穿著。寬鬆的boxy剪裁提供舒適的穿著體驗，五分袖設計適合春夏季節。",
-      price: 790,
-      originalPrice: 990,
-      stock: 100,
-      rating: 4.5,
-      reviewCount: 12,
-    };
-
-    // 測試用圖片
-    productImages.value = [
-      { imagePath: "https://via.placeholder.com/500x600?text=Product+Image+1" },
-      { imagePath: "https://via.placeholder.com/500x600?text=Product+Image+2" },
-      { imagePath: "https://via.placeholder.com/500x600?text=Product+Image+3" },
-      { imagePath: "https://via.placeholder.com/500x600?text=Product+Image+4" },
-    ];
   }
 };
+
+const processSpecifications = (specifications) => {
+  if (!specifications || !Array.isArray(specifications)) return;
+
+  // 清空現有規格
+  specs.value = {};
+  selectedSpecs.value = {};
+
+  // 遍歷所有規格類型
+  specifications.forEach((spec) => {
+    const specName = spec.specName; // 例如："顏色", "容量"
+    if (spec.values && spec.values.length > 0) {
+      // 為每種規格類型創建一個數組
+      specs.value[specName] = spec.values.map((v) => {
+        // 針對顏色規格，添加hexCode
+        if (specName === "顏色") {
+          return {
+            value: v.value,
+            hexCode: getColorHexCode(v.value),
+          };
+        }
+        return { value: v.value };
+      });
+    }
+  });
+
+  console.log("處理後的規格:", specs.value);
+};
+
+const specs = ref({}); // 用於存儲所有類型的規格
+const selectedSpecs = ref({}); // 用於存儲用戶選擇的規格值
+const skus = ref([]);
+const selectedSku = ref(null);
+
+// 選擇規格
+const selectSpec = (specName, value) => {
+  selectedSpecs.value[specName] = value;
+  updateSelectedSku();
+};
+
+// 根據當前選擇的所有規格找到對應的SKU
+const findMatchingSku = () => {
+  // 檢查是否所有必要的規格都已選擇
+  const allSpecsSelected = Object.keys(specs.value).every(
+    (specName) => selectedSpecs.value[specName]
+  );
+
+  if (!allSpecsSelected || !skus.value.length) {
+    return null;
+  }
+
+  // 尋找匹配所有已選規格的SKU
+  return skus.value.find((sku) => {
+    const specPairs = sku.specPairs || {};
+    return Object.keys(selectedSpecs.value).every(
+      (specName) => specPairs[specName] === selectedSpecs.value[specName]
+    );
+  });
+};
+
+// 更新當前價格和庫存
+const updateSelectedSku = () => {
+  selectedSku.value = findMatchingSku();
+
+  if (selectedSku.value) {
+    // 更新價格
+    product.value.price = selectedSku.value.price;
+
+    // 更新庫存
+    const stockAvailable = selectedSku.value.stock || 0;
+    if (stockAvailable <= 0) {
+      stockStatus.value = "售罄";
+    } else if (stockAvailable < 10) {
+      stockStatus.value = `庫存緊張 (剩餘${stockAvailable}件)`;
+    } else {
+      stockStatus.value = "庫存充足";
+    }
+
+    // 限制購買數量不超過庫存
+    if (quantity.value > stockAvailable) {
+      quantity.value = Math.max(1, stockAvailable);
+    }
+  }
+};
+
+// 監聽所有規格選擇的變化
+watch(
+  selectedSpecs,
+  () => {
+    updateSelectedSku();
+  },
+  { deep: true }
+);
+
+const getColorHexCode = (colorName) => {
+  // 顏色映射表
+  const colorMap = {
+    米白: "#F5F5DC",
+    深灰: "#444444",
+    牛仔藍: "#5D8AA8",
+    黑色: "#000000",
+    白色: "#FFFFFF",
+    灰色: "#808080",
+    藍色: "#0000FF",
+    紅色: "#FF0000",
+    綠色: "#008000",
+    黃色: "#FFFF00",
+    紫色: "#800080",
+    粉色: "#FFC0CB",
+    橙色: "#FFA500",
+  };
+
+  return colorMap[colorName] || "#CCCCCC"; // 若找不到顏色則返回默認灰色
+};
+
+const stockStatus = ref("庫存充足");
 
 // 在元件掛載時獲取商品資訊
 onMounted(async () => {
