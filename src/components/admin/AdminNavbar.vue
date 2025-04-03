@@ -7,7 +7,10 @@
                 <i class="fas fa-home"></i> 前往前台
             </button>
             <div class="dropdown">
-                <button class="icon-btn">👤</button>
+                <button class="user-btn">
+                    <span class="user-info">{{ username }} (id:{{ userId }})</span>
+                    <span class="user-icon">👤</span>
+                </button>
                 <div class="dropdown-content">
                     <router-link to="/admin/profile">個人資料</router-link>
                     <router-link to="/admin/settings">設定</router-link>
@@ -22,36 +25,68 @@
 import { useUserStore } from '@/stores/user';
 import Swal from 'sweetalert2';
 import { useRouter } from "vue-router";
+import { ref, onMounted } from 'vue';
+
 const router = useRouter();
+const userStore = useUserStore();
+const username = ref('');
+const userId = ref('');
 
-const userStore=useUserStore();
+// 在組件掛載時從 localStorage 獲取用戶資訊
+onMounted(() => {
+    // 嘗試從 localStorage 獲取資訊
+    const storedUsername = localStorage.getItem('username');
+    const storedUserId = localStorage.getItem('userId');
+    
+    // 如果有資料，則設置到響應式變數中
+    if (storedUsername) username.value = storedUsername;
+    if (storedUserId) userId.value = storedUserId;
+    
+    // 如果 localStorage 中沒有資料，但 userStore 中有，則使用 userStore 中的數據
+    if ((!storedUsername || !storedUserId) && userStore.userData) {
+        if (!storedUsername && userStore.userData.username) {
+            username.value = userStore.userData.username;
+        }
+        if (!storedUserId && userStore.userData.userId) {
+            userId.value = userStore.userData.userId;
+        }
+    }
+});
+
 async function logout() {
-
-  // 清除 pinia userStore
-  userStore.clearUserData();
-  
-  await Swal.fire({
-          title: "登出成功",
-          icon: "success",
-        });
-  // 跳轉到登入頁
-  router.push({ name: "AdminLogin" });
+    // 清除 pinia userStore
+    userStore.clearUserData();
+    
+    // 清除 localStorage 中的用戶資訊
+    localStorage.removeItem('username');
+    localStorage.removeItem('userId');
+    
+    await Swal.fire({
+        title: "登出成功",
+        icon: "success",
+    });
+    // 跳轉到登入頁
+    router.push({ name: "AdminLogin" });
 }
 
-// 新增登出並跳轉到前台登入頁的函數
+// 登出並跳轉到前台登入頁的函數
 async function logoutToFrontend() {
-  // 清除 pinia userStore
-  userStore.clearUserData();
-  
-  await Swal.fire({
-    title: "已登出後台",
-    text: "正在前往前台登入頁面",
-    icon: "success",
-    confirmButtonText: "OK",
-  });
-  
-  // 跳轉到前台登入頁
-  window.location.href = "/user/login";
+    // 清除 pinia userStore
+    userStore.clearUserData();
+    
+    // 清除 localStorage 中的用戶資訊
+    localStorage.removeItem('username');
+    localStorage.removeItem('userId');
+    
+    await Swal.fire({
+        title: "已登出後台",
+        text: "正在前往前台登入頁面",
+        icon: "success",
+        confirmButtonText: "OK",
+    });
+    
+    // 跳轉到前台登入頁
+    window.location.href = "/user/login";
 }
 </script>
 
@@ -99,6 +134,48 @@ async function logoutToFrontend() {
     color: white;
     font-size: 20px;
     cursor: pointer;
+}
+
+/* 使用者按鈕樣式 */
+.user-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    padding: 6px 12px;
+    transition: all 0.3s ease;
+}
+
+.user-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.user-info {
+    font-size: 14px;
+    font-weight: 500;
+    max-width: 150px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.user-icon {
+    font-size: 18px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    padding: 4px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* 前往前台按鈕樣式 */

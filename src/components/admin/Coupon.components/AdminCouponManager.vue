@@ -358,9 +358,9 @@ console.log('Visible Pages:', visiblePages.value);
     overflow: visible;
 }
 
-.container-fluid {
+/* .container-fluid {
     padding-top: 60px;
-}
+} */
 
 
 .coupon-list-header {

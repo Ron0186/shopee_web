@@ -472,6 +472,12 @@ const router = createRouter({
           component: () => import("@/views/admin/ProductReview.vue"),
         },
         {
+          // 管理員個人資料頁面
+          path: "profile",
+          name: "AdminProfile",
+          component: () => import("@/views/admin/AdminProfile.vue"),
+        },
+        {
           // 分類管理頁面
           path: "category-management",
           name: "categoryManagement",
