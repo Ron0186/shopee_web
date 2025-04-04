@@ -45,7 +45,7 @@
         <h2 class="mb-2">{{ product.productName }}</h2>
 
         <!-- 商品編號 -->
-        <p class="text-muted small mb-3">{{ product.productId }}</p>
+        <!-- <p class="text-muted small mb-3">{{ product.productId }}</p> -->
 
         <!-- 評分 -->
         <div class="mb-3 d-flex align-items-center">
@@ -65,9 +65,13 @@
 
         <!-- 價格 -->
         <div class="mb-4">
-          <h3 class="mb-1">NT${{ currentPrice }}</h3>
+          <h3 class="mb-1" v-html="priceDisplay"></h3>
           <p
-            v-if="product.originalPrice && product.originalPrice > currentPrice"
+            v-if="
+              selectedSku &&
+              product.originalPrice &&
+              product.originalPrice > currentPrice
+            "
             class="text-muted"
           >
             <del>原價：NT${{ product.originalPrice }}</del>
@@ -199,9 +203,6 @@
           >
             加入購物車
           </button>
-          <button class="btn btn-outline-dark">
-            <i class="bi bi-heart me-2"></i>加入收藏
-          </button>
         </div>
       </div>
     </div>
@@ -252,16 +253,6 @@
             <div class="p-3">
               <h4>商品描述</h4>
               <p>{{ product.description }}</p>
-              <div class="product-details mt-4">
-                <h5>商品特點</h5>
-                <ul>
-                  <li>100% 純棉材質</li>
-                  <li>經典工作襯衫設計</li>
-                  <li>前胸雙口袋</li>
-                  <li>適合日常穿搭</li>
-                  <li>機洗</li>
-                </ul>
-              </div>
             </div>
           </div>
           <div class="tab-pane fade" id="reviews" role="tabpanel">
@@ -526,7 +517,39 @@ const handleImageError = (e) => {
 
 // 價格計算
 const currentPrice = computed(() => {
-  return product.value.price || 790;
+  // 如果有選中的SKU，返回SKU價格
+  if (selectedSku.value) {
+    return selectedSku.value.price;
+  }
+
+  // 否則返回商品基本價格
+  return product.value.price || 0;
+});
+
+// 新增價格顯示計算屬性
+const priceDisplay = computed(() => {
+  // 檢查是否所有規格都已選擇
+  const allSpecsSelected = Object.keys(specs.value).every(
+    (specName) => selectedSpecs.value[specName]
+  );
+
+  // 如果已選擇所有規格並找到對應SKU
+  if (allSpecsSelected && selectedSku.value) {
+    return `NT$${currentPrice.value}`;
+  }
+
+  // 否則顯示價格區間
+  if (product.value.priceRange) {
+    const { minPrice, maxPrice } = product.value.priceRange;
+    if (minPrice === maxPrice) {
+      return `NT$${minPrice}`;
+    } else {
+      return `NT$${minPrice} - NT$${maxPrice}`;
+    }
+  }
+
+  // 沒有價格區間數據時的備選方案
+  return `NT$${product.value.price || 0}`;
 });
 
 // 是否可以加入購物車
