@@ -151,7 +151,7 @@ const submitOrder = async () => {
       receiverZipCode: zipCode.value,
       receiverAddress: receiverStreet.value,
       paymentMethod: paymentMethod.value,
-      totalPrice: totalPrice.value,
+      amount: totalPrice.value,
     };
 
     const orderRes = await axios.post("/api/orders/create", orderRequest);

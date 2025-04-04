@@ -122,7 +122,7 @@ export default {
         const token = localStorage.getItem("token") || "";
 
         const response = await fetch(
-          `http://localhost:8081/api/orders/user/${this.orderId}`,
+          `http://localhost:8081/api/orders/${this.orderId}`,
           {
             method: "GET",
             headers: {
@@ -133,7 +133,8 @@ export default {
         );
 
         if (!response.ok) {
-          throw new Error("獲取訂單失敗");
+          const errorData = await response.json();
+          throw new Error(errorData.message || "獲取訂單失敗");
         }
 
         const data = await response.json();
