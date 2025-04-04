@@ -14,11 +14,16 @@
         <div class="text-center mt-5 pt-4 border-top">
             <h4>找不到您需要的答案嗎？</h4>
             <p class="text-muted">我們的客服團隊很樂意協助您。</p>
-            <button class="btn btn-primary btn-lg" @click="openModal">
+            <button class="btn btn-primary btn-lg position-relative" @click="openModal">
                 <i class="bi bi-chat-dots-fill me-2"></i>
-                即時聊天客服</button>
+                即時聊天客服
+                <span v-if="totalUnreadCount > 0"
+                    class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                    {{ totalUnreadCount > 99 ? '99+' : totalUnreadCount }}
+                    <span class="visually-hidden">未讀訊息</span>
+                </span>
+            </button>
         </div>
-
 
         <div v-if="showStoreList" class="modal fade show d-block" tabindex="-1"
             style="background-color: rgba(0,0,0,0.5)">
@@ -30,19 +35,13 @@
                     </div>
                     <div class="modal-body">
                         <div v-if="isLoadingConversations" class="text-center">
-                            <div class="spinner-border text-primary" role="status">
-                                <span class="visually-hidden">載入中...</span>
-                            </div>
-                            <p>載入對話列表中...</p>
                         </div>
-
                         <div v-else-if="conversations.length > 0" class="list-group">
                             <a href="#" v-for="conversation in conversations" :key="conversation.chatRoomId"
                                 class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                 @click.prevent="goToChat(conversation.chatRoomId)">
                                 <div>
-                                    <h5 v-if="isSeller" class="mb-1">與 {{ conversation.buyerName || '未知買家' }} 的對話
-                                    </h5>
+                                    <h5 v-if="isSeller" class="mb-1">與 {{ conversation.buyerName || '未知買家' }} 的對話</h5>
                                     <h5 v-else class="mb-1">與 {{ conversation.sellerName || conversation.shopName ||
                                         '未知賣家' }} 的對話</h5>
                                     <small v-if="isSeller">商店: {{ conversation.shopName || 'N/A' }}</small>
@@ -89,7 +88,7 @@ const selectedArticle = computed(() =>
 
 const chatStore = useChatStore();
 // --- >>> 獲取新的狀態 <<< ---
-const { conversations, isLoadingConversations } = storeToRefs(chatStore);
+const { conversations, isLoadingConversations, totalUnreadCount } = storeToRefs(chatStore);
 // --- >>> ---
 
 
@@ -98,6 +97,46 @@ watch(() => route.params.id, newId => {
 }, { immediate: true });
 
 const isSeller = computed(() => userStore.isSeller); // 獲取賣家身份
+
+// --- 新增：用於標記聊天初始化是否已完成 ---
+const isInitialChatLoadDone = ref(false);
+
+// --- 使用 watch 監聽 isSeller 的變化 ---
+watch(isSeller, async (newValue, oldValue) => {
+    // newValue 是 isSeller.value 的新值
+    console.log(`[Content.vue Watch isSeller] 值從 ${oldValue} 變為 ${newValue}`);
+
+    // 確保 newValue 不再是 undefined，且使用者已登入，且初始化尚未完成
+    if (typeof newValue !== 'undefined' && !isInitialChatLoadDone.value && userStore.userId) {
+        console.log(`[Content.vue Watch isSeller] isSeller 已定義 (${newValue})，執行聊天初始化邏輯...`);
+        isInitialChatLoadDone.value = true; // 標記為已執行，防止重複
+
+        try {
+            if (newValue === true) { // 明確檢查布林值
+                await chatStore.fetchSellerConversations();
+                console.log('[Content.vue Watch] fetchSellerConversations 完成。');
+            } else {
+                await chatStore.fetchBuyerConversations();
+                console.log('[Content.vue Watch] fetchBuyerConversations 完成。');
+            }
+            console.log('%c[Content.vue Watch] fetch 完成後。目前 totalUnreadCount:', 'color: blue; font-weight: bold;', totalUnreadCount.value);
+
+            // 連接 WebSocket
+            await chatStore.connectWebSocket();
+            console.log('[Content.vue Watch] WebSocket 連接嘗試完成。');
+
+        } catch (error) {
+            console.error('[Content.vue Watch] 聊天初始化過程中發生錯誤:', error);
+            isInitialChatLoadDone.value = false; // 允許重試？或設置錯誤狀態
+        }
+    } else if (typeof newValue !== 'undefined' && isInitialChatLoadDone.value) {
+        console.log("[Content.vue Watch isSeller] 聊天初始化邏輯已執行過。");
+    } else if (!userStore.userId) {
+        console.log("[Content.vue Watch isSeller] 使用者未登入。");
+    } else {
+        console.log("[Content.vue Watch isSeller] isSeller 仍然是 undefined。");
+    }
+}, { immediate: true }); // { immediate: true } 讓 watch 在元件掛載時立即執行一次檢查
 
 
 // 同步 localStorage 中的 userId 與 userName 至 sessionStorage
@@ -127,63 +166,43 @@ const closeModal = () => {
 
 };
 
-// --- >>> 新增 goToChat 函數 <<< ---
+onMounted(() => {
+    syncUserInfoToSession(); // 同步 Session Storage 的邏輯可以保留
+    console.log('Content.vue Mounted - Current User ID:', userStore.userId);
+    // 主要的 fetch 和 connect 邏輯已移至 watch 中
+});
+
 const goToChat = (chatRoomId) => {
-    console.log(`goToChat called with chatRoomId: ${chatRoomId}, Type: ${typeof chatRoomId}`); // <-- 加入此行
-    if (!chatRoomId || typeof chatRoomId !== 'number') { // <-- 增加類型檢查
+    console.log(`goToChat called with chatRoomId: ${chatRoomId}, Type: ${typeof chatRoomId}`);
+    if (!chatRoomId || typeof chatRoomId !== 'number') {
         console.error("goToChat: 無效的 chatRoomId:", chatRoomId);
-        Swal.fire("錯誤", `無法識別的聊天室 ID: ${chatRoomId}`, "error"); // 提示具體 ID
+        Swal.fire("錯誤", `無法識別的聊天室 ID: ${chatRoomId}`, "error");
         return;
     }
+
+    // *** 再次檢查 markConversationAsRead 是否存在 ***
+    if (typeof chatStore.markConversationAsRead === 'function') {
+        chatStore.markConversationAsRead(chatRoomId); // 調用 store 中的 action
+    } else {
+        console.error("!!!! chatStore.markConversationAsRead 仍然不是一個函數 !!!! 請檢查 chatStore.js 的定義和導出。");
+        // 即使沒有這個函數，也先讓導航繼續，但未讀數不會被清除
+    }
+
     console.log(`Navigating to chat room URL: /chat/${chatRoomId}`);
     router.push(`/chat/${chatRoomId}`);
     closeModal();
 };
-// --- >>> ---
-
-// --- 聊天導航邏輯 (可以保持不變) ---
-// const buyerChat = async (shopId) => {
-//     console.log(`Buyer attempting to chat with shopId: ${shopId}`);
-//     try {
-//         // 買家點擊，通常是創建或查找房間
-//         // 這裡用 axios 呼叫後端 /api/chat/create 端點
-//         const response = await axios.post('/api/chat/create', { shopId }, {
-//             headers: { Authorization: `Bearer ${authToken.value}` }
-//         });
-//         if (response.data && response.data.chatRoomId) {
-//             router.push(`/chat/${response.data.chatRoomId}`); // 跳轉到聊天室
-//         } else {
-//             throw new Error("無法獲取聊天室 ID");
-//         }
-//     } catch (error) {
-//         console.error("買家聊天啟動失敗:", error);
-//         Swal.fire("錯誤", error.response?.data?.message || "無法開啟聊天", "error");
-//     }
-// };
-
-
-
-
-
-
-onMounted(() => {
-    syncUserInfoToSession(); // 如果需要同步 session storage
-    console.log('Content.vue Mounted - Current User ID:', userStore.userId);
-
-    // 如果是賣家，可以在元件掛載時嘗試載入一次商店和未讀數
-    // 並且確保 WebSocket 連接已建立 (或嘗試建立)
-    if (isSeller.value) {
-        console.log("賣家身份，嘗試載入初始商店數據並連接 WebSocket...");
-
-        chatStore.connectWebSocket(); // connectWebSocket 內部會檢查是否已連接
-    }
-});
-
-
 </script>
 
 <style scoped>
 .help-center {
     text-align: center;
+}
+
+/* 可選：微調 Badge 位置 (如果需要) */
+.btn .badge {
+    /* 預設的 translate-middle 可能會讓 badge 稍微偏離右上角 */
+    /* transform: translate(50%, -50%); */
+    /* 可以試試只向右和向上移動 50% */
 }
 </style>
