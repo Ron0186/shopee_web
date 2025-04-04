@@ -1,7 +1,7 @@
 <template>
     <div class="container-fluid my-4 px-md-4">
         <h3><i class="bi bi-journal-check me-2"></i>審核優惠券申請</h3>
-        <p>請審核以下由賣家提交的優惠券申請。點擊核准將會建立/修改/刪除對應的優惠券。</p>
+        <p>請審核以下由賣家提交的優惠券申請。點擊核准將會建立/刪除對應的優惠券。</p>
 
         <div class="mb-3">
             <button class="btn btn-outline-secondary btn-sm" @click="goBack">
