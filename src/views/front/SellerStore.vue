@@ -451,6 +451,7 @@ const handleBuyNow = async (data) => {
       });
     }
   }
+};
 
 // 移除了編輯商品和刪除商品的相關函數
 

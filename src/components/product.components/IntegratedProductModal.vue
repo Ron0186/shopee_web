@@ -780,11 +780,7 @@ const loadProductData = async () => {
 };
 
 const confirmGenerateSkuList = () => {
-<<<<<<< HEAD
-  if (isEdit.value && generatedSkus.value.length > 0) {
-=======
   if (props.isEdit && generatedSkus.value.length > 0) {
->>>>>>> origin/vicc9
     Swal.fire({
       title: "確認操作",
       text: "在編輯模式下，重新生成 SKU 列表可能會導致資料丟失。是否繼續？",
@@ -1439,14 +1435,6 @@ const validateBasicInfo = (silent = false) => {
 const nextStep = async () => {
   if (!validateBasicInfo()) return;
 
-<<<<<<< HEAD
-  // 新增模式先保存基本資訊
-  if (!props.isEdit && !productData.productId) {
-    await saveBasicInfo();
-  }
-
-=======
->>>>>>> origin/vicc9
   // 在切换到 SKU 标签前，确保 SKU 数据已加载
   if (
     props.isEdit &&
@@ -1799,34 +1787,6 @@ const markSkuForDeletion = (skuId) => {
 
 const submitProductWithSku = async () => {
   try {
-<<<<<<< HEAD
-    if (!productData.productId) {
-      const saved = await saveBasicInfo();
-      if (!saved || !productData.productId) {
-        Swal.fire({
-          title: "錯誤",
-          text: "未能獲取商品ID",
-          icon: "error",
-        });
-        return;
-      }
-    }
-
-    if (skipSku.value || generatedSkus.value.length === 0) {
-      closeModal();
-      Swal.fire({
-        title: "新增成功",
-        text: "商品已成功新增",
-        icon: "success",
-        timer: 1500,
-        showConfirmButton: false,
-      });
-      emit("refresh");
-      return;
-    }
-
-    if (!validateGeneratedSkus()) {
-=======
     // 驗證基本資料
     if (!validateBasicInfo()) {
       activeTab.value = "basic";
@@ -1835,37 +1795,11 @@ const submitProductWithSku = async () => {
 
     // 如果有 SKU 資料，驗證其有效性
     if (generatedSkus.value.length > 0 && !validateGeneratedSkus()) {
->>>>>>> origin/vicc9
       return;
     }
 
     isSubmitting.value = true;
 
-<<<<<<< HEAD
-    // 創建SKU數據
-    const skuData = generatedSkus.value.map((sku) => ({
-      specPairs: { ...sku.specPairs },
-      price: sku.price,
-      stock: sku.stock,
-    }));
-
-    const response = await axios.post(
-      `/api/products/${productData.productId}/skus/batch`,
-      skuData,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
-
-    if (response.status >= 200 && response.status < 300) {
-      closeModal();
-      Swal.fire({
-        title: "新增成功",
-        text: "商品及SKU已成功新增",
-=======
     // 創建 FormData 對象
     const formData = new FormData();
 
@@ -1928,22 +1862,10 @@ const submitProductWithSku = async () => {
       Swal.fire({
         title: "新增成功",
         text: "商品及相關資料已成功新增",
->>>>>>> origin/vicc9
         icon: "success",
         timer: 1500,
         showConfirmButton: false,
       });
-<<<<<<< HEAD
-      emit("refresh");
-    } else {
-      throw new Error("新增SKU失敗");
-    }
-  } catch (error) {
-    console.error("新增SKU錯誤:", error);
-    Swal.fire({
-      title: "新增失敗",
-      text: error.response?.data?.message || "無法新增SKU",
-=======
 
       // 關閉模態窗並刷新資料
       closeModal();
@@ -1968,7 +1890,6 @@ const submitProductWithSku = async () => {
     Swal.fire({
       title: "新增失敗",
       text: errorMsg,
->>>>>>> origin/vicc9
       icon: "error",
     });
   } finally {
