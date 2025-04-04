@@ -1118,9 +1118,76 @@ const removeNewImage = (index) => {
   newImages.value.splice(index, 1);
 };
 
-const setExistingImageAsPrimary = (index) => {
-  resetAllPrimaryFlags();
-  existingImages.value[index].isPrimary = true;
+const setExistingImageAsPrimary = async (index) => {
+  try {
+    // 获取要设为主图的图片ID
+    const imageId =
+      existingImages.value[index].id || existingImages.value[index].imageId;
+
+    if (!imageId) {
+      console.error("無法設為主圖：找不到圖片ID");
+      Swal.fire({
+        title: "錯誤",
+        text: "無法設為主圖：找不到圖片ID",
+        icon: "error",
+      });
+      return;
+    }
+
+    // 顯示處理中提示
+    const loading = Swal.fire({
+      title: "處理中...",
+      text: "正在設置主圖",
+      allowOutsideClick: false,
+      showConfirmButton: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    // 向後端發送更新主圖的請求
+    const response = await axios.put(
+      `/api/products/${productData.productId}/complete`,
+      {},
+      {
+        params: { primaryImageId: imageId },
+        headers: { Authorization: `Bearer ${token}` },
+      }
+    );
+
+    // 關閉加載提示
+    loading.close();
+
+    if (response.status >= 200 && response.status < 300) {
+      // 更新前端狀態
+      resetAllPrimaryFlags();
+      existingImages.value[index].isPrimary = true;
+
+      // 顯示成功訊息
+      Swal.fire({
+        title: "成功",
+        text: "已成功設置為主圖",
+        icon: "success",
+        timer: 1500,
+      });
+    } else {
+      throw new Error("設置主圖失敗");
+    }
+  } catch (error) {
+    console.error("設置主圖失敗:", error);
+    Swal.fire({
+      title: "設置失敗",
+      text: error.response?.data?.message || "設置主圖時發生錯誤",
+      icon: "error",
+    });
+
+    // 恢復原始狀態（不改變主圖設置）
+    const primaryIndex = existingImages.value.findIndex((img) => img.isPrimary);
+    if (primaryIndex >= 0) {
+      resetAllPrimaryFlags();
+      existingImages.value[primaryIndex].isPrimary = true;
+    }
+  }
 };
 
 const setNewImageAsPrimary = (index) => {
