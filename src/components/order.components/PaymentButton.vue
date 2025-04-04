@@ -61,6 +61,7 @@ export default {
       }
     },
 
+    // 改進的支付按鈕處理方法
     async initiatePayment() {
       this.isLoading = true;
       try {
@@ -78,29 +79,38 @@ export default {
           return;
         }
 
-        // 使用相對路徑
+        // 使用相對路徑取得付款表單
         const response = await axios.get(
           `/api/payment/redirect/${this.orderId}`,
           {
             headers,
-            // 明確指定響應類型
             responseType: "json",
           }
         );
 
-        console.log("付款響應:", response.data); // 新增日誌
+        console.log("付款回應:", response.data);
 
+        // 處理響應
         if (response.data && response.data.formHtml) {
-          // 創建一個臨時div來插入HTML
+          // 創建一個隱藏的表單元素
           const tempDiv = document.createElement("div");
+          tempDiv.style.display = "none";
           tempDiv.innerHTML = response.data.formHtml;
+          document.body.appendChild(tempDiv);
 
           const form = tempDiv.querySelector("form");
           if (form) {
-            document.body.appendChild(form);
+            // 確保表單方法是 POST
+            form.setAttribute("method", "POST");
+            // 確保表單目標正確
+            if (!form.getAttribute("target")) {
+              form.setAttribute("target", "_self");
+            }
+
+            // 提交表單
             form.submit();
           } else {
-            throw new Error("未找到支付表單");
+            throw new Error("未找到支付表單，請聯繫客服");
           }
         } else if (response.data && response.data.redirectUrl) {
           // 如果有重定向URL，直接跳轉
@@ -113,16 +123,24 @@ export default {
         this.isLoading = false;
 
         // 更詳細的錯誤處理
+        let errorMessage = "支付發起失敗，請稍後再試";
+
         if (error.response) {
           // 伺服器返回了錯誤響應
-          alert(`支付發起失敗: ${error.response.data.error || error.message}`);
+          errorMessage = `支付發起失敗: ${
+            error.response.data.error ||
+            error.response.data.message ||
+            error.message
+          }`;
         } else if (error.request) {
           // 請求已發出，但沒有收到響應
-          alert("網絡錯誤：未收到伺服器響應");
+          errorMessage = "網絡錯誤：未收到伺服器響應，請檢查網絡連接";
         } else {
           // 在設置請求時發生了錯誤
-          alert("支付發起失敗: " + error.message);
+          errorMessage = "支付發起失敗: " + error.message;
         }
+
+        alert(errorMessage);
       }
     },
   },

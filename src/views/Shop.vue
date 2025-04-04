@@ -344,11 +344,46 @@ const changePage = (newPage) => {
   }
 };
 
-// 🛒 加入購物車
-const addToCart = (product) => {
-  console.log("加入購物車:", product);
-  alert(`${product.productName} 已加入購物車！`);
-  // 這裡可以實現實際的購物車邏輯
+const addToCart = async (product) => {
+  const token =
+    localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
+  const userId = Number(
+    localStorage.getItem("userId") || sessionStorage.getItem("userId")
+  );
+
+  if (!token || !userId) {
+    alert("請先登入再使用購物車功能！");
+    return;
+  }
+
+  // 🔍 先檢查 product 有沒有 skuId
+  if (!product.skuId) {
+    console.error("❌ product.skuId 缺失", product);
+    alert("❌ 加入購物車失敗，找不到商品 SKU ID！");
+    return;
+  }
+
+  try {
+    const res = await axios.post(
+      `${apiBaseUrl}/api/cart/add`,
+      {
+        userId,
+        skuId: product.skuId,
+        quantity: 1,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    console.log("✅ 加入購物車成功：", res.data);
+    alert(`${product.productName} 已加入購物車！`);
+  } catch (error) {
+    console.error("❌ 加入購物車失敗：", error.response || error.message);
+    alert("❌ 加入購物車失敗，請稍後再試");
+  }
 };
 
 // 👁️ 查看商品詳情
