@@ -160,7 +160,7 @@ const localCoupon = reactive({
 const datePickerConfig = ref({
   enableTime: false,
   dateFormat: "Y-m-d", // 使用 YYYY-MM-DD 格式
-  // minDate: "today" // 可以限制只能選今天之後
+  minDate: "today" // 可以限制只能選今天之後
 });
 
 const endDatePickerConfig = computed(() => ({

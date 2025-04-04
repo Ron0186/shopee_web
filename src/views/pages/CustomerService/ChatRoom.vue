@@ -8,10 +8,10 @@
     </div>
     <div class="chat-room" v-else>
         <h2 v-if="activeChatRoom.shop">
-            {{ activeChatRoom.shop.shopName || activeChatRoom.seller.username }}的客服聊天室
+            {{ activeChatRoom.shop.shopName || activeChatRoom.seller.username }}聊天室
         </h2>
         <h2 v-else>
-            {{ activeChatRoom.seller.username }}的個人聊天室
+            {{ activeChatRoom.seller.username }}聊天室
         </h2>
 
         <div class="messages">
@@ -28,7 +28,7 @@
                             </div>
                             <div class="message-content">{{ msg.content }}</div>
                             <div class="message-state">
-                                <span v-if="msg._status === 'failed'">❌ 发送失败</span>
+                                <span v-if="msg._status === 'failed'">❌ 發送失败</span>
                             </div>
                         </div>
                     </div>
@@ -75,9 +75,9 @@ console.log('ChatRoom Setup: socketManager ref:', socketManager);     // 檢查�
 // 添加计算属性和方法
 const statusText = computed(() => {
     return {
-        disconnected: '❌ 连接已断开',
-        connecting: '🔄 连接中...',
-        connected: '✅ 已连接'
+        disconnected: '❌ 連接已断開',
+        connecting: '🔄 連接中...',
+        connected: '✅ 已連接'
     }[connectionStatus.value];
 });
 
