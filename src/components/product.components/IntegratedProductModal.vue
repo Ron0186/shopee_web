@@ -283,11 +283,6 @@
 
           <!-- SKU設定頁面 -->
           <div v-if="activeTab === 'sku'">
-            <div class="alert alert-info mb-3" v-if="isEdit">
-              <i class="bi bi-info-circle me-2"></i>
-              編輯模式下，您可以修改現有 SKU
-              的價格和庫存，但無法修改規格類型和值。如需更改規格組合，請在基本資訊頁面刪除商品並重新創建。
-            </div>
             <!-- 規格設定區 -->
             <div class="mb-4">
               <h6>設定商品規格</h6>
@@ -365,7 +360,7 @@
                   type="button"
                   class="btn btn-outline-primary"
                   @click="addSpec"
-                  :disabled="isEdit && generatedSkus.length > 0"
+                  :disabled="false"
                 >
                   <i class="bi bi-plus-circle"></i> 添加規格類型
                 </button>
@@ -373,9 +368,7 @@
                   type="button"
                   class="btn btn-primary"
                   @click="confirmGenerateSkuList"
-                  :disabled="
-                    !canGenerateSku || (isEdit && generatedSkus.length > 0)
-                  "
+                  :disabled="!canGenerateSku"
                 >
                   <i class="bi bi-gear"></i>
                   {{ isEdit ? "重新生成 SKU 列表" : "生成 SKU 列表" }}
@@ -1240,10 +1233,10 @@ const generateSkuList = () => {
 const doGenerateSkuList = () => {
   if (!validateSpecOptions()) return;
 
-  // 暫存當前的 SKU 資料 (以便保留已有的價格和庫存)
+  // 暫存當前的 SKU 資料
   const existingSkuMap = {};
   generatedSkus.value.forEach((sku) => {
-    // 創建一個唯一的鍵值來標識每個 SKU
+    // 創建一個唯一的鍵值來標識每個 SKU 的規格組合
     const key = Object.entries(sku.specPairs)
       .map(([k, v]) => `${k}:${v}`)
       .sort()
@@ -1255,6 +1248,11 @@ const doGenerateSkuList = () => {
       stock: sku.stock,
     };
   });
+
+  // 儲存既有的 SKU ID 列表，用於後續判斷哪些是新增的
+  const existingSkuIds = generatedSkus.value
+    .filter((sku) => sku.id)
+    .map((sku) => sku.id);
 
   // 准备规格
   const validSpecs = specOptions.value
@@ -1279,8 +1277,8 @@ const doGenerateSkuList = () => {
   // 生成组合
   const combinations = generateCartesianProduct(specValuesList);
 
-  // 创建 SKUs
-  generatedSkus.value = combinations.map((combination) => {
+  // 创建新的 SKUs 列表
+  const newGeneratedSkus = combinations.map((combination) => {
     // 创建规格对
     const specPairs = {};
     specNames.forEach((name, index) => {
@@ -1306,32 +1304,48 @@ const doGenerateSkuList = () => {
     };
   });
 
-  // 顯示提示
-  if (props.isEdit && Object.keys(existingSkuMap).length > 0) {
-    Swal.fire({
-      title: "SKU 列表已更新",
-      text: "已保留現有 SKU 的價格和庫存數據",
-      icon: "info",
-      timer: 1500,
-    });
+  // 將新生成的 SKU 列表赋给 generatedSkus
+  generatedSkus.value = newGeneratedSkus;
+
+  // 檢查是否有 SKU 被移除（在原列表中但不在新列表中）
+  if (props.isEdit) {
+    const newSkuIds = generatedSkus.value
+      .filter((sku) => sku.id)
+      .map((sku) => sku.id);
+
+    // 找出被移除的 SKU ID
+    const removedSkuIds = existingSkuIds.filter(
+      (id) => !newSkuIds.includes(id)
+    );
+
+    // 將被移除的 SKU ID 添加到刪除列表
+    if (removedSkuIds.length > 0) {
+      skusToDelete.value = [...skusToDelete.value, ...removedSkuIds];
+
+      Swal.fire({
+        title: "規格變更提示",
+        text: `由於規格變更，有 ${removedSkuIds.length} 個 SKU 將被刪除`,
+        icon: "info",
+        timer: 3000,
+      });
+    }
   }
 
-  // 批量設置僅應用於新 SKU
-  if (batchSettings.price > 0 || batchSettings.stock > 0) {
-    // 詢問是否要對所有 SKU 應用批量設置
+  // 如果重新生成後，生成了新的 SKU（沒有 ID 的），提供批量設置功能
+  const newSkus = generatedSkus.value.filter((sku) => !sku.id);
+  if (
+    newSkus.length > 0 &&
+    (batchSettings.price > 0 || batchSettings.stock > 0)
+  ) {
     Swal.fire({
-      title: "批量設置",
-      text: "是否要對所有 SKU 應用批量設置值？選擇「否」將只對新 SKU 應用",
+      title: "發現新 SKU",
+      text: `有 ${newSkus.length} 個新 SKU，是否要對這些新 SKU 應用批量設置值？`,
       icon: "question",
       showCancelButton: true,
-      confirmButtonText: "是，全部 SKU",
-      cancelButtonText: "否，僅新 SKU",
+      confirmButtonText: "是，設置新 SKU",
+      cancelButtonText: "否",
     }).then((result) => {
       if (result.isConfirmed) {
-        // 應用於所有 SKU
-        if (batchSettings.price > 0) applyBatchSetting("price");
-        if (batchSettings.stock > 0) applyBatchSetting("stock");
-      } else {
         // 僅應用於新 SKU (無 id 的)
         generatedSkus.value.forEach((sku) => {
           if (!sku.id) {
