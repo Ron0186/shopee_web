@@ -1,81 +1,77 @@
 <template>
-    <div class="container my-4">
-        <h3>後台管理者優惠券管理</h3>
+    <div class="container-fluid  px-0">
+        <div class="px-3 px-md-4">
+            <h3>後台管理者優惠券管理</h3>
 
-        <div class="mb-3">
-            <button class="btn btn-secondary" @click="navigateToApplicationReview">
-                <i class="bi bi-list-check"></i> 前往審核優惠券申請
-            </button>
+            <div class="row mb-4">
+                <div class="col-md-5 mb-2 mb-md-0">
+                    <button class="btn btn-secondary text-nowrap" @click="navigateToApplicationReview">
+                        <i class="bi bi-list-check"></i> 前往審核優惠券申請
+                    </button>
+
+                    <button class="btn btn-primary text-nowrap" style="margin-left:15px ;" @click="openModal('insert')">
+                        <i class="bi bi-plus-lg"></i> 直接新增優惠券
+                    </button>
+                </div>
+            </div>
+
+            <div class="row mb-4 align-items-center">
+                <div class="col-md-4 mb-2 mb-md-0">
+                    <input type="text" class="form-control" placeholder="搜尋名稱/代碼/商店ID" v-model="searchQuery.text"
+                        @keyup.enter="callFind(0)" />
+                </div>
+                <div class="col-md-3 mb-2 mb-md-0">
+                    <button class="btn btn-info w-100" @click="callFind(0)"> <i class="bi bi-search"></i> 搜尋 </button>
+                </div>
+                <div class="col-md-4 text-nowrap px-0 text-md-end">
+                    <CouponSelect :total="pagination.totalItems" :options="[4, 8, 12, 16]" v-model="pagination.size"
+                        @change="callFind(0)" />
+                </div>
+            </div>
         </div>
-
-        <div class="row mb-3 align-items-center">
-            <div class="col-md-4 mb-2 mb-md-0">
-                <button class="btn btn-primary w-100" @click="openModal('insert')">
-                    <i class="bi bi-plus-lg"></i> 直接新增優惠券
-                </button>
-            </div>
-            <div class="col-md-4 mb-2 mb-md-0">
-                <input type="text" class="form-control" placeholder="搜尋名稱/代碼/商店ID" v-model="searchQuery.text"
-                    @keyup.enter="callFind(1)" />
-            </div>
-            <div class="col-md-4">
-                <CouponSelect :total="pagination.totalItems" :options="[4, 8, 12, 16]" v-model="pagination.size"
-                    @change="callFind(1)" />
-            </div>
-            <div class="col-md-4 mt-2">
-                <button class="btn btn-info w-100" @click="callFind(1)">
-                    <i class="bi bi-search"></i> 搜尋
-                </button>
-            </div>
-        </div>
-
         <CouponChart :chart-data-prop="monthlyStats" ref="chartRef" />
 
-        <div v-if="isLoading" class="text-center mt-3">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">載入中...</span>
+        <div class="px-3 px-md-4">
+            <div class="row coupon-list-header py-2 fw-bold border-bottom mt-3 d-none d-md-flex align-items-center">
+                <div class="col-md-1 text-center">ID</div>
+                <div class="col-md-2">名稱</div>
+                <div class="col-md-1 text-center">類型</div>
+                <div class="col-md-1 text-start">折扣值</div>
+                <div class="col-md-1 ps-3">代碼</div>
+                <div class="col-md-2">商店</div>
+                <div class="col-md-2 text-center">有效期限</div>
+                <div class="col-md-2 text-center">操作</div>
             </div>
-        </div>
-        <div v-else-if="coupons.length === 0 && !isLoading" class="alert alert-light text-center mt-3">
-            目前沒有符合條件的優惠券。
-        </div>
-        <div v-else class="row mt-3">
-            <AdminCouponCard v-for="coupon in coupons" :key="coupon.couponId" :coupon="coupon"
-                @editCoupon="openModal('update', coupon)" @deleteCoupon="confirmDelete" />
-        </div>
 
-        <nav v-if="pagination.totalPages > 1 && !isLoading" class="mt-4">
-            <ul class="pagination justify-content-center">
-                <li class="page-item" :class="{ disabled: pagination.currentPage === 0 }">
-                    <a class="page-link" href="#" @click.prevent="callFind(0)">&laquo;</a>
-                </li>
-                <li class="page-item" :class="{ disabled: pagination.currentPage === 0 }">
-                    <a class="page-link" href="#" @click.prevent="callFind(pagination.currentPage - 1)">&lsaquo;</a>
-                </li>
-                <li v-for="page in visiblePages" :key="page" class="page-item"
-                    :class="{ active: page === pagination.currentPage }">
-                    <a class="page-link" href="#" @click.prevent="callFind(page)">{{ page + 1 }}</a>
-                </li>
+            <div v-if="isLoading" class="text-center mt-3"> /* ... spinner ... */ </div>
+            <div v-else-if="coupons.length === 0 && !isLoading" class="alert alert-light text-center mt-3">
+                目前沒有符合條件的優惠券。
+            </div>
 
-                <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
-                    <a class="page-link" href="#" @click.prevent="callFind(pagination.currentPage + 1)">&rsaquo;</a>
-                </li>
-                <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
-                    <a class="page-link" href="#" @click.prevent="callFind(pagination.totalPages - 1)">&raquo;</a>
-                </li>
-            </ul>
-        </nav>
+            <div v-else class="coupon-list-container mt-1">
+                <AdminCouponListItem v-for="coupon in coupons" :key="coupon.couponId" :coupon="coupon"
+                    @editCoupon="openModal('update', coupon)" @deleteCoupon="confirmDelete" />
+            </div>
+
+            <nav v-if="pagination.totalPages > 1 && !isLoading" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    <li v-for="page in visiblePages" :key="page" class="page-item"
+                        :class="{ active: page === pagination.currentPage }">
+                        <a class="page-link" href="#" @click.prevent="callFind(page)">{{ page + 1 }}</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
 
         <AdminCouponModal :isVisible="isModalVisible" :isInsert="isInsert" :coupon="selectedCoupon"
             @closeModal="closeModal" @createCoupon="handleCreateCoupon" @modifyCoupon="handleModifyCoupon" />
     </div>
 </template>
-
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import axiosapi from "@/plugins/axios"; // 假設這是你配置好的 axios 實例
 import Swal from "sweetalert2";
-import AdminCouponCard from "./AdminCouponCard.vue";
+import AdminCouponListItem from "./AdminCouponListItem.vue";
 import AdminCouponModal from "./AdminCouponModal.vue";
 import CouponSelect from "./CouponSelect.vue";
 import CouponChart from "./CouponChart.vue";
@@ -106,6 +102,7 @@ const monthlyStats = ref({ // 傳遞給圖表的數據結構
     newCounts: [], // 新增數量 [10, 15, ...]
     currentCounts: [] // 目前數量 [50, 60, ...]
 });
+
 
 // --- Modal 控制 ---
 function openModal(action, couponData = null) {
@@ -138,15 +135,12 @@ const callFind = async (page = 0) => {
     isLoading.value = true;
     pagination.currentPage = page;
     try {
-        // 組合查詢參數
+        // *** 修改：組合查詢參數，使用 searchText ***
         const params = {
             page: pagination.currentPage,
             size: pagination.size,
-            // 可根據 searchQuery.text 添加更多條件到 criteria Map
-            // 例如：如果 text 包含數字，則視為 shopId 或 couponId 搜尋？
-            // 這裡簡化為只搜尋名稱/代碼 (後端 findCouponsInternal 處理)
-            couponName: searchQuery.text || null,
-            // couponCode: searchQuery.text || null, // 可同時搜尋代碼
+            // 將搜尋框內容作為通用 searchText 傳遞
+            searchText: searchQuery.text || null,
         };
 
         // *** 呼叫 Admin 的查詢 API ***
@@ -196,25 +190,43 @@ async function handleCreateCoupon(newCouponData) {
 }
 
 // 處理來自 Modal 的修改事件
-async function handleModifyCoupon(updatedCouponData) {
+async function handleModifyCoupon(updatedCouponDataFromModal) {
     try {
+        const couponId = updatedCouponDataFromModal.couponId;
+        if (!couponId) {
+            throw new Error("缺少 couponId 無法更新");
+        }
+
+        // *** 建立一個只包含可更新欄位的 payload ***
+        const payload = {
+            // 從 Modal 傳來的資料中挑選需要的欄位
+            couponName: updatedCouponDataFromModal.couponName,
+            couponCode: updatedCouponDataFromModal.couponCode,
+            description: updatedCouponDataFromModal.description,
+            discountType: updatedCouponDataFromModal.discountType,
+            discountValue: updatedCouponDataFromModal.discountValue,
+            startDate: updatedCouponDataFromModal.startDate, // 應為 'yyyy-MM-dd'
+            endDate: updatedCouponDataFromModal.endDate,     // 應為 'yyyy-MM-dd'
+            usageLimit: updatedCouponDataFromModal.usageLimit,
+            usagePerUser: updatedCouponDataFromModal.usagePerUser,
+            // shopId 通常不修改，或後端根據 couponId 自行處理
+            // shop: { shopId: updatedCouponDataFromModal.shop.shopId } // 如果後端需要傳遞 shopId
+        };
+        // *** 不要包含 createdAt 和 updatedAt ***
+
         // *** 呼叫 Admin 的直接修改 API ***
-        // PUT /admin/coupons/{couponId}
-        const couponId = updatedCouponData.couponId;
-        const response = await axiosapi.put(`/admin/coupons/${couponId}`, updatedCouponData);
+        const response = await axiosapi.put(`/admin/coupons/${couponId}`, payload); // *** 發送清理過的 payload ***
 
         if (response.data && response.data.success) {
             Swal.fire("成功!", "優惠券已更新", "success");
             closeModal();
-            callFind(pagination.currentPage); // 留在當前頁面刷新
-            // 圖表數據通常不需要因為修改而更新
+            callFind(pagination.currentPage);
         } else {
             throw new Error(response.data?.message || "更新失敗");
         }
     } catch (error) {
         console.error("更新優惠券失敗:", error);
         Swal.fire("錯誤!", `更新優惠券失敗: ${error.response?.data?.message || error.message}`, "error");
-        // 不關閉 Modal
     }
 }
 
@@ -271,22 +283,7 @@ async function fetchMonthlyStats() {
             // if(chartRef.value) chartRef.value.updateChart(monthlyStats.value);
         }
 
-        // --- 暫時使用假數據 ---
-        // const months = ['1月', '2月', '3月', '4月', '5月', '6月']; // 假設近 6 個月
-        // monthlyStats.value = {
-        //     labels: months,
-        //     newCounts: months.map(() => Math.floor(Math.random() * 30)), // 隨機新增數
-        //     currentCounts: months.map(() => Math.floor(Math.random() * 100) + 50) // 隨機目前數
-        // };
-        // console.log("更新圖表數據:", monthlyStats.value);
-        // // 確保圖表元件已掛載後再更新
-        // // 使用 nextTick 或 setTimeout 可能更可靠，或在 chart 元件內部 watch props
-        // setTimeout(() => {
-        //     if (chartRef.value?.updateChart) { // 假設 chart 元件有 updateChart 方法
-        //         chartRef.value.updateChart(monthlyStats.value);
-        //     }
-        // }, 0);
-        // // --- 結束假數據 ---
+
 
     } catch (error) {
         console.error("取得統計數據失敗:", error);
@@ -296,36 +293,53 @@ async function fetchMonthlyStats() {
 
 // --- 導航 ---
 function navigateToApplicationReview() {
-    // 使用 Vue Router 導航到審核頁面
-    // router.push({ name: 'AdminCouponApplicationReview' }); // 假設路由名稱
-    alert("導航到審核頁面 (待實現)");
+    router.push('/admin/coupon/applicationReview');
+
 }
 
 
 // --- 分頁計算 ---
-const visiblePages = computed(() => {
-    const total = pagination.totalPages;
-    const current = pagination.currentPage;
-    const maxVisible = 5; // 最多顯示 5 個頁碼按鈕
-    if (total <= maxVisible) {
-        return Array.from({ length: total }, (_, i) => i);
+// *** 用 ref 取代 computed ***
+const visiblePages = ref([]); // 初始化為空陣列
+
+// --- *** 使用 watch 監聽分頁數據變化，手動更新 visiblePages *** ---
+watch([() => pagination.totalPages, () => pagination.currentPage], ([newTotalPages, newCurrentPage]) => {
+    const total = Number(newTotalPages);
+    const current = Number(newCurrentPage);
+    const maxVisible = 5;
+    console.log(`WATCH triggered: total=${total}, current=${current}`);
+
+    let pages = [];
+
+    if (isNaN(total) || total <= 1) {
+        console.log('WATCH: Setting visiblePages to [] because total is NaN or <= 1');
+    } else if (total <= maxVisible) {
+        for (let i = 0; i < total; i++) {
+            pages.push(i);
+        }
+        console.log('WATCH: Setting visiblePages (<= maxVisible):', pages);
     } else {
         let startPage = Math.max(0, current - Math.floor(maxVisible / 2));
         let endPage = startPage + maxVisible - 1;
         if (endPage >= total) {
             endPage = total - 1;
-            startPage = endPage - maxVisible + 1;
+            startPage = Math.max(0, endPage - maxVisible + 1);
         }
-        return Array.from({ length: maxVisible }, (_, i) => startPage + i);
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        console.log('WATCH: Setting visiblePages (> maxVisible):', pages);
     }
-});
+    visiblePages.value = pages; // *** 更新 ref 的值 ***
+}, { immediate: true }); // immediate: true 確保初始載入時也計算一次
+
 
 // --- 生命週期鉤子 ---
 onMounted(() => {
     callFind(0); // 初始載入第一頁
     fetchMonthlyStats(); // 初始載入圖表數據
 });
-
+console.log('Visible Pages:', visiblePages.value);
 </script>
 
 <style scoped>
@@ -337,5 +351,22 @@ onMounted(() => {
 .pagination .page-item.disabled .page-link {
     pointer-events: none;
     opacity: 0.6;
+}
+
+.col-md-4.text-nowrap {
+    white-space: nowrap;
+    overflow: visible;
+}
+
+.container-fluid {
+    padding-top: 50px;
+}
+
+
+.coupon-list-header {
+    background-color: #e9ecef;
+    /* 淺灰色背景 */
+    font-size: 0.9rem;
+    color: #495057;
 }
 </style>

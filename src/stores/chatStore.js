@@ -52,6 +52,64 @@ export const useChatStore = defineStore('chat', () => {
         return token;
     }
 
+    const totalUnreadCount = computed(() => {
+        console.log("[ChatStore Computed] Recalculating totalUnreadCount based on conversations:", JSON.stringify(conversations.value.map(c => ({ id: c.chatRoomId, count: c.unreadCount }))));
+        const total = conversations.value.reduce((sum, conversation) => {
+            const count = Number(conversation.unreadCount) || 0;
+            return sum + count;
+        }, 0);
+        console.log(`[ChatStore Computed] Calculated total: ${total}`);
+        return total;
+    });
+
+    // --- >>> 新增：標記對話為已讀 Action 的實作 <<< ---
+    async function markConversationAsRead(chatRoomId) {
+        console.log(`[ChatStore] 嘗試標記 ChatRoom ${chatRoomId} 為已讀`);
+        const currentAuthToken = getCurrentAuthToken();
+        // 確保使用者已登入且有 Token
+        if (!currentAuthToken || !userId.value) {
+            console.error("[ChatStore] 無法標記已讀：缺少 Token 或 User ID。");
+            return;
+        }
+
+        // 1. 前端狀態立即更新 (Optimistic Update) - 讓 UI 立即反應
+        const conversationIndex = conversations.value.findIndex(c => c.chatRoomId === chatRoomId);
+        if (conversationIndex !== -1) {
+            // 只有在原本未讀數大於 0 時才更新，避免不必要的計算觸發
+            if (conversations.value[conversationIndex].unreadCount > 0) {
+                console.log(`[ChatStore] Optimistic Update: 將聊天室 ${chatRoomId} 的未讀數設為 0`);
+                conversations.value[conversationIndex].unreadCount = 0;
+                // 因為 conversations 是 ref，且 totalUnreadCount computed 依賴它，
+                // totalUnreadCount 應該會自動重新計算。
+            }
+        } else {
+            console.warn(`[ChatStore] markConversationAsRead: 在列表中未找到 ChatRoom ID ${chatRoomId}`);
+            // 即使沒找到也要嘗試通知後端，以防列表尚未更新
+        }
+
+        // 2. 非同步發送請求到後端標記已讀
+        try {
+            // *** 確認你的後端 API 路徑是 POST /api/chat/{chatRoomId}/mark-read ***
+            await axios.post(`/api/chat/${chatRoomId}/mark-read`, {}, { // Body 通常為空，看後端如何設計
+                headers: { 'Authorization': `Bearer ${currentAuthToken}` }
+            });
+            console.log(`[ChatStore] 後端已成功標記 ChatRoom ${chatRoomId} 為已讀`);
+            // 後端成功後，前端不需要做額外的事，因為已經 Optimistic Update 了
+            // 注意：如果後端標記已讀後 *還會* 推送 unread-update 訊息將該房間設為0，
+            // 確保 updateUnreadCountForRoom 函數能正確處理（即 count 沒變時不做事）
+        } catch (error) {
+            console.error(`[ChatStore] 調用後端 API 標記 ChatRoom ${chatRoomId} 為已讀失敗:`, error);
+            // 可選：錯誤處理，例如如果後端失敗，是否要將前端的未讀數恢復？
+            // 這會讓邏輯變複雜，通常 Optimistic Update 後如果失敗，會在下次刷新時修正
+            // 也可以考慮彈出提示告知用戶更新失敗
+            // if (conversationIndex !== -1) {
+            //     // 可以在這裡嘗試重新獲取該對話的真實未讀數來恢復狀態
+            //     // fetchSpecificConversationUnreadCount(chatRoomId);
+            // }
+        }
+    }
+    // --- >>> 新增 Action 實作結束 <<< ---
+
     // --- >>> 新 Action：獲取賣家對話列表 <<< ---
     async function fetchSellerConversations() {
         // 只在賣家登入時執行
@@ -787,5 +845,7 @@ export const useChatStore = defineStore('chat', () => {
         setupSubscriptions,
         checkConnection, // 新增 checkConnection 方法
         socketManager,
+        markConversationAsRead,
+        totalUnreadCount
     };
 });

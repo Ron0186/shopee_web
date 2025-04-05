@@ -14,8 +14,7 @@
         登入</router-link>
       <router-link to="/user/register" v-if="!userStore.username">📝
         註冊</router-link>
-      <router-link to="/shop/apply" v-if="userStore.token && !userStore.roles.includes('SELLER')">📝
-        我要當賣家!!</router-link>
+
 
       <!-- 新增賣家中心按鈕 -->
       <router-link :to="'/store/' + userStore.shopId" v-if="
@@ -47,13 +46,26 @@
       <router-link to="/submitReview">📝 評價商品</router-link>
       <router-link v-if="userStore.isSeller" to="/seller-setting">⚙️
         賣家設定</router-link>
-      <router-link v-if="userStore.isSeller" to="/revenue">📊
+      <router-link v-if="userStore.isSeller" to="/revenue">⚙️
         營收表現</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
-      <span v-if="userStore.username" @click="logout" class="logout-link">
-        <a class="fa-solid fa-arrow-right-from-bracket"></a> 🚶登出
-      </span>
-      <span v-if="userStore.username" @click="logoutToAdmin" class="logout-link admin-logout">
+
+      <!-- 使用者名稱下拉選單 -->
+      <div v-if="userStore.username" class="user-dropdown">
+        <button class="username-btn" @click="toggleUserMenu">
+          {{ userStore.username }} <span class="dropdown-icon">▼</span>
+        </button>
+        <div class="user-dropdown-content" v-if="userMenuOpen">
+          <router-link to="/memberCenter" @click="userMenuOpen = false">👤 會員中心</router-link>
+          <router-link to="/shop/apply" v-if="userStore.token && !userStore.roles.includes('SELLER')"
+            @click="userMenuOpen = false">📝
+            申請成為賣家</router-link>
+          <div @click="logout" class="dropdown-item">登出</div>
+        </div>
+      </div>
+
+      <span @click="logoutToAdmin"
+        class="logout-link admin-logout">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
       </span>
     </div>
@@ -106,13 +118,14 @@
         <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
           使用者條款</router-link>
       </li>
-      <li v-if="userStore.username">
-        <router-link to="/seller/coupon/apply" @click="toggleDrawer">🎟️ 優惠券申請</router-link>
+      <li>
+        <router-link v-if="userStore.isSeller" to="/seller/coupon/apply" @click="toggleDrawer">🎟️
+          優惠券申請</router-link>
       </li>
-      <li v-if="userStore.username" @click="logoutToAdmin">
-        <a class="admin-link">🔐 前往後台</a>
-      </li>
-      <li v-if="userStore.isAdmin" @click="logoutToAdmin"> <a class="admin-link">🔐 前往後台</a>
+      <li>
+        <router-link :to="{ name: 'ShopListPage' }" class="btn btn-outline-primary">
+          <i class="bi bi-shop-window"></i> 查看商店列表
+        </router-link>
       </li>
     </ul>
   </div>
@@ -189,6 +202,7 @@ const fetchNotificationCount = async () => {
 
 // ✅ 登出功能
 async function logout() {
+  axios.defaults.headers.common["Authorization"] = ``;
   userStore.clearUserData();
   userMenuOpen.value = false; // 關閉下拉選單
   const response = await Swal.fire({
@@ -203,6 +217,7 @@ async function logout() {
 
 // ✅ 登出並跳轉至後台登入頁
 async function logoutToAdmin() {
+  axios.defaults.headers.common["Authorization"] = ``;
   userStore.clearUserData();
   userMenuOpen.value = false; // 關閉下拉選單
   const response = await Swal.fire({
