@@ -763,10 +763,8 @@ const updateSelectedSku = () => {
     const stockAvailable = selectedSku.value.stock || 0;
     if (stockAvailable <= 0) {
       stockStatus.value = "售罄";
-    } else if (stockAvailable < 10) {
-      stockStatus.value = `庫存緊張 (剩餘${stockAvailable}件)`;
     } else {
-      stockStatus.value = "庫存充足";
+      stockStatus.value = `剩餘${stockAvailable}件`;
     }
 
     // 限制購買數量不超過庫存
