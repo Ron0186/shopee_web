@@ -84,26 +84,23 @@
             {{ specName }}：{{ selectedSpecs[specName] || "請選擇" }}
           </p>
 
-          <!-- 顏色規格使用顏色圓點 -->
-          <div v-if="specName === '顏色'" class="d-flex">
-            <div
+          <!-- 顏色規格改成文字顯示 -->
+          <div v-if="specName === '顏色'" class="d-flex flex-wrap">
+            <button
               v-for="(item, index) in values"
               :key="index"
-              class="color-option me-2 mb-2"
+              type="button"
+              class="btn me-2 mb-2"
+              :class="
+                selectedSpecs[specName] === item.value
+                  ? 'btn-dark'
+                  : 'btn-outline-secondary'
+              "
+              style="min-width: 50px"
               @click="selectSpec(specName, item.value)"
             >
-              <div
-                class="color-circle"
-                :style="{
-                  backgroundColor: item.hexCode,
-                  border:
-                    selectedSpecs[specName] === item.value
-                      ? '2px solid #000'
-                      : '1px solid #ddd',
-                }"
-                :title="item.value"
-              ></div>
-            </div>
+              {{ item.value }}
+            </button>
           </div>
 
           <!-- 其他規格使用按鈕 -->
