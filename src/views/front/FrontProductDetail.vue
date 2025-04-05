@@ -402,14 +402,6 @@ const product = ref({
 const productImages = ref([]);
 const selectedImageIndex = ref(0);
 
-// 規格選項
-const colors = ref([
-  { name: "米白", hexCode: "#F5F5DC" },
-  { name: "深灰", hexCode: "#444444" },
-  { name: "牛仔藍", hexCode: "#5D8AA8" },
-]);
-const sizes = ref(["XS", "S", "M", "L", "XL", "XXL", "3XL"]);
-
 // 用戶選擇
 const selectedColor = ref("");
 const selectedSize = ref("");
@@ -705,13 +697,6 @@ const processSpecifications = (specifications) => {
     if (spec.values && spec.values.length > 0) {
       // 為每種規格類型創建一個數組
       specs.value[specName] = spec.values.map((v) => {
-        // 針對顏色規格，添加hexCode
-        if (specName === "顏色") {
-          return {
-            value: v.value,
-            hexCode: getColorHexCode(v.value),
-          };
-        }
         return { value: v.value };
       });
     }
@@ -782,27 +767,6 @@ watch(
   },
   { deep: true }
 );
-
-const getColorHexCode = (colorName) => {
-  // 顏色映射表
-  const colorMap = {
-    米白: "#F5F5DC",
-    深灰: "#444444",
-    牛仔藍: "#5D8AA8",
-    黑色: "#000000",
-    白色: "#FFFFFF",
-    灰色: "#808080",
-    藍色: "#0000FF",
-    紅色: "#FF0000",
-    綠色: "#008000",
-    黃色: "#FFFF00",
-    紫色: "#800080",
-    粉色: "#FFC0CB",
-    橙色: "#FFA500",
-  };
-
-  return colorMap[colorName] || "#CCCCCC"; // 若找不到顏色則返回默認灰色
-};
 
 const stockStatus = ref("庫存充足");
 
