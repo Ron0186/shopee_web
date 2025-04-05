@@ -45,7 +45,7 @@
         <h2 class="mb-2">{{ product.productName }}</h2>
 
         <!-- 商品編號 -->
-        <p class="text-muted small mb-3">{{ product.productId }}</p>
+        <!-- <p class="text-muted small mb-3">{{ product.productId }}</p> -->
 
         <!-- 評分 -->
         <div class="mb-3 d-flex align-items-center">
@@ -65,9 +65,13 @@
 
         <!-- 價格 -->
         <div class="mb-4">
-          <h3 class="mb-1">NT${{ currentPrice }}</h3>
+          <h3 class="mb-1" v-html="priceDisplay"></h3>
           <p
-            v-if="product.originalPrice && product.originalPrice > currentPrice"
+            v-if="
+              selectedSku &&
+              product.originalPrice &&
+              product.originalPrice > currentPrice
+            "
             class="text-muted"
           >
             <del>原價：NT${{ product.originalPrice }}</del>
@@ -80,26 +84,24 @@
             {{ specName }}：{{ selectedSpecs[specName] || "請選擇" }}
           </p>
 
-          <!-- 顏色規格使用顏色圓點 -->
-          <div v-if="specName === '顏色'" class="d-flex">
-            <div
+          <!-- 顏色規格改成文字顯示 -->
+          <div v-if="specName === '顏色'" class="d-flex flex-wrap">
+            <button
               v-for="(item, index) in values"
               :key="index"
-              class="color-option me-2 mb-2"
+              type="button"
+              class="btn me-2 mb-2"
+              :class="
+                selectedSpecs[specName] === item.value
+                  ? 'btn-dark'
+                  : 'btn-outline-secondary'
+              "
+              :disabled="!isSpecValueAvailable(specName, item.value)"
+              style="min-width: 50px"
               @click="selectSpec(specName, item.value)"
             >
-              <div
-                class="color-circle"
-                :style="{
-                  backgroundColor: item.hexCode,
-                  border:
-                    selectedSpecs[specName] === item.value
-                      ? '2px solid #000'
-                      : '1px solid #ddd',
-                }"
-                :title="item.value"
-              ></div>
-            </div>
+              {{ item.value }}
+            </button>
           </div>
 
           <!-- 其他規格使用按鈕 -->
@@ -114,6 +116,7 @@
                   ? 'btn-dark'
                   : 'btn-outline-secondary'
               "
+              :disabled="!isSpecValueAvailable(specName, item.value)"
               style="min-width: 50px"
               @click="selectSpec(specName, item.value)"
             >
@@ -190,17 +193,22 @@
           </div>
         </div>
 
-        <!-- 加入購物車按鈕 -->
-        <div class="d-grid gap-2">
+        <!-- 加入購物車和立即購買按鈕 -->
+        <div class="d-grid gap-2 d-flex">
           <button
-            class="btn btn-dark btn-lg py-3"
+            class="btn btn-outline-dark btn-lg py-3 flex-grow-1"
             @click="addToCart"
             :disabled="!canAddToCart"
           >
-            加入購物車
+            <i class="bi bi-cart-plus me-2"></i>加入購物車
           </button>
-          <button class="btn btn-outline-dark">
-            <i class="bi bi-heart me-2"></i>加入收藏
+
+          <button
+            class="btn btn-dark btn-lg py-3 flex-grow-1"
+            @click="buyNow"
+            :disabled="!canAddToCart"
+          >
+            <i class="bi bi-credit-card me-2"></i>立即購買
           </button>
         </div>
       </div>
@@ -252,16 +260,6 @@
             <div class="p-3">
               <h4>商品描述</h4>
               <p>{{ product.description }}</p>
-              <div class="product-details mt-4">
-                <h5>商品特點</h5>
-                <ul>
-                  <li>100% 純棉材質</li>
-                  <li>經典工作襯衫設計</li>
-                  <li>前胸雙口袋</li>
-                  <li>適合日常穿搭</li>
-                  <li>機洗</li>
-                </ul>
-              </div>
             </div>
           </div>
           <div class="tab-pane fade" id="reviews" role="tabpanel">
@@ -414,14 +412,6 @@ const product = ref({
 const productImages = ref([]);
 const selectedImageIndex = ref(0);
 
-// 規格選項
-const colors = ref([
-  { name: "米白", hexCode: "#F5F5DC" },
-  { name: "深灰", hexCode: "#444444" },
-  { name: "牛仔藍", hexCode: "#5D8AA8" },
-]);
-const sizes = ref(["XS", "S", "M", "L", "XL", "XXL", "3XL"]);
-
 // 用戶選擇
 const selectedColor = ref("");
 const selectedSize = ref("");
@@ -526,7 +516,39 @@ const handleImageError = (e) => {
 
 // 價格計算
 const currentPrice = computed(() => {
-  return product.value.price || 790;
+  // 如果有選中的SKU，返回SKU價格
+  if (selectedSku.value) {
+    return selectedSku.value.price;
+  }
+
+  // 否則返回商品基本價格
+  return product.value.price || 0;
+});
+
+// 新增價格顯示計算屬性
+const priceDisplay = computed(() => {
+  // 檢查是否所有規格都已選擇
+  const allSpecsSelected = Object.keys(specs.value).every(
+    (specName) => selectedSpecs.value[specName]
+  );
+
+  // 如果已選擇所有規格並找到對應SKU
+  if (allSpecsSelected && selectedSku.value) {
+    return `NT$${currentPrice.value}`;
+  }
+
+  // 否則顯示價格區間
+  if (product.value.priceRange) {
+    const { minPrice, maxPrice } = product.value.priceRange;
+    if (minPrice === maxPrice) {
+      return `NT$${minPrice}`;
+    } else {
+      return `NT$${minPrice} - NT$${maxPrice}`;
+    }
+  }
+
+  // 沒有價格區間數據時的備選方案
+  return `NT$${product.value.price || 0}`;
 });
 
 // 是否可以加入購物車
@@ -557,6 +579,25 @@ watch(showSizeGuide, (newValue) => {
   }
 });
 
+// 添加此方法来检查某个规格值在当前选择下是否可用
+const isSpecValueAvailable = (specName, value) => {
+  // 创建一个测试规格选择，包含当前已选规格加上要测试的规格
+  const testSelection = { ...selectedSpecs.value, [specName]: value };
+
+  // 检查是否有任何SKU匹配此规格组合
+  return skus.value.some((sku) => {
+    const specPairs = sku.specPairs || {};
+
+    // 检查已选择的每种规格是否与此SKU匹配
+    for (const [name, val] of Object.entries(testSelection)) {
+      if (val && specPairs[name] !== val) {
+        return false; // 如果有任何规格不匹配，此SKU不可用
+      }
+    }
+    return true; // 所有已选规格都匹配
+  });
+};
+
 // 選擇顏色
 const selectColor = (color) => {
   selectedColor.value = color.name;
@@ -568,17 +609,17 @@ const selectSize = (size) => {
 };
 
 // 加入購物車
-const addToCart = () => {
+const addToCart = async () => {
   if (!canAddToCart.value) {
     Swal.fire({
       title: "請選擇規格",
-      text: "請先選擇顏色和尺寸",
+      text: "請先選擇所有必要的規格",
       icon: "warning",
     });
     return;
   }
 
-  // 這裡執行加入購物車的操作
+  // 檢查用戶是否登入
   if (!userStore.isLoggedIn) {
     Swal.fire({
       title: "請先登入",
@@ -595,36 +636,85 @@ const addToCart = () => {
     return;
   }
 
-  // 組織購物車項目數據
-  const cartItem = {
-    productId: product.value.productId,
-    productName: product.value.productName,
-    color: selectedColor.value,
-    size: selectedSize.value,
-    quantity: quantity.value,
-    price: currentPrice.value,
-    image: selectedImage.value,
-  };
-
-  // 調用加入購物車API (模擬)
   try {
-    // 實際應用中替換為真實的API調用
-    console.log("加入購物車:", cartItem);
+    // 取得當前選擇的SKU ID
+    const skuId = selectedSku.value?.skuId;
+    if (!skuId) {
+      Swal.fire("錯誤", "找不到可購買的 SKU，請稍後再試或聯絡客服", "error");
+      return;
+    }
+
+    const payload = {
+      userId: userStore.userId,
+      skuId,
+      quantity: quantity.value,
+    };
+
+    console.log("📦 加入購物車中...", payload);
+
+    // 發送API請求
+    await axios.post("/api/cart/add", payload, { withCredentials: true });
 
     Swal.fire({
       title: "成功",
-      text: "已加入購物車",
+      text: `已添加 ${quantity.value} 件商品到購物車`,
       icon: "success",
-      timer: 1500,
       showConfirmButton: false,
+      timer: 1500,
     });
   } catch (error) {
+    console.error("❌ 加入購物車失敗:", error);
     Swal.fire({
-      title: "錯誤",
-      text: "加入購物車失敗",
+      title: "加入失敗",
+      text: "請稍後再試",
       icon: "error",
     });
   }
+};
+
+// 新增立即購買函數
+const buyNow = () => {
+  if (!canAddToCart.value) {
+    Swal.fire({
+      title: "請選擇規格",
+      text: "請先選擇所有必要的規格",
+      icon: "warning",
+    });
+    return;
+  }
+
+  // 確認使用者是否登入
+  if (!userStore.isLoggedIn) {
+    Swal.fire({
+      title: "請先登入",
+      text: "您需要登入才能購買商品",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "前往登入",
+      cancelButtonText: "取消",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.setItem("redirectAfterLogin", window.location.href);
+        router.push("/login");
+      }
+    });
+    return;
+  }
+
+  // 取得當前選擇的SKU ID
+  const skuId = selectedSku.value?.skuId;
+  const qty = quantity.value;
+
+  if (!skuId) {
+    Swal.fire("錯誤", "找不到可購買的 SKU，請稍後再試或聯絡客服", "error");
+    return;
+  }
+
+  // 跳轉到快速結帳頁面
+  router.push({
+    path: "/quick-checkout",
+    query: { skuId, qty },
+  });
 };
 
 // 獲取商品詳情
@@ -633,7 +723,9 @@ const fetchProductDetail = async () => {
     console.log("獲取商品詳情, 商品ID:", productId);
 
     // 使用新的API路徑獲取完整商品詳情
-    const response = await axios.get(`/api/products/${productId}/detail`);
+    const response = await axios.get(
+      `/api/products/${productId}/active-detail`
+    );
 
     if (response.status === 200 && response.data) {
       console.log("商品詳情原始回應:", response.data);
@@ -675,29 +767,41 @@ const fetchProductDetail = async () => {
 const processSpecifications = (specifications) => {
   if (!specifications || !Array.isArray(specifications)) return;
 
-  // 清空現有規格
+  // 清空现有规格
   specs.value = {};
   selectedSpecs.value = {};
 
-  // 遍歷所有規格類型
-  specifications.forEach((spec) => {
-    const specName = spec.specName; // 例如："顏色", "容量"
-    if (spec.values && spec.values.length > 0) {
-      // 為每種規格類型創建一個數組
-      specs.value[specName] = spec.values.map((v) => {
-        // 針對顏色規格，添加hexCode
-        if (specName === "顏色") {
-          return {
-            value: v.value,
-            hexCode: getColorHexCode(v.value),
-          };
-        }
-        return { value: v.value };
-      });
+  // 从SKU生成可用规格组合
+  const availableSpecs = {};
+
+  // 遍历所有有效SKU
+  skus.value.forEach((sku) => {
+    const specPairs = sku.specPairs || {};
+
+    // 收集每种规格的所有有效值
+    Object.entries(specPairs).forEach(([name, value]) => {
+      if (!availableSpecs[name]) {
+        availableSpecs[name] = new Set();
+      }
+      availableSpecs[name].add(value);
+    });
+  });
+
+  // 从specifications中只添加availableSpecs中存在的值
+  Object.keys(availableSpecs).forEach((specName) => {
+    // 查找对应的规格定义
+    const specDef = specifications.find((s) => s.specName === specName);
+
+    if (specDef && specDef.values) {
+      // 过滤掉不在可用组合中的值
+      specs.value[specName] = specDef.values
+        .filter((v) => availableSpecs[specName].has(v.value))
+        .map((v) => ({ value: v.value }));
     }
   });
 
-  console.log("處理後的規格:", specs.value);
+  console.log("處理後的可用規格:", specs.value);
+  console.log("從SKU中提取的可用規格集合:", availableSpecs);
 };
 
 const specs = ref({}); // 用於存儲所有類型的規格
@@ -743,10 +847,8 @@ const updateSelectedSku = () => {
     const stockAvailable = selectedSku.value.stock || 0;
     if (stockAvailable <= 0) {
       stockStatus.value = "售罄";
-    } else if (stockAvailable < 10) {
-      stockStatus.value = `庫存緊張 (剩餘${stockAvailable}件)`;
     } else {
-      stockStatus.value = "庫存充足";
+      stockStatus.value = `剩餘${stockAvailable}件`;
     }
 
     // 限制購買數量不超過庫存
@@ -764,27 +866,6 @@ watch(
   },
   { deep: true }
 );
-
-const getColorHexCode = (colorName) => {
-  // 顏色映射表
-  const colorMap = {
-    米白: "#F5F5DC",
-    深灰: "#444444",
-    牛仔藍: "#5D8AA8",
-    黑色: "#000000",
-    白色: "#FFFFFF",
-    灰色: "#808080",
-    藍色: "#0000FF",
-    紅色: "#FF0000",
-    綠色: "#008000",
-    黃色: "#FFFF00",
-    紫色: "#800080",
-    粉色: "#FFC0CB",
-    橙色: "#FFA500",
-  };
-
-  return colorMap[colorName] || "#CCCCCC"; // 若找不到顏色則返回默認灰色
-};
 
 const stockStatus = ref("庫存充足");
 
@@ -804,6 +885,15 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 禁用规格按钮样式 */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f0f0f0;
+  border-color: #e0e0e0;
+  color: #999;
+}
+
 .color-circle {
   width: 35px;
   height: 35px;

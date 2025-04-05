@@ -122,8 +122,14 @@ const router = createRouter({
           path: "/memberCenter",
           name: "memberCenter",
           component: () => import("@/views/member/MemberCenter.vue"),
+          path: "/memberCenter",
+          name: "memberCenter",
+          component: () => import("@/views/member/MemberCenter.vue"),
         },
         {
+          path: "/profile",
+          name: "profile",
+          component: () => import("@/views/member/Profile.vue"),
           path: "/profile",
           name: "profile",
           component: () => import("@/views/member/Profile.vue"),
@@ -132,8 +138,14 @@ const router = createRouter({
           path: "/address",
           name: "address",
           component: () => import("@/views/member/Address.vue"),
+          path: "/address",
+          name: "address",
+          component: () => import("@/views/member/Address.vue"),
         },
         {
+          path: "/HomeAddressCreate",
+          name: "HomeAddressCreate",
+          component: () => import("@/views/member/HomeAddressCreate.vue"),
           path: "/HomeAddressCreate",
           name: "HomeAddressCreate",
           component: () => import("@/views/member/HomeAddressCreate.vue"),
@@ -142,30 +154,42 @@ const router = createRouter({
           path: "/CVSAddressCreate",
           name: "CVSAddressCreate",
           component: () => import("@/views/member/CVSAddressCreate.vue"),
-        },
-        {
-          path: "/memberCoupons",
-          name: "memberCoupons",
-          component: () => import("@/views/member/MemberCoupon.vue"),
+          path: "/CVSAddressCreate",
+          name: "CVSAddressCreate",
+          component: () => import("@/views/member/CVSAddressCreate.vue"),
         },
         {
           path: "/memberOrders",
           name: "memberOrders",
-          component: () => import("@/views/member/MemberOrder.vue"),
+          component: () => import("@/views/member/MemberOrders.vue"),
+        },
+        {
+          path: "/memberCoupons",
+          name: "memberCoupons",
+          component: () => import("@/views/member/MemberCoupons.vue"),
         },
         {
           path: "/updateHomeAddress/:addressId",
           name: "UpdateHomeAddress",
+          path: "/updateHomeAddress/:addressId",
+          name: "UpdateHomeAddress",
           component: UpdateHomeAddress,
+          props: true, // 讓 route 參數能當作 props 傳給元件
           props: true, // 讓 route 參數能當作 props 傳給元件
         },
         {
           path: "/updateCVSAddress/:addressId",
           name: "UpdateCVSAddress",
+          path: "/updateCVSAddress/:addressId",
+          name: "UpdateCVSAddress",
           component: UpdateCVSAddress,
+          props: true, // 讓 route 參數能當作 props 傳給元件
           props: true, // 讓 route 參數能當作 props 傳給元件
         },
         {
+          path: "/changePassword",
+          name: "changePassword",
+          component: () => import("@/views/member/ChangePassword.vue"),
           path: "/changePassword",
           name: "changePassword",
           component: () => import("@/views/member/ChangePassword.vue"),
@@ -175,9 +199,14 @@ const router = createRouter({
           path: "/revenue",
           name: "revenue",
           component: () => import("@/views/seller/RevenueDetails.vue"),
+          path: "/revenue",
+          name: "revenue",
+          component: () => import("@/views/seller/RevenueDetails.vue"),
         },
 
         {
+          path: "/product-details",
+          name: "product-details",
           path: "/product-details",
           name: "product-details",
           component: ProductDetails,
@@ -186,16 +215,22 @@ const router = createRouter({
         {
           path: "/order-details",
           name: "order-details",
+          path: "/order-details",
+          name: "order-details",
           component: OrderDetails,
           props: true,
         },
         {
           path: "/sku-details",
           name: "sku-details",
+          path: "/sku-details",
+          name: "sku-details",
           component: SkuDetails,
           props: true,
         },
         {
+          path: "/review-details",
+          name: "review-details",
           path: "/review-details",
           name: "review-details",
           component: ReviewDetails,
@@ -208,11 +243,17 @@ const router = createRouter({
         },
 
         //下單頁面
+        // {
+        //   path: "/checkout",
+        //   name: "Checkout",
+        //   component: () => import("@/views/pages/Checkout.vue"),
+        //   meta: { requiresAuth: true }, // 可選：需要登入才能進入
+        // },
         {
-          path: "/checkout",
-          name: "Checkout",
-          component: () => import("@/views/pages/Checkout.vue"),
-          meta: { requiresAuth: true }, // 可選：需要登入才能進入
+          path: "/quick-checkout",
+          name: "QuickCheckout",
+          component: () => import("@/views/pages/QuickCheckout.vue"),
+          meta: { requiresAuth: true },
         },
 
         //評價頁面
@@ -257,6 +298,11 @@ const router = createRouter({
           component: () =>
             import("@/components/order.components/OrderPayment.vue"),
           meta: { role: "USER" }, // 一般使用者用
+        },
+        {
+          path: "/payment/result/:orderId",
+          name: "PaymentResult",
+          component: () => import("@/views/front/PaymentResult.vue"),
         },
         {
           path: "/debug/payment/:id",

@@ -308,16 +308,149 @@ const handleAddToCart = (data) => {
 };
 
 // 處理立即購買
-const handleBuyNow = (data) => {
-  console.log("立即購買:", data);
-  // 實現立即購買的邏輯，例如跳轉到結帳頁面
-  router.push({
-    path: "/checkout",
-    query: {
-      productId: data.productId,
-      quantity: data.quantity,
-    },
-  });
+const handleBuyNow = async (data) => {
+  try {
+    // 檢查用戶是否已登錄
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({
+        title: "請先登錄",
+        text: "您需要先登錄才能進行購買",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "前往登錄",
+        cancelButtonText: "取消",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          localStorage.setItem("redirectAfterLogin", window.location.href);
+          window.location.href = "/login";
+        }
+      });
+      return;
+    }
+
+    const { productId, quantity } = data;
+
+    // 獲取產品資訊
+    const product = products.value.find((p) => p.productId === productId);
+    if (!product) {
+      throw new Error("商品不存在");
+    }
+
+    const price = product.minPrice;
+    // 確保金額大於0
+    if (!price || price <= 0) {
+      Swal.fire({
+        title: "錯誤",
+        text: "商品價格無效，無法完成購買",
+        icon: "error",
+        confirmButtonText: "確定",
+      });
+      return;
+    }
+
+    const amount = quantity * price; // 計算實際金額
+
+    Swal.fire({
+      title: "訂單建立中",
+      text: "請稍候...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    const orderRequest = {
+      productId: productId,
+      quantity: quantity,
+      amount: amount,
+      price: price,
+      productName: product.productName,
+    };
+
+    // 確保添加正確的認證頭
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+
+    console.log("發送訂單數據:", orderRequest);
+    console.log("使用的認證頭:", headers);
+
+    const response = await axios.post(
+      "/api/payment/orders/actions/create",
+      orderRequest,
+      {
+        headers,
+      }
+    );
+
+    // 成功建立訂單後，從response中取得訂單ID
+    if (
+      response.data &&
+      (response.data.orderId ||
+        (response.data.data && response.data.data.orderId))
+    ) {
+      // 兼容兩種可能的回應格式
+      const orderId = response.data.orderId || response.data.data.orderId;
+
+      // 獲取支付表單
+      const redirectResponse = await axios.get(
+        `/api/payment/redirect/${orderId}`,
+        {
+          headers,
+          responseType: "json",
+        }
+      );
+
+      if (redirectResponse.data && redirectResponse.data.formHtml) {
+        // 創建一個臨時div來插入HTML
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = redirectResponse.data.formHtml;
+
+        const form = tempDiv.querySelector("form");
+        if (form) {
+          document.body.appendChild(form);
+          Swal.close();
+          form.submit();
+        } else {
+          throw new Error("未找到支付表單");
+        }
+      } else if (redirectResponse.data && redirectResponse.data.redirectUrl) {
+        // 如果有重定向URL，直接跳轉
+        Swal.close();
+        window.location.href = redirectResponse.data.redirectUrl;
+      } else {
+        throw new Error("未獲得付款重定向信息");
+      }
+    } else {
+      throw new Error("訂單創建失敗");
+    }
+  } catch (error) {
+    console.error("下單失敗:", error);
+    Swal.close();
+
+    // 檢查是否是認證錯誤
+    if (error.response && error.response.status === 401) {
+      Swal.fire({
+        title: "登錄已過期",
+        text: "請重新登錄後再試",
+        icon: "warning",
+        confirmButtonText: "前往登錄",
+      }).then(() => {
+        localStorage.removeItem("token");
+        localStorage.setItem("redirectAfterLogin", window.location.href);
+        window.location.href = "/login";
+      });
+    } else {
+      Swal.fire({
+        title: "錯誤",
+        text: error.response?.data?.message || "下單失敗，請稍後再試",
+        icon: "error",
+        confirmButtonText: "確定",
+      });
+    }
+  }
 };
 
 // 移除了編輯商品和刪除商品的相關函數
@@ -469,7 +602,6 @@ onMounted(async () => {
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
-  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
 }
 
