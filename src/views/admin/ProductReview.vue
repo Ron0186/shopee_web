@@ -1268,7 +1268,7 @@ onMounted(() => {
 
 <style scoped>
 .product-review-management {
-  background-color: #f8f9fc;
+  /* background-color: #f8f9fc; */
   min-height: 100vh;
   font-size: 16px; /* 增加整體字體大小 */
 }
