@@ -193,14 +193,22 @@
           </div>
         </div>
 
-        <!-- 加入購物車按鈕 -->
-        <div class="d-grid gap-2">
+        <!-- 加入購物車和立即購買按鈕 -->
+        <div class="d-grid gap-2 d-flex">
           <button
-            class="btn btn-dark btn-lg py-3"
+            class="btn btn-outline-dark btn-lg py-3 flex-grow-1"
             @click="addToCart"
             :disabled="!canAddToCart"
           >
-            加入購物車
+            <i class="bi bi-cart-plus me-2"></i>加入購物車
+          </button>
+
+          <button
+            class="btn btn-dark btn-lg py-3 flex-grow-1"
+            @click="buyNow"
+            :disabled="!canAddToCart"
+          >
+            <i class="bi bi-credit-card me-2"></i>立即購買
           </button>
         </div>
       </div>
@@ -601,17 +609,17 @@ const selectSize = (size) => {
 };
 
 // 加入購物車
-const addToCart = () => {
+const addToCart = async () => {
   if (!canAddToCart.value) {
     Swal.fire({
       title: "請選擇規格",
-      text: "請先選擇顏色和尺寸",
+      text: "請先選擇所有必要的規格",
       icon: "warning",
     });
     return;
   }
 
-  // 這裡執行加入購物車的操作
+  // 檢查用戶是否登入
   if (!userStore.isLoggedIn) {
     Swal.fire({
       title: "請先登入",
@@ -628,36 +636,85 @@ const addToCart = () => {
     return;
   }
 
-  // 組織購物車項目數據
-  const cartItem = {
-    productId: product.value.productId,
-    productName: product.value.productName,
-    color: selectedColor.value,
-    size: selectedSize.value,
-    quantity: quantity.value,
-    price: currentPrice.value,
-    image: selectedImage.value,
-  };
-
-  // 調用加入購物車API (模擬)
   try {
-    // 實際應用中替換為真實的API調用
-    console.log("加入購物車:", cartItem);
+    // 取得當前選擇的SKU ID
+    const skuId = selectedSku.value?.skuId;
+    if (!skuId) {
+      Swal.fire("錯誤", "找不到可購買的 SKU，請稍後再試或聯絡客服", "error");
+      return;
+    }
+
+    const payload = {
+      userId: userStore.userId,
+      skuId,
+      quantity: quantity.value,
+    };
+
+    console.log("📦 加入購物車中...", payload);
+
+    // 發送API請求
+    await axios.post("/api/cart/add", payload, { withCredentials: true });
 
     Swal.fire({
       title: "成功",
-      text: "已加入購物車",
+      text: `已添加 ${quantity.value} 件商品到購物車`,
       icon: "success",
-      timer: 1500,
       showConfirmButton: false,
+      timer: 1500,
     });
   } catch (error) {
+    console.error("❌ 加入購物車失敗:", error);
     Swal.fire({
-      title: "錯誤",
-      text: "加入購物車失敗",
+      title: "加入失敗",
+      text: "請稍後再試",
       icon: "error",
     });
   }
+};
+
+// 新增立即購買函數
+const buyNow = () => {
+  if (!canAddToCart.value) {
+    Swal.fire({
+      title: "請選擇規格",
+      text: "請先選擇所有必要的規格",
+      icon: "warning",
+    });
+    return;
+  }
+
+  // 確認使用者是否登入
+  if (!userStore.isLoggedIn) {
+    Swal.fire({
+      title: "請先登入",
+      text: "您需要登入才能購買商品",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "前往登入",
+      cancelButtonText: "取消",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.setItem("redirectAfterLogin", window.location.href);
+        router.push("/login");
+      }
+    });
+    return;
+  }
+
+  // 取得當前選擇的SKU ID
+  const skuId = selectedSku.value?.skuId;
+  const qty = quantity.value;
+
+  if (!skuId) {
+    Swal.fire("錯誤", "找不到可購買的 SKU，請稍後再試或聯絡客服", "error");
+    return;
+  }
+
+  // 跳轉到快速結帳頁面
+  router.push({
+    path: "/quick-checkout",
+    query: { skuId, qty },
+  });
 };
 
 // 獲取商品詳情
