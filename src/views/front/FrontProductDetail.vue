@@ -96,6 +96,7 @@
                   ? 'btn-dark'
                   : 'btn-outline-secondary'
               "
+              :disabled="!isSpecValueAvailable(specName, item.value)"
               style="min-width: 50px"
               @click="selectSpec(specName, item.value)"
             >
@@ -115,6 +116,7 @@
                   ? 'btn-dark'
                   : 'btn-outline-secondary'
               "
+              :disabled="!isSpecValueAvailable(specName, item.value)"
               style="min-width: 50px"
               @click="selectSpec(specName, item.value)"
             >
@@ -569,6 +571,25 @@ watch(showSizeGuide, (newValue) => {
   }
 });
 
+// 添加此方法来检查某个规格值在当前选择下是否可用
+const isSpecValueAvailable = (specName, value) => {
+  // 创建一个测试规格选择，包含当前已选规格加上要测试的规格
+  const testSelection = { ...selectedSpecs.value, [specName]: value };
+
+  // 检查是否有任何SKU匹配此规格组合
+  return skus.value.some((sku) => {
+    const specPairs = sku.specPairs || {};
+
+    // 检查已选择的每种规格是否与此SKU匹配
+    for (const [name, val] of Object.entries(testSelection)) {
+      if (val && specPairs[name] !== val) {
+        return false; // 如果有任何规格不匹配，此SKU不可用
+      }
+    }
+    return true; // 所有已选规格都匹配
+  });
+};
+
 // 選擇顏色
 const selectColor = (color) => {
   selectedColor.value = color.name;
@@ -645,7 +666,9 @@ const fetchProductDetail = async () => {
     console.log("獲取商品詳情, 商品ID:", productId);
 
     // 使用新的API路徑獲取完整商品詳情
-    const response = await axios.get(`/api/products/${productId}/detail`);
+    const response = await axios.get(
+      `/api/products/${productId}/active-detail`
+    );
 
     if (response.status === 200 && response.data) {
       console.log("商品詳情原始回應:", response.data);
@@ -687,22 +710,41 @@ const fetchProductDetail = async () => {
 const processSpecifications = (specifications) => {
   if (!specifications || !Array.isArray(specifications)) return;
 
-  // 清空現有規格
+  // 清空现有规格
   specs.value = {};
   selectedSpecs.value = {};
 
-  // 遍歷所有規格類型
-  specifications.forEach((spec) => {
-    const specName = spec.specName; // 例如："顏色", "容量"
-    if (spec.values && spec.values.length > 0) {
-      // 為每種規格類型創建一個數組
-      specs.value[specName] = spec.values.map((v) => {
-        return { value: v.value };
-      });
+  // 从SKU生成可用规格组合
+  const availableSpecs = {};
+
+  // 遍历所有有效SKU
+  skus.value.forEach((sku) => {
+    const specPairs = sku.specPairs || {};
+
+    // 收集每种规格的所有有效值
+    Object.entries(specPairs).forEach(([name, value]) => {
+      if (!availableSpecs[name]) {
+        availableSpecs[name] = new Set();
+      }
+      availableSpecs[name].add(value);
+    });
+  });
+
+  // 从specifications中只添加availableSpecs中存在的值
+  Object.keys(availableSpecs).forEach((specName) => {
+    // 查找对应的规格定义
+    const specDef = specifications.find((s) => s.specName === specName);
+
+    if (specDef && specDef.values) {
+      // 过滤掉不在可用组合中的值
+      specs.value[specName] = specDef.values
+        .filter((v) => availableSpecs[specName].has(v.value))
+        .map((v) => ({ value: v.value }));
     }
   });
 
-  console.log("處理後的規格:", specs.value);
+  console.log("處理後的可用規格:", specs.value);
+  console.log("從SKU中提取的可用規格集合:", availableSpecs);
 };
 
 const specs = ref({}); // 用於存儲所有類型的規格
@@ -786,6 +828,15 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* 禁用规格按钮样式 */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f0f0f0;
+  border-color: #e0e0e0;
+  color: #999;
+}
+
 .color-circle {
   width: 35px;
   height: 35px;
