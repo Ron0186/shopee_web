@@ -38,9 +38,19 @@
                     <div class="col-auto text-center ps-3">
                         <span class="fw-bold small">#{{ shop.shopId }}</span>
                     </div>
-                    <div class="col text-truncate"> <span :title="shop.shopName">{{ shop.shopName }}</span>
-                        <small class="text-muted ms-2" :title="shop.userName">(賣家: {{ shop.userName || 'N/A' }})</small>
+
+                    <div class="col">
+                        <div class="fw-bold text-truncate" :title="shop.shopName">{{ shop.shopName }}</div>
+
+                        <div v-if="shop.shopCategory" class="text-muted small text-truncate mt-1 mb-2"
+                            :title="shop.shopCategory">
+                            <i class="bi bi-tag-fill me-1"></i> {{ shop.shopCategory }}
+                        </div>
+                        <div class="text-muted small text-truncate" :title="shop.userName">
+                            (販賣類型: {{ shop.userName || 'N/A' }})
+                        </div>
                     </div>
+
                     <div class="col-auto ms-auto pe-3">
                         <button class="btn btn-primary btn-sm flex-shrink-0" @click.stop="navigateToShop(shop.shopId)"
                             :disabled="selectedShopId !== shop.shopId" title="進入商店頁面">
