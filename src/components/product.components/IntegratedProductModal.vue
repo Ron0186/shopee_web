@@ -1987,25 +1987,8 @@ const resetForm = () => {
 };
 
 const closeModal = () => {
-  // 如果有提交中的請求，詢問用戶是否確定要關閉
-  if (isSubmitting.value) {
-    Swal.fire({
-      title: "確認關閉",
-      text: "資料正在提交中，確定要關閉嗎？",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "確定",
-      cancelButtonText: "取消",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        resetForm();
-        emit("close");
-      }
-    });
-  } else {
-    resetForm();
-    emit("close");
-  }
+  resetForm();
+  emit("close");
 };
 
 // 掛載時初始化

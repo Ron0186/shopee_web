@@ -66,7 +66,7 @@
           href="#"
           @click.prevent="setActiveTab('inactive')"
         >
-          未上架/尚未刊登 ({{ getTabCount("inactive") }})
+          未上架 ({{ getTabCount("inactive") }})
         </a>
       </li>
     </ul>
@@ -88,13 +88,6 @@
             @click="searchProducts"
           >
             <i class="bi bi-search"></i> 搜尋
-          </button>
-          <button
-            class="btn btn-outline-secondary"
-            type="button"
-            @click="resetSearch"
-          >
-            重設
           </button>
         </div>
       </div>
@@ -244,7 +237,7 @@
                 </span>
                 <span class="status-text">{{ getStatusText(product) }}</span>
                 <button
-                  v-if="getStatusText(product) === '未上架/尚未刊登'"
+                  v-if="getStatusText(product) === '未上架'"
                   class="btn btn-sm btn-light mt-2"
                   @click="toggleActive(product)"
                 >
@@ -387,7 +380,7 @@
 <script setup>
 import { ref, onMounted, computed, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import axios from "@/plugins/axios";
+import axios from "@/plugins/axios2";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
 import IntegratedProductModal from "@/components/product.components/IntegratedProductModal.vue";
@@ -477,12 +470,6 @@ const searchProducts = () => {
   fetchProductsAndInitDropdowns();
 };
 
-// 重設搜尋
-const resetSearch = () => {
-  searchKeyword.value = "";
-  fetchProductsAndInitDropdowns();
-};
-
 // 換頁
 const changePage = (page) => {
   if (page >= 0 && page < totalPages.value) {
@@ -515,7 +502,7 @@ const displayPageNumbers = computed(() => {
 // 獲取商品狀態文字
 const getStatusText = (product) => {
   if (product.isDeleted) return "違規/刪除";
-  if (!product.active) return "未上架/尚未刊登";
+  if (!product.active) return "未上架";
   return "架上商品";
 };
 
@@ -523,7 +510,7 @@ const getStatusText = (product) => {
 const getStatusClass = (product) => {
   const status = getStatusText(product);
   if (status === "架上商品") return "text-success";
-  if (status === "未上架/尚未刊登") return "text-warning";
+  if (status === "未上架") return "text-warning";
   if (status === "違規/刪除") return "text-danger";
   return "";
 };
@@ -734,58 +721,70 @@ const toggleActive = async (product) => {
     const newActive = !product.active;
     const actionText = newActive ? "上架" : "下架";
 
-    if (!confirm(`確定要${actionText}此商品嗎？`)) {
-      return;
-    }
-
-    // 立即更新UI状态
-    product.active = newActive;
-
-    // 找到并更新状态文本显示
-    const statusElements = document.querySelectorAll(
-      `[data-product-id="${productId}"] .product-status`
-    );
-    statusElements.forEach((el) => {
-      el.textContent = newActive ? "架上商品" : "未上架/尚未刊登";
-      el.className = newActive
-        ? "text-success product-status"
-        : "text-warning product-status";
+    // 顯示加載狀態，但不使用 await，避免阻塞
+    Swal.fire({
+      title: "處理中...",
+      text: `正在${actionText}商品`,
+      didOpen: () => Swal.showLoading(),
+      allowOutsideClick: false,
+      allowEscapeKey: false,
+      showConfirmButton: false,
     });
 
-    // 在后台发送API请求
-    axios
-      .put(
-        `/api/products/${productId}`,
-        { active: newActive },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      .then((response) => {
-        if (response.status >= 200 && response.status < 300) {
-          alert(`${actionText}成功`);
-        }
-      })
-      .catch((error) => {
-        // 恢复原状态
-        const productToRevert = products.value.find(
-          (p) => p.productId === productId
-        );
-        if (productToRevert) {
-          productToRevert.active = !newActive;
+    // 創建 FormData 對象
+    const formData = new FormData();
+    formData.append("active", String(newActive));
 
-          // 恢复状态文本显示
-          statusElements.forEach((el) => {
-            el.textContent = !newActive ? "架上商品" : "未上架/尚未刊登";
-            el.className = !newActive
-              ? "text-success product-status"
-              : "text-warning product-status";
-          });
-        }
-        alert(
-          "操作失敗: " + (error.response?.data?.message || "更改商品狀態失敗")
-        );
+    // 使用 try-catch 包裝網絡請求，確保出錯時能正確處理
+    const response = await axios.put(`/api/products/${productId}`, formData, {
+      headers: { Authorization: `Bearer ${token}` },
+      timeout: 30000,
+    });
+
+    // 關閉加載提示
+    Swal.close();
+
+    // 只有成功後才更新 UI
+    if (response.status >= 200 && response.status < 300) {
+      // 先更新本地狀態
+      const foundProduct = products.value.find(
+        (p) => p.productId === productId
+      );
+      if (foundProduct) {
+        foundProduct.active = newActive;
+      }
+
+      // 顯示成功消息
+      Swal.fire({
+        title: `${actionText}成功`,
+        icon: "success",
+        timer: 1500,
       });
+
+      // 注意：不要使用 await，讓它在背景執行
+      // 僅在必要時重新載入頁面，避免不必要的頁面刷新
+      setTimeout(() => {
+        fetchProducts().then(() => {
+          // 確保 DOM 已更新後再初始化下拉菜單
+          nextTick(() => {
+            setTimeout(initializeDropdowns, 200);
+          });
+        });
+      }, 1600); // 略長於 Swal 的 timer，確保提示消失後再刷新
+    }
   } catch (error) {
-    alert("發生錯誤: " + error.message);
+    console.error("更改商品狀態錯誤:", error);
+
+    // 關閉加載提示
+    Swal.close();
+
+    // 顯示錯誤消息
+    Swal.fire({
+      title: "操作失敗",
+      text:
+        error.response?.data?.message || error.message || "更改商品狀態失敗",
+      icon: "error",
+    });
   }
 };
 
@@ -877,8 +876,17 @@ onMounted(() => {
 // 每次數據更新後重新初始化下拉選單
 // 确保以下函数在表格数据更新后调用
 const fetchProductsAndInitDropdowns = async () => {
-  await fetchProducts();
-  initializeDropdowns();
+  try {
+    await fetchProducts();
+    // 确保DOM更新完成
+    await nextTick();
+    // 使用setTimeout给Vue一点额外时间更新DOM
+    setTimeout(() => {
+      initializeDropdowns();
+    }, 200);
+  } catch (error) {
+    console.error("获取数据失败:", error);
+  }
 };
 </script>
 
