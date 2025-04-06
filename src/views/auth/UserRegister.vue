@@ -3,11 +3,11 @@
     <div class="register-card">
       <h2 class="register-title">會員註冊</h2>
       <form @submit.prevent="register" class="register-form">
-        <div class="demo-button-container">
+        <!--  <div class="demo-button-container">
           <button type="button" @click="fillDemoData" class="demo-button">
             <i class="bi bi-magic"></i> 一鍵帶入
           </button>
-        </div>
+        </div>  -->
         
         <div class="form-group">
           <label for="username">使用者名稱</label>
@@ -18,8 +18,8 @@
             v-model="username"
             class="form-input"
           />
-          <div v-if="username && username.length < 6" class="input-error">
-            使用者名稱至少需要6個字
+          <div v-if="username && username.length < 3" class="input-error">
+            使用者名稱至少需要3個字
           </div>
         </div>
         
@@ -333,7 +333,7 @@ const isFormValid = computed(() => {
   return isPasswordValid.value && 
          !passwordMismatch.value && 
          confirmPassword.value !== "" &&
-         username.value.length >= 6;
+         username.value.length >= 3;
 });
 
 // 密碼正則表達式
