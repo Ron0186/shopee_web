@@ -5,18 +5,18 @@
       <ol class="breadcrumb bg-transparent p-0">
         <li class="breadcrumb-item">
           <router-link :to="`/store/${shopId}`" class="text-primary fw-medium"
-            >賣家中心</router-link
+            ><i class="bi bi-shop me-1"></i>賣家中心</router-link
           >
         </li>
         <li class="breadcrumb-item">
           <router-link
             :to="`/seller/shops/${shopId}/products`"
             class="text-primary fw-medium"
-            >商品管理</router-link
+            ><i class="bi bi-grid-3x3 me-1"></i>商品管理</router-link
           >
         </li>
         <li class="breadcrumb-item active fw-medium" aria-current="page">
-          SKU 管理
+          <i class="bi bi-tags me-1"></i>SKU 管理
         </li>
       </ol>
     </nav>
@@ -56,7 +56,7 @@
                 >
                   <i class="bi bi-info-circle fs-5 text-info"></i>
                 </span>
-                <h5 class="mb-0">商品資訊</h5>
+                <h5 class="mb-0 fw-bold">商品資訊</h5>
               </div>
               <div class="table-responsive">
                 <table class="table align-middle mb-0 info-table">
@@ -92,7 +92,7 @@
                           class="badge rounded-pill px-3 py-2 d-inline-flex align-items-center gap-1"
                           :class="
                             productInfo.active
-                              ? 'bg-success-subtle text-success'
+                              ? 'bg-success-subtle text-success '
                               : 'bg-warning-subtle text-warning'
                           "
                         >
@@ -104,7 +104,7 @@
                                 : 'bi-hourglass-split'
                             "
                           ></i>
-                          {{ productInfo.active ? "上架中" : "審核中" }}
+                          {{ productInfo.active ? "上架中" : "未上架" }}
                         </span>
                       </td>
                     </tr>
@@ -118,12 +118,12 @@
           <div class="col-md-6">
             <div
               v-if="hasProductImages"
-              class="gallery-card card border-0 h-100 rounded-4 overflow-hidden"
+              class="card border-0 shadow-sm h-100 rounded-4 overflow-hidden hover-shadow"
             >
               <div
-                class="card-header bg-white py-3 border-0 d-flex justify-content-between align-items-center"
+                class="card-header bg-light py-3 border-0 d-flex justify-content-between align-items-center"
               >
-                <h5 class="mb-0 d-flex align-items-center">
+                <h5 class="mb-0 fw-bold d-flex align-items-center">
                   <span
                     class="badge rounded-circle bg-primary-subtle p-2 me-2 d-flex align-items-center justify-content-center"
                   >
@@ -132,16 +132,15 @@
                   商品圖片
                 </h5>
                 <span
-                  class="badge bg-light text-secondary border rounded-pill px-3 py-1"
+                  class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill"
+                  >共 {{ totalImages }} 張圖片</span
                 >
-                  <i class="bi bi-image me-1"></i> {{ totalImages }} 張圖片
-                </span>
               </div>
               <div class="position-relative">
                 <!-- Main Carousel -->
                 <div
                   id="productImagesCarousel"
-                  class="carousel slide bg-light carousel-fade"
+                  class="carousel slide bg-light"
                   data-bs-ride="carousel"
                 >
                   <div class="carousel-inner">
@@ -153,7 +152,7 @@
                       >
                         <img
                           :src="getImageUrl(primaryImage)"
-                          alt="商品主图"
+                          alt="商品主圖"
                           class="d-block product-thumbnail"
                           style="
                             max-height: 300px;
