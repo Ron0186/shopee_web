@@ -395,6 +395,12 @@ const router = createRouter({
           },
         },
         {
+          path: '/seller/shops/:shopId/campaigns',
+          name: 'SellerCampaigns',
+          component: () => import('@/views/front/SellerCampaigns.vue'),
+          meta: { requiresAuth: true }
+        },
+        {
           path: "seller/coupon/apply", // 注意這是相對路徑
           name: "CouponApply",
           component: () => import("@/views/front/CouponApplicationForm.vue"),
