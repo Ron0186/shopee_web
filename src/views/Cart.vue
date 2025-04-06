@@ -153,7 +153,7 @@ const fetchCart = async () => {
   errorMessage.value = "";
 
   try {
-    const response = await axios.get(`/api/cart2/${userId.value}`);
+    const response = await axios.get(`/api/cart/${userId.value}`);
     cartItems.value = response.data;
     console.log("購物車資料:", cartItems.value);
   } catch (error) {
@@ -189,7 +189,7 @@ const updateQuantity = async (cartId, newQuantity) => {
 
   errorMessage.value = "";
   try {
-    await axios.put(`/api/cart2/${cartId}`, { quantity: newQuantity });
+    await axios.put(`/api/cart/${cartId}`, { quantity: newQuantity });
     await fetchCart(); // 重新獲取購物車資料
   } catch (error) {
     console.error("更新購物車失敗", error);
@@ -206,7 +206,7 @@ const removeFromCart = async (cartId, skuId) => {
   errorMessage.value = "";
   try {
     // 使用正確的參數調用刪除API
-    await axios.delete(`/api/cart2/remove`, {
+    await axios.delete(`/api/cart/remove`, {
       params: { userId: userId.value, skuId: skuId },
     });
     await fetchCart(); // 重新獲取購物車資料
