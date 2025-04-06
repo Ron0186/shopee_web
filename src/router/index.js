@@ -122,14 +122,8 @@ const router = createRouter({
           path: "/memberCenter",
           name: "memberCenter",
           component: () => import("@/views/member/MemberCenter.vue"),
-          path: "/memberCenter",
-          name: "memberCenter",
-          component: () => import("@/views/member/MemberCenter.vue"),
         },
         {
-          path: "/profile",
-          name: "profile",
-          component: () => import("@/views/member/Profile.vue"),
           path: "/profile",
           name: "profile",
           component: () => import("@/views/member/Profile.vue"),
@@ -138,14 +132,8 @@ const router = createRouter({
           path: "/address",
           name: "address",
           component: () => import("@/views/member/Address.vue"),
-          path: "/address",
-          name: "address",
-          component: () => import("@/views/member/Address.vue"),
         },
         {
-          path: "/HomeAddressCreate",
-          name: "HomeAddressCreate",
-          component: () => import("@/views/member/HomeAddressCreate.vue"),
           path: "/HomeAddressCreate",
           name: "HomeAddressCreate",
           component: () => import("@/views/member/HomeAddressCreate.vue"),
@@ -154,15 +142,12 @@ const router = createRouter({
           path: "/CVSAddressCreate",
           name: "CVSAddressCreate",
           component: () => import("@/views/member/CVSAddressCreate.vue"),
-          path: "/CVSAddressCreate",
-          name: "CVSAddressCreate",
-          component: () => import("@/views/member/CVSAddressCreate.vue"),
         },
-        {
-          path: "/memberOrders",
-          name: "memberOrders",
-          component: () => import("@/views/member/MemberOrders.vue"),
-        },
+        // {
+        //   path: "/memberOrders",
+        //   name: "memberOrders",
+        //   component: () => import("@/views/member/MemberOrders.vue"),
+        // },
         {
           path: "/memberCoupons",
           name: "memberCoupons",
@@ -171,25 +156,16 @@ const router = createRouter({
         {
           path: "/updateHomeAddress/:addressId",
           name: "UpdateHomeAddress",
-          path: "/updateHomeAddress/:addressId",
-          name: "UpdateHomeAddress",
           component: UpdateHomeAddress,
-          props: true, // 讓 route 參數能當作 props 傳給元件
           props: true, // 讓 route 參數能當作 props 傳給元件
         },
         {
-          path: "/updateCVSAddress/:addressId",
-          name: "UpdateCVSAddress",
           path: "/updateCVSAddress/:addressId",
           name: "UpdateCVSAddress",
           component: UpdateCVSAddress,
           props: true, // 讓 route 參數能當作 props 傳給元件
-          props: true, // 讓 route 參數能當作 props 傳給元件
         },
         {
-          path: "/changePassword",
-          name: "changePassword",
-          component: () => import("@/views/member/ChangePassword.vue"),
           path: "/changePassword",
           name: "changePassword",
           component: () => import("@/views/member/ChangePassword.vue"),
@@ -199,14 +175,9 @@ const router = createRouter({
           path: "/revenue",
           name: "revenue",
           component: () => import("@/views/seller/RevenueDetails.vue"),
-          path: "/revenue",
-          name: "revenue",
-          component: () => import("@/views/seller/RevenueDetails.vue"),
         },
 
         {
-          path: "/product-details",
-          name: "product-details",
           path: "/product-details",
           name: "product-details",
           component: ProductDetails,
@@ -215,22 +186,16 @@ const router = createRouter({
         {
           path: "/order-details",
           name: "order-details",
-          path: "/order-details",
-          name: "order-details",
           component: OrderDetails,
           props: true,
         },
         {
           path: "/sku-details",
           name: "sku-details",
-          path: "/sku-details",
-          name: "sku-details",
           component: SkuDetails,
           props: true,
         },
         {
-          path: "/review-details",
-          name: "review-details",
           path: "/review-details",
           name: "review-details",
           component: ReviewDetails,
@@ -240,6 +205,11 @@ const router = createRouter({
           path: "/revenueSummary",
           name: "revenueSummary",
           component: () => import("@/views/seller/RevenueSummary.vue"),
+        },
+        {
+          path: "/cvs",
+          name: "cvs",
+          component: () => import("@/components/address/EcpayCvsPicker.vue"),
         },
 
         //下單頁面
