@@ -16,22 +16,63 @@
           v-for="campaign in campaigns" 
           :key="campaign.campaignId" 
           class="campaign-card"
-          @click="showCampaignDetail(campaign)"
         >
-        <img 
-  :src="getImageUrl(campaign.bannerImage || '/src/assets/default-campaign.png')" 
-  class="campaign-img" 
-  alt="活動圖片"
-/>
+          <img 
+            :src="getImageUrl(campaign.bannerImage || '/src/assets/default-campaign.png')" 
+            class="campaign-img" 
+            alt="活動圖片"
+          />
           <div class="campaign-info">
             <h3 class="campaign-name">{{ campaign.campaignName }}</h3>
             <p class="campaign-date">{{ formatDate(campaign.startDate) }} - {{ formatDate(campaign.endDate) }}</p>
-            <p v-if="campaign.couponCount > 0" class="campaign-coupons-available">
-              可領取 {{ campaign.couponCount }} 種優惠券
-            </p>
-            <p v-else class="campaign-no-coupons">
+            <p class="campaign-description">{{ campaign.description || '限時優惠活動' }}</p>
+          </div>
+          
+          <!-- 優惠券直接顯示在活動卡片上 -->
+          <div class="campaign-coupons">
+            <div v-if="loadingCouponStatus[campaign.campaignId]" class="loading-spinner-small">
+              <div class="spinner-small"></div>
+            </div>
+            
+            <div v-else-if="getCampaignCoupons(campaign.campaignId).length === 0" class="no-coupons-label">
               暫無可領取優惠券
-            </p>
+            </div>
+            
+            <div v-else class="coupon-list-compact">
+              <div 
+                v-for="coupon in getCampaignCoupons(campaign.campaignId)" 
+                :key="coupon.couponId" 
+                class="coupon-compact"
+              >
+                <div class="coupon-info-compact">
+                  <p class="coupon-name-compact">{{ coupon.couponName }}</p>
+                  <p class="coupon-discount-compact">
+                    {{ formatDiscount(coupon.discountType, coupon.discountValue) }}
+                  </p>
+                </div>
+                
+                <button 
+                  class="redeem-btn-compact" 
+                  :class="{
+                    'redeemed': coupon.redeemedByCurrentUser,
+                    'out-of-stock': coupon.remainingQuantity <= 0,
+                    'not-started': !isCampaignStarted(campaign)
+                  }"
+                  :disabled="coupon.redeemedByCurrentUser || coupon.remainingQuantity <= 0 || !isLoggedIn || !isCampaignStarted(campaign)"
+                  @click.stop="redeemCoupon(campaign, coupon)"
+                >
+                  <span v-if="coupon.redeemedByCurrentUser">已領取</span>
+                  <span v-else-if="coupon.remainingQuantity <= 0">已領完</span>
+                  <span v-else-if="!isLoggedIn">請先登入</span>
+                  <span v-else-if="!isCampaignStarted(campaign)">活動尚未開始</span>
+                  <span v-else>立即領取</span>
+                </button>
+              </div>
+            </div>
+            
+            <button class="view-details-btn" @click="showCampaignDetail(campaign)">
+              查看完整活動詳情
+            </button>
           </div>
         </div>
       </div>
@@ -43,10 +84,10 @@
           
           <h2>{{ selectedCampaign.campaignName }}</h2>
           <img 
-  :src="getImageUrl(selectedCampaign.bannerImage || '/src/assets/default-campaign.png')" 
-  class="campaign-detail-img" 
-  alt="活動詳情圖片"
-/>
+            :src="getImageUrl(selectedCampaign.bannerImage || '/src/assets/default-campaign.png')" 
+            class="campaign-detail-img" 
+            alt="活動詳情圖片"
+          />
           
           <div class="campaign-detail-info">
             <p class="campaign-detail-date">
@@ -56,21 +97,21 @@
           </div>
           
           <!-- 優惠券列表 -->
-          <div class="campaign-coupons">
+          <div class="campaign-coupons-modal">
             <h3>可領取的優惠券</h3>
             
-            <div v-if="loadingCoupons" class="loading-spinner">
+            <div v-if="loadingCouponStatus[selectedCampaign.campaignId]" class="loading-spinner">
               <div class="spinner"></div>
               <p>載入優惠券中...</p>
             </div>
             
-            <div v-else-if="coupons.length === 0" class="no-coupons">
+            <div v-else-if="getCampaignCoupons(selectedCampaign.campaignId).length === 0" class="no-coupons">
               <p>此活動暫無可領取的優惠券</p>
             </div>
             
             <div v-else class="coupon-list">
               <div 
-                v-for="coupon in coupons" 
+                v-for="coupon in getCampaignCoupons(selectedCampaign.campaignId)" 
                 :key="coupon.couponId" 
                 class="coupon-card"
                 :class="{ 'redeemed': coupon.redeemedByCurrentUser, 'out-of-stock': coupon.remainingQuantity <= 0 }"
@@ -90,12 +131,18 @@
                 
                 <button 
                   class="redeem-btn" 
-                  :disabled="coupon.redeemedByCurrentUser || coupon.remainingQuantity <= 0 || !isLoggedIn"
-                  @click.stop="redeemCoupon(coupon)"
+                  :class="{
+                    'redeemed': coupon.redeemedByCurrentUser,
+                    'out-of-stock': coupon.remainingQuantity <= 0,
+                    'not-started': !isCampaignStarted(selectedCampaign)
+                  }"
+                  :disabled="coupon.redeemedByCurrentUser || coupon.remainingQuantity <= 0 || !isLoggedIn || !isCampaignStarted(selectedCampaign)"
+                  @click.stop="redeemCoupon(selectedCampaign, coupon)"
                 >
                   <span v-if="coupon.redeemedByCurrentUser">已領取</span>
                   <span v-else-if="coupon.remainingQuantity <= 0">已領完</span>
                   <span v-else-if="!isLoggedIn">請先登入</span>
+                  <span v-else-if="!isCampaignStarted(selectedCampaign)">活動尚未開始</span>
                   <span v-else>立即領取</span>
                 </button>
               </div>
@@ -107,7 +154,7 @@
   </template>
   
   <script setup>
-  import { ref, onMounted, computed } from 'vue';
+  import { ref, onMounted, computed, reactive } from 'vue';
   import axios from '@/plugins/axios';
   import Swal from 'sweetalert2';
   import { useUserStore } from '@/stores/user';
@@ -126,8 +173,8 @@
   // 狀態變數
   const campaigns = ref([]);
   const loadingCampaigns = ref(true);
-  const coupons = ref([]);
-  const loadingCoupons = ref(false);
+  const campaignCoupons = reactive({});  // 存儲每個活動的優惠券
+  const loadingCouponStatus = reactive({}); // 跟踪每個活動的優惠券載入狀態
   const showModal = ref(false);
   const selectedCampaign = ref({});
   
@@ -142,10 +189,15 @@
     try {
       const response = await axios.get(`/api/campaigns/shop/${props.shopId}`);
       if (response.data.success) {
-        // 篩選出活躍的活動
+        // 篩選出活躍的活動 (包括未開始的活動)
         campaigns.value = response.data.data.filter(campaign => 
           campaign.status === 'ACTIVE' && new Date(campaign.endDate) >= new Date()
         );
+        
+        // 為每個活動預加載優惠券
+        campaigns.value.forEach(campaign => {
+          fetchCampaignCoupons(campaign.campaignId);
+        });
       } else {
         console.error('獲取活動失敗:', response.data.message);
       }
@@ -158,50 +210,70 @@
   
   // 獲取特定活動的優惠券
   const fetchCampaignCoupons = async (campaignId) => {
-    loadingCoupons.value = true;
+    loadingCouponStatus[campaignId] = true;
     try {
       const response = await axios.get(`/api/campaigns/${campaignId}/coupons`);
       if (response.data.success) {
-        coupons.value = response.data.data;
+        campaignCoupons[campaignId] = response.data.data;
       } else {
         console.error('獲取優惠券失敗:', response.data.message);
-        coupons.value = [];
+        campaignCoupons[campaignId] = [];
       }
     } catch (error) {
       console.error('獲取優惠券錯誤:', error);
-      coupons.value = [];
+      campaignCoupons[campaignId] = [];
     } finally {
-      loadingCoupons.value = false;
+      loadingCouponStatus[campaignId] = false;
     }
   };
   
+  // 獲取特定活動的優惠券
+  const getCampaignCoupons = (campaignId) => {
+    return campaignCoupons[campaignId] || [];
+  };
+  
   // 顯示活動詳情
-  const showCampaignDetail = async (campaign) => {
+  const showCampaignDetail = (campaign) => {
     selectedCampaign.value = campaign;
     showModal.value = true;
-    await fetchCampaignCoupons(campaign.campaignId);
   };
-
-// 修改 getImageUrl 函數
-const getImageUrl = (path) => {
-  if (!path) return '';
   
-  // 如果路徑已經是完整 URL，則直接返回
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
-  }
+  // 修改 getImageUrl 函數
+  const getImageUrl = (path) => {
+    if (!path) return '';
+    
+    // 如果路徑已經是完整 URL，則直接返回
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+      return path;
+    }
+    
+    // 如果路徑以 / 開頭，則使用完整路徑
+    if (path.startsWith('/')) {
+      return import.meta.env.VITE_API_URL + path;
+    }
+    
+    // 如果是其他形式的相對路徑，確保正確拼接
+    return import.meta.env.VITE_API_URL + '/' + path;
+  };
   
-  // 如果路徑以 / 開頭，則使用完整路徑
-  if (path.startsWith('/')) {
-    return import.meta.env.VITE_API_URL + path;
-  }
-  
-  // 如果是其他形式的相對路徑，確保正確拼接
-  return import.meta.env.VITE_API_URL + '/' + path;
-};
+  // 檢查活動是否已經開始
+  const isCampaignStarted = (campaign) => {
+    return new Date(campaign.startDate) <= new Date();
+  };
   
   // 領取優惠券
-  const redeemCoupon = async (coupon) => {
+  const redeemCoupon = async (campaign, coupon) => {
+    // 檢查活動是否已開始
+    if (!isCampaignStarted(campaign)) {
+      Swal.fire({
+        title: '活動尚未開始',
+        text: `此活動將於 ${formatDate(campaign.startDate)} 開始`,
+        icon: 'info',
+        confirmButtonText: '確定'
+      });
+      return;
+    }
+    
     // 如果用戶未登入，提示登入
     if (!isLoggedIn.value) {
       Swal.fire({
@@ -223,7 +295,7 @@ const getImageUrl = (path) => {
     
     try {
       const response = await axios.post('/api/campaigns/redeem', {
-        campaignId: selectedCampaign.value.campaignId,
+        campaignId: campaign.campaignId,
         couponId: coupon.couponId
       });
       
@@ -235,7 +307,7 @@ const getImageUrl = (path) => {
         });
         
         // 重新獲取優惠券列表，更新狀態
-        await fetchCampaignCoupons(selectedCampaign.value.campaignId);
+        await fetchCampaignCoupons(campaign.campaignId);
       } else {
         throw new Error(response.data.message || '領取優惠券失敗');
       }
@@ -300,8 +372,9 @@ const getImageUrl = (path) => {
     border-radius: 10px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     overflow: hidden;
-    cursor: pointer;
     transition: transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
   }
   
   .campaign-card:hover {
@@ -316,6 +389,7 @@ const getImageUrl = (path) => {
   
   .campaign-info {
     padding: 15px;
+    flex-grow: 1;
   }
   
   .campaign-name {
@@ -330,18 +404,142 @@ const getImageUrl = (path) => {
     margin-bottom: 5px;
   }
   
-  .campaign-coupons-available {
+  .campaign-description {
     font-size: 14px;
-    color: #4CAF50;
-    margin-top: 10px;
+    color: #666;
+    margin-top: 5px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    max-height: 2.8em; /* Fallback for browsers that don't support line-clamp */
   }
   
-  .campaign-no-coupons {
+  /* 活動卡片中直接顯示的優惠券 */
+  .campaign-coupons {
+    padding: 10px 15px 15px;
+    border-top: 1px dashed #ddd;
+    background-color: #f9f9f9;
+  }
+  
+  .coupon-list-compact {
+    margin-bottom: 10px;
+  }
+  
+  .coupon-compact {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: white;
+    border: 1px dashed #ddd;
+    border-radius: 5px;
+    padding: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .coupon-info-compact {
+    flex-grow: 1;
+  }
+  
+  .coupon-name-compact {
     font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+  }
+  
+  .coupon-discount-compact {
+    font-size: 16px;
+    color: #e84118;
+  }
+  
+  .redeem-btn-compact {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    font-size: 14px;
+    cursor: pointer;
+    min-width: 80px;
+    text-align: center;
+    white-space: nowrap;
+  }
+  
+  .redeem-btn-compact:hover:not(:disabled) {
+    background-color: #45a049;
+  }
+  
+  .redeem-btn-compact:disabled {
+    background-color: #cccccc;
+    cursor: not-allowed;
+  }
+  
+  .redeem-btn-compact.redeemed {
+    background-color: #ff9800;
+  }
+  
+  .redeem-btn-compact.out-of-stock {
+    background-color: #999;
+  }
+  
+  .redeem-btn-compact.not-started {
+    background-color: #007bff;
+  }
+  
+  .view-details-btn {
+    width: 100%;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 0;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 5px;
+  }
+  
+  .view-details-btn:hover {
+    background-color: #2980b9;
+  }
+  
+  .no-coupons-label {
+    text-align: center;
     color: #999;
-    margin-top: 10px;
+    padding: 10px 0;
+    font-size: 14px;
   }
   
+  /* 小型載入動畫 */
+  .loading-spinner-small {
+    display: flex;
+    justify-content: center;
+    padding: 10px 0;
+  }
+  
+  .spinner-small {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-radius: 50%;
+    border-top: 3px solid #3498db;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+  }
+  
+  /* 模態窗中的優惠券樣式 */
+  .campaign-coupons-modal {
+    margin-top: 25px;
+  }
+  
+  .campaign-coupons-modal h3 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    color: #333;
+  }
+  
+  /* 一般載入動畫 */
   .loading-spinner {
     display: flex;
     flex-direction: column;
@@ -425,12 +623,6 @@ const getImageUrl = (path) => {
     margin-bottom: 20px;
   }
   
-  .campaign-coupons h3 {
-    font-size: 20px;
-    margin-bottom: 15px;
-    color: #333;
-  }
-  
   .coupon-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
@@ -458,6 +650,15 @@ const getImageUrl = (path) => {
   .coupon-card.out-of-stock {
     background: linear-gradient(135deg, #f0f0f0 0%, #e0e0e0 100%);
     opacity: 0.8;
+  }
+  
+  .coupon-card.not-started {
+    background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+    opacity: 0.9;
+  }
+  
+  .redeem-btn.not-started {
+    background-color: #007bff;
   }
   
   .coupon-info {
