@@ -4,10 +4,17 @@
             <h3>後台管理者優惠券管理</h3>
 
             <div class="row mb-4">
-                <div class="col-md-5 mb-2 mb-md-0">
-                    <button class="btn btn-secondary text-nowrap" @click="navigateToApplicationReview">
-                        <i class="bi bi-list-check"></i> 前往審核優惠券申請
-                    </button>
+                <div class="col-md-auto mb-2 mb-md-0">
+                    <div class="position-relative d-inline-block me-3"> <button class="btn btn-secondary text-nowrap"
+                            @click="navigateToApplicationReview">
+                            <i class="bi bi-list-check"></i> 前往審核優惠券申請
+                        </button>
+                        <span v-if="pendingCount > 0"
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ pendingCount }}
+                            <span class="visually-hidden">筆待審核申請</span>
+                        </span>
+                    </div>
 
                     <button class="btn btn-primary text-nowrap" style="margin-left:15px ;" @click="openModal('insert')">
                         <i class="bi bi-plus-lg"></i> 直接新增優惠券
@@ -76,8 +83,12 @@ import AdminCouponModal from "./AdminCouponModal.vue";
 import CouponSelect from "./CouponSelect.vue";
 import CouponChart from "./CouponChart.vue";
 import { useRouter } from 'vue-router'; // 如果需要導航
+import { storeToRefs } from 'pinia'; // *** 匯入 storeToRefs ***
+import { useCouponApplicationStore } from '@/stores/couponApplicationStore';
 
 const router = useRouter(); // 用於導航
+const applicationStore = useCouponApplicationStore();
+const { pendingCount } = storeToRefs(applicationStore);
 
 // --- 狀態管理 ---
 const coupons = ref([]); // 儲存從後端獲取的優惠券列表 (AdminCouponDTO)
@@ -338,6 +349,7 @@ watch([() => pagination.totalPages, () => pagination.currentPage], ([newTotalPag
 onMounted(() => {
     callFind(0); // 初始載入第一頁
     fetchMonthlyStats(); // 初始載入圖表數據
+    applicationStore.fetchPendingCount(); // *** 載入待審核數量 ***
 });
 console.log('Visible Pages:', visiblePages.value);
 </script>
@@ -368,5 +380,12 @@ console.log('Visible Pages:', visiblePages.value);
     /* 淺灰色背景 */
     font-size: 0.9rem;
     color: #495057;
+}
+
+/* 調整 Badge 位置可能需要微調 */
+.position-absolute.badge {
+    font-size: 0.7em;
+    padding: 0.25em 0.4em;
+
 }
 </style>
