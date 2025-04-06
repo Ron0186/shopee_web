@@ -10,6 +10,13 @@
       </button>
     </div>
 
+    <div v-if="isOwner" class="my-products-section">
+      <button class="btn btn-my-products" @click="goToMyCampaign">
+        我的行銷活動
+      </button>
+    </div>
+ <!-- 非店主顯示活動列表 -->
+ <ShopCampaigns v-if="!isOwner" :shopId="shop.shopId || route.params.shopId" />
     <!-- 分類選單 -->
     <nav class="shop-menu">
       <a href="#" class="active">回首頁</a>
@@ -135,6 +142,7 @@ import { useRouter, useRoute } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
+import ShopCampaigns from "@/components/campaign/ShopCampaigns.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -288,6 +296,12 @@ const searchProduct = () => {
 const goToMyProducts = () => {
   router.push(
     `/seller/shops/${shop.value.shopId || route.params.shopId}/products`
+  );
+};
+
+const goToMyCampaign = () => {
+  router.push(
+    `/seller/shops/${shop.value.shopId || route.params.shopId}/campaigns`
   );
 };
 
@@ -462,10 +476,32 @@ const formatPrice = (price) => {
   return typeof price === "number" ? price.toLocaleString("zh-TW") : price;
 };
 
-// 圖片處理
-const getImageUrl = (url) => {
-  if (!url) return defaultImage;
-  return url.startsWith("http") ? url : `${baseUrl.value}${url}`;
+// 修改 getImageUrl 函數
+const getImageUrl = (path) => {
+  // 記錄原始路徑以便調試
+  console.log('getImageUrl 收到的原始路徑:', path);
+  
+  if (!path) {
+    console.log('路徑為空，使用預設圖片');
+    return '/src/assets/default-campaign.png';
+  }
+  
+  // 如果路徑已經是完整 URL，則直接返回
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    console.log('使用完整 URL:', path);
+    return path;
+  }
+  
+  // 確保路徑以 / 開頭
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  console.log('正規化後的路徑:', normalizedPath);
+  
+  // 添加時間戳參數以防止緩存問題
+  const timestamp = new Date().getTime();
+  const fullPath = `${import.meta.env.VITE_API_URL}${normalizedPath}?t=${timestamp}`;
+  console.log('最終完整 URL:', fullPath);
+  
+  return fullPath;
 };
 
 // 監聽 shopId 變化
