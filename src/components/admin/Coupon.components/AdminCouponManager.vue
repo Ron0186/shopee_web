@@ -359,7 +359,7 @@ console.log('Visible Pages:', visiblePages.value);
 }
 
 .container-fluid {
-    padding-top: 50px;
+    padding-top: 0px;
 }
 
 
