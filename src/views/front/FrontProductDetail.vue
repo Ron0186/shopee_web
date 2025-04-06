@@ -394,7 +394,7 @@ const userStore = useUserStore();
 
 // 基礎 URL
 const baseUrl = ref(import.meta.env.VITE_API_URL || "");
-const defaultImage = "/assets/default-image.png"; // 默認圖片路徑
+const defaultImage = "@/assets/default-image.png"; // 默認圖片路徑
 
 // 商品資料
 const product = ref({
@@ -509,9 +509,18 @@ const getImageUrl = (image) => {
 };
 
 // 處理圖片加載錯誤
+// const handleImageError = (e) => {
+//   console.log("圖片載入失敗，使用預設圖片");
+//   e.target.src = defaultImage;
+// };
+// 處理圖片加載錯誤，避免重複處理
 const handleImageError = (e) => {
-  console.log("圖片載入失敗，使用預設圖片");
-  e.target.src = defaultImage;
+  // 確保只處理一次錯誤
+  if (!e.target.dataset.errorHandled) {
+    console.log("圖片載入失敗，使用預設圖片");
+    e.target.src = defaultImage;
+    e.target.dataset.errorHandled = true; // 標記已處理
+  }
 };
 
 // 價格計算
@@ -673,7 +682,7 @@ const addToCart = async () => {
 };
 
 // 新增立即購買函數
-const buyNow = () => {
+const buyNow = async () => {
   if (!canAddToCart.value) {
     Swal.fire({
       title: "請選擇規格",
@@ -701,20 +710,28 @@ const buyNow = () => {
     return;
   }
 
-  // 取得當前選擇的SKU ID
-  const skuId = selectedSku.value?.skuId;
-  const qty = quantity.value;
+  try {
+    // 先調用加入購物車方法
+    await addToCart();
 
-  if (!skuId) {
-    Swal.fire("錯誤", "找不到可購買的 SKU，請稍後再試或聯絡客服", "error");
-    return;
+    // 如果加入購物車成功，跳轉到快速結帳頁面
+    const skuId = selectedSku.value?.skuId;
+    const qty = quantity.value;
+
+    if (skuId) {
+      router.push({
+        path: "/quick-checkout",
+        query: { skuId, qty },
+      });
+    }
+  } catch (error) {
+    console.error("❌ 立即購買失敗:", error);
+    Swal.fire({
+      title: "立即購買失敗",
+      text: "請稍後再試",
+      icon: "error",
+    });
   }
-
-  // 跳轉到快速結帳頁面
-  router.push({
-    path: "/quick-checkout",
-    query: { skuId, qty },
-  });
 };
 
 // 獲取商品詳情
