@@ -51,6 +51,8 @@ import Swal from 'sweetalert2';
 import { useRouter, useRoute } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 import { useUserStore } from '@/stores/user';
+const SiteKey=import.meta.env.VITE_RECAPTCHA_V2_SITE_KEY;
+
 const userStore = useUserStore();
 
 const router = useRouter();
@@ -89,7 +91,7 @@ function handleRecaptchaToggle() {
 }
 
 // reCAPTCHA 網站金鑰 - 替換成你的 Site Key
-const recaptchaSiteKey = "6LdxawIrAAAAAHO4ioKiJ8BM20rteeaTjuLylhmT";
+const recaptchaSiteKey = SiteKey;
 
 // 載入 reCAPTCHA 腳本
 function loadRecaptchaScript() {

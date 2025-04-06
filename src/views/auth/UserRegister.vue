@@ -205,6 +205,7 @@ import { ref, onMounted, nextTick, watch, computed } from "vue";
 import Swal from "sweetalert2";
 import { useRouter, useRoute } from "vue-router";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
+const SiteKey=import.meta.env.VITE_RECAPTCHA_V2_SITE_KEY;
 
 const router = useRouter();
 const route = useRoute();
@@ -412,7 +413,7 @@ function checkPasswordStrength() {
 }
 
 // reCAPTCHA 網站金鑰 - 替換成你的 Site Key
-const recaptchaSiteKey = "6LdxawIrAAAAAHO4ioKiJ8BM20rteeaTjuLylhmT";
+const recaptchaSiteKey = SiteKey;
 
 // 載入 reCAPTCHA 腳本
 function loadRecaptchaScript() {
