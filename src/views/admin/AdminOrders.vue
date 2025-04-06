@@ -65,18 +65,25 @@
               <td>{{ order.userName || "未知用戶" }}</td>
               <td class="price">${{ formatPrice(order.totalPrice) }}</td>
 
-              <!-- 中文化 -->
+              <!-- 訂單狀態 -->
               <td :class="statusClass(order.status)" class="order-status">
                 {{ translateOrderStatus(order.status) }}
               </td>
-              <td>{{ translatePaymentMethod(order.paymentMethod) }}</td>
+
+              <!-- 付款方式 -->
+              <td>
+                {{ translatePaymentMethod(order.paymentMethod) }}
+              </td>
+
+              <!-- 付款狀態 -->
               <td :class="paymentStatusClass(order.paymentStatus)">
                 {{ translatePaymentStatus(order.paymentStatus) }}
               </td>
+
+              <!-- 運送狀態 -->
               <td :class="shipmentStatusClass(order.shipmentStatus)">
                 {{ translateShipmentStatus(order.shipmentStatus) }}
               </td>
-
               <td>{{ getTotalQuantity(order.items) }}</td>
               <td>{{ formatDate(order.createdAt) }}</td>
               <td>
@@ -399,6 +406,7 @@ import axios from "axios";
 import { useUserStore } from "@/stores/user";
 // 引入 Bootstrap Vue Next 組件
 import { BModal, BButton } from "bootstrap-vue-next";
+import { log } from "sockjs-client/dist/sockjs";
 
 const userStore = useUserStore();
 const orders = ref([]);
@@ -408,6 +416,17 @@ const filterCriteria = ref({ status: "all" });
 const loading = ref(true);
 const error = ref(null);
 const updateInProgress = ref(false); // 新增：用於追蹤更新狀態
+// 將中文狀態轉成英文代碼
+const normalizeOrderData = (order) => {
+  const normalizeField = (value) => statusCodeMap[value] || value;
+  return {
+    ...order,
+    status: normalizeField(order.status),
+    paymentStatus: normalizeField(order.paymentStatus),
+    shipmentStatus: normalizeField(order.shipmentStatus),
+    paymentMethod: order.paymentMethod || "-",
+  };
+};
 
 // 中文對應英文代碼
 const statusCodeMap = {
@@ -437,6 +456,7 @@ const statusNameMap = {
 // 付款方式代碼對應的中文名稱
 const paymentMethodMap = {
   CREDIT_CARD: "信用卡",
+  CREDIT: "信用卡",
   BANK_TRANSFER: "銀行轉帳",
   CASH_ON_DELIVERY: "貨到付款",
 };
@@ -507,6 +527,9 @@ const shipmentStatusClass = (status) => {
 
 // 訂單狀態轉中文
 const translateOrderStatus = (status) => {
+  if (Object.values(statusNameMap).includes(status)) return status;
+  console.log("翻譯訂單狀態:", status);
+
   return statusNameMap[status] || "-";
 };
 
@@ -558,14 +581,12 @@ async function loadOrders() {
   error.value = null;
 
   try {
-    // 檢查Token是否存在
     if (!userStore.token) {
       error.value = "您尚未登入或授權已過期，請重新登入";
       loading.value = false;
       return;
     }
 
-    // 獲取所有訂單數據
     const response = await axios.get("/api/orders/admin/orders", {
       headers: {
         Authorization: `Bearer ${userStore.token}`,
@@ -574,27 +595,22 @@ async function loadOrders() {
 
     console.log("API 回應:", response);
 
-    // 處理API回應
     if (response.data && response.data.data) {
-      // 新的API格式 (包含在 data 欄位)
-      orders.value = response.data.data;
-      console.log("✅ 取得訂單數據:", orders.value.length, "筆記錄");
-    } else if (Array.isArray(response.data)) {
-      // 舊格式 (直接返回數組)
-      orders.value = response.data;
-      console.log("✅ 取得訂單數據:", orders.value.length, "筆記錄");
+      const rawOrders = response.data.data;
+
+      // ✅ 把每筆訂單的中文欄位轉成標準英文代碼
+      orders.value = rawOrders.map(normalizeOrderData);
+
+      console.log("✅ 已處理後端回傳資料，筆數：", orders.value.length);
     } else {
-      // 意外的數據格式
       console.error("❓ 未預期的API回傳格式:", response.data);
       error.value = "伺服器返回了意外的數據格式";
     }
   } catch (err) {
     console.error("❌ 取得訂單失敗:", err);
 
-    // 提供更具體的錯誤訊息
     if (err.response) {
       const statusCode = err.response.status;
-
       if (statusCode === 401) {
         error.value = "登入已過期，請重新登入";
       } else if (statusCode === 403) {
@@ -615,13 +631,12 @@ async function loadOrders() {
 }
 
 const filteredOrders = computed(() => {
-  if (!orders.value || orders.value.length === 0) return [];
+  if (!orders.value.length) return [];
 
-  if (filterCriteria.value.status === "all") return orders.value;
+  const filter = filterCriteria.value.status;
+  if (filter === "all") return orders.value;
 
-  return orders.value.filter(
-    (order) => order.status === filterCriteria.value.status
-  );
+  return orders.value.filter((order) => order.status === filter);
 });
 
 // 查看訂單詳情
@@ -687,14 +702,12 @@ const closeQuickEditModal = () => {
   }, 300);
 };
 
-// 保存快速編輯 - 改進版本
 const saveQuickEdit = async () => {
   if (!quickEditOrderData.value) {
     console.error("未找到要更新的訂單數據");
     return;
   }
 
-  // 防止重複提交
   if (updateInProgress.value) {
     console.log("更新已在進行中，請稍候...");
     return;
@@ -707,17 +720,16 @@ const saveQuickEdit = async () => {
       "正在嘗試更新訂單狀態...",
       quickEditOrderData.value.orderId,
       quickEditOrderData.value.status,
-      statusNameMap[quickEditOrderData.value.status]
+      statusNameMap[quickEditOrderData.value.status] ||
+        quickEditOrderData.value.status
     );
 
-    // 獲取更新按鈕並顯示加載狀態
     const updateBtn = document.querySelector("#quickEditModal .btn-update");
     if (updateBtn) {
       updateBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 更新中...';
       updateBtn.disabled = true;
     }
 
-    // 發送更新請求
     const response = await axios.put(
       `/api/orders/${quickEditOrderData.value.orderId}`,
       {
@@ -732,31 +744,17 @@ const saveQuickEdit = async () => {
 
     console.log("訂單快速更新回應:", response);
 
-    // 根據回應更新本地訂單數據
     if (
       response.data &&
       (response.data.success || response.data.status === "success")
     ) {
-      // 找到並更新本地訂單
-      const index = orders.value.findIndex(
-        (o) => o.orderId === quickEditOrderData.value.orderId
-      );
+      // ✅ 更新完後重新請求訂單清單資料，確保畫面與後端一致
+      await loadOrders();
 
-      if (index !== -1) {
-        // 更新訂單數據
-        const updatedOrder = response.data.data || response.data;
-        orders.value[index] = { ...orders.value[index], ...updatedOrder };
-
-        // 如果只有狀態變更，則手動更新
-        orders.value[index].status = quickEditOrderData.value.status;
-
-        console.log("本地訂單數據已更新:", orders.value[index]);
-      }
-
-      // 提供成功視覺反饋
       alert(
         `✅ 訂單狀態已更新為「${
-          statusNameMap[quickEditOrderData.value.status]
+          statusNameMap[quickEditOrderData.value.status] ||
+          quickEditOrderData.value.status
         }」！`
       );
       closeQuickEditModal();
@@ -775,7 +773,6 @@ const saveQuickEdit = async () => {
       }`
     );
   } finally {
-    // 恢復按鈕狀態
     const updateBtn = document.querySelector("#quickEditModal .btn-update");
     if (updateBtn) {
       updateBtn.innerHTML = '<i class="bi bi-save"></i> 保存更改';
