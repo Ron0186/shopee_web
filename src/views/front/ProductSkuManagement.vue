@@ -2187,8 +2187,6 @@ tr.transition-bg:hover::after {
 
   .table thead th {
     background-color: #f8f9fa !important;
-    -webkit-print-color-adjust: exact;
-    color-adjust: exact;
   }
 
   /* Force page breaks */
