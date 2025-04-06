@@ -13,15 +13,8 @@
       <div v-else-if="product" class="product-detail">
         <div class="product-image-container">
           <img
-            :src="
-              product.primaryImageUrl
-                ? product.primaryImageUrl.startsWith('http')
-                  ? product.primaryImageUrl
-                  : `${baseUrl}${product.primaryImageUrl}`
-                : defaultImage
-            "
-            :alt="product.productName"
-            class="product-main-image"
+            :src="image.startsWith('http') ? image : baseUrl + image"
+            :alt="product.productName + ' 圖片 ' + (index + 1)"
           />
           <!-- 如果有多張圖片，可以顯示縮略圖 -->
           <div
