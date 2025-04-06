@@ -94,35 +94,8 @@
 
           <div class="divider"></div>
 
-          <div class="purchase-section">
-            <div class="quantity-section">
-              <label for="quantity">數量:</label>
-              <div class="quantity-control">
-                <button class="quantity-btn minus" @click="decreaseQuantity">
-                  -
-                </button>
-                <input
-                  type="number"
-                  id="quantity"
-                  v-model.number="quantity"
-                  min="1"
-                />
-                <button class="quantity-btn plus" @click="increaseQuantity">
-                  +
-                </button>
-              </div>
-              <span class="stock" v-if="product.stock"
-                >庫存: {{ product.stock }} 件</span
-              >
-            </div>
-
-            <div class="action-buttons">
-              <button @click="addToCart">加入購物車</button>
-
-              <button class="buy-now" @click="buyNow">
-                <span class="icon">💳</span> 立即購買
-              </button>
-            </div>
+          <div class="stock-section" v-if="product.stock">
+            <span class="stock">庫存: {{ product.stock }} 件</span>
           </div>
         </div>
       </div>
@@ -248,11 +221,10 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["update:visible", "close", "add-to-cart", "buy-now"]);
+const emit = defineEmits(["update:visible", "close"]);
 
 const product = ref(null);
 const loading = ref(false);
-const quantity = ref(1);
 const activeTab = ref("details");
 const baseUrl = ref(import.meta.env.VITE_API_URL);
 const defaultImage = "/src/assets/default-image.png";
@@ -262,59 +234,6 @@ const tabs = [
   { id: "reviews", name: "顧客評價" },
   { id: "shipping", name: "運送與退貨" },
 ];
-
-// ✨ 快速結帳流程
-const goQuickCheckout = () => {
-  const skuId = product.value?.skuList?.[0]?.skuId;
-  const qty = quantity.value || 1;
-
-  if (!skuId) {
-    Swal.fire("找不到對應的 SKU，請確認商品是否有規格");
-    return;
-  }
-
-  router.push({
-    path: "/quick-checkout",
-    query: { skuId, qty },
-  });
-};
-
-const buyNow = () => {
-  if (!product.value) return;
-
-  // 確認使用者是否登入
-  const token = localStorage.getItem("token");
-  if (!token) {
-    Swal.fire({
-      title: "請先登入",
-      text: "您需要登入才能購買商品",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "前往登入",
-      cancelButtonText: "取消",
-    }).then((result) => {
-      if (result.isConfirmed) {
-        localStorage.setItem("redirectAfterLogin", window.location.href);
-        router.push("/login");
-      }
-    });
-    return;
-  }
-
-  // 從 SKU 列表取第一個 SKU ID（若有規格選擇可改為 selectedSkuId）
-  const skuId = product.value?.skuList?.[0]?.skuId;
-  const qty = quantity.value;
-
-  if (!skuId) {
-    Swal.fire("錯誤", "找不到可購買的 SKU，請稍後再試或聯絡客服", "error");
-    return;
-  }
-
-  router.push({
-    path: "/quick-checkout",
-    query: { skuId, qty },
-  });
-};
 
 // 價格格式化
 const formatPrice = (price) => {
@@ -371,50 +290,6 @@ const fetchProductDetail = async (productId) => {
   }
 };
 
-// 數量調整
-const decreaseQuantity = () => {
-  if (quantity.value > 1) quantity.value--;
-};
-
-const increaseQuantity = () => {
-  quantity.value++;
-};
-
-const addToCart = async () => {
-  try {
-    const skuId = product.value?.skuList?.[0]?.skuId;
-    if (!skuId) {
-      Swal.fire("錯誤", "無法取得 SKU ID", "error");
-      return;
-    }
-
-    const payload = {
-      userId: userStore.userId,
-      skuId,
-      quantity: quantity.value,
-    };
-
-    console.log("📦 加入購物車中...", payload);
-
-    await axios.post("/api/cart/add", payload, { withCredentials: true }); // ✅ 加上這裡！
-
-    Swal.fire({
-      title: "成功",
-      text: `已添加 ${quantity.value} 件商品到購物車`,
-      icon: "success",
-      showConfirmButton: false,
-      timer: 1500,
-    });
-  } catch (error) {
-    console.error("❌ 加入購物車失敗:", error);
-    Swal.fire({
-      title: "加入失敗",
-      text: "請稍後再試",
-      icon: "error",
-    });
-  }
-};
-
 // onMounted 載入詳情
 onMounted(() => {
   if (props.productId && props.visible) {
@@ -429,9 +304,7 @@ watch(
     if (newVal && props.productId) {
       fetchProductDetail(props.productId);
     }
-    if (newVal) {
-      quantity.value = 1;
-    }
+    // 頁面重置
   }
 );
 </script>
@@ -663,114 +536,16 @@ watch(
   border-radius: 6px;
 }
 
-.purchase-section {
+.stock-section {
   background-color: #f9f5eb;
   padding: 20px;
   border-radius: 10px;
   margin-top: 10px;
 }
 
-.quantity-section {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.quantity-section label {
-  font-weight: bold;
-  color: #333;
-}
-
-.quantity-control {
-  display: flex;
-  align-items: center;
-}
-
-.quantity-btn {
-  width: 36px;
-  height: 36px;
-  background-color: #fff;
-  border: 1px solid #ddd;
-  font-size: 18px;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.quantity-btn.minus {
-  border-radius: 6px 0 0 6px;
-}
-
-.quantity-btn.plus {
-  border-radius: 0 6px 6px 0;
-}
-
-.quantity-btn:hover {
-  background-color: #f0f0f0;
-}
-
-.quantity input {
-  width: 60px;
-  height: 36px;
-  text-align: center;
-  border: 1px solid #ddd;
-  border-left: none;
-  border-right: none;
-  font-size: 16px;
-}
-
 .stock {
   color: #666;
   font-size: 0.9rem;
-}
-
-.action-buttons {
-  display: flex;
-  gap: 15px;
-}
-
-.action-buttons button {
-  flex: 1;
-  padding: 12px 20px;
-  font-size: 1.1rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  transition: all 0.2s;
-}
-
-.add-to-cart {
-  background-color: #ff6b6b;
-  color: white;
-  border: 1px solid #ff6b6b;
-}
-
-.add-to-cart:hover {
-  background-color: #ff4757;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(255, 107, 107, 0.3);
-}
-
-.buy-now {
-  background-color: #ff4757;
-  color: white;
-}
-
-.buy-now:hover {
-  background-color: #e03b4b;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(255, 71, 87, 0.3);
-}
-
-.icon {
-  font-size: 1.2rem;
 }
 
 .product-tabs {
@@ -995,10 +770,6 @@ watch(
 }
 
 @media (max-width: 576px) {
-  .action-buttons {
-    flex-direction: column;
-  }
-
   .quantity-section {
     flex-wrap: wrap;
   }
