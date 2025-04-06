@@ -28,22 +28,6 @@
       </button>
     </div>
     
-    <!-- <div class="status-info">
-      <div class="application-stats">
-        <div class="stats-item pending">
-          <i class="bi bi-hourglass-split"></i>
-          <span>待審核: {{ pendingCount }}</span>
-        </div>
-        <div class="stats-item approved">
-          <i class="bi bi-check-circle"></i>
-          <span>已核准: {{ approvedCount }}</span>
-        </div>
-        <div class="stats-item rejected">
-          <i class="bi bi-x-circle"></i>
-          <span>已拒絕: {{ rejectedCount }}</span>
-        </div>
-      </div>
-    </div> -->
   </div>
 </template>
 
