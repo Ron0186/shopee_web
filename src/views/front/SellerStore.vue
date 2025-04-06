@@ -476,10 +476,32 @@ const formatPrice = (price) => {
   return typeof price === "number" ? price.toLocaleString("zh-TW") : price;
 };
 
-// 圖片處理
-const getImageUrl = (url) => {
-  if (!url) return defaultImage;
-  return url.startsWith("http") ? url : `${baseUrl.value}${url}`;
+// 修改 getImageUrl 函數
+const getImageUrl = (path) => {
+  // 記錄原始路徑以便調試
+  console.log('getImageUrl 收到的原始路徑:', path);
+  
+  if (!path) {
+    console.log('路徑為空，使用預設圖片');
+    return '/src/assets/default-campaign.png';
+  }
+  
+  // 如果路徑已經是完整 URL，則直接返回
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    console.log('使用完整 URL:', path);
+    return path;
+  }
+  
+  // 確保路徑以 / 開頭
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  console.log('正規化後的路徑:', normalizedPath);
+  
+  // 添加時間戳參數以防止緩存問題
+  const timestamp = new Date().getTime();
+  const fullPath = `${import.meta.env.VITE_API_URL}${normalizedPath}?t=${timestamp}`;
+  console.log('最終完整 URL:', fullPath);
+  
+  return fullPath;
 };
 
 // 監聽 shopId 變化
