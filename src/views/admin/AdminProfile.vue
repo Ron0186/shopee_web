@@ -60,7 +60,22 @@
                 {{ validationErrors.phone }}
               </div>
             </div>
-
+<!-- 新增在基本資訊卡片的適當位置 -->
+<div class="form-group">
+  <label>管理員角色</label>
+  <div class="role-badges">
+    <div v-if="userRoles.length === 0" class="text-muted">尚未設定角色</div>
+    <span 
+      v-for="(role, index) in userRoles" 
+      :key="index" 
+      class="role-badge"
+      :class="getRoleBadgeClass(role)"
+    >
+      <i :class="getRoleIconClass(role)"></i>
+      {{ getRoleDisplayName(role) }}
+    </span>
+  </div>
+</div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
                 <i class="bi bi-save"></i> 儲存變更
@@ -209,10 +224,62 @@ import { ref, reactive, onMounted, computed, watch, onBeforeUnmount } from 'vue'
 import { useUserStore } from '@/stores/user';
 import Swal from 'sweetalert2';
 import axios from '@/plugins/axios';
+import { useRouter } from 'vue-router';
 
+const router = useRouter;
 const userStore = useUserStore();
 const isSubmitting = ref(false);
 const validationErrors = reactive({});
+// 角色顯示相關
+const userRoles = ref([]);
+
+// 獲取角色徽章樣式
+function getRoleBadgeClass(role) {
+  switch (role) {
+    case 'ADMIN':
+      return 'admin';
+    case 'PRODUCT_MANAGER':
+      return 'product-manager';
+    case 'ACCOUNT_MANAGER':
+      return 'account-manager';
+    case 'SUPER_ADMIN':
+      return 'super-admin';
+    default:
+      return '';
+  }
+}
+
+// 獲取角色圖標
+function getRoleIconClass(role) {
+  switch (role) {
+    case 'ADMIN':
+      return 'bi bi-person-fill-lock';
+    case 'PRODUCT_MANAGER':
+      return 'bi bi-box-seam';
+    case 'ACCOUNT_MANAGER':
+      return 'bi bi-person-badge';
+    case 'SUPER_ADMIN':
+      return 'bi bi-shield-lock';
+    default:
+      return 'bi bi-person';
+  }
+}
+
+// 獲取角色中文名稱
+function getRoleDisplayName(role) {
+  switch (role) {
+    case 'ADMIN':
+      return '基礎管理員';
+    case 'PRODUCT_MANAGER':
+      return '商品管理員';
+    case 'ACCOUNT_MANAGER':
+      return '帳號管理員';
+    case 'SUPER_ADMIN':
+      return '超級管理員';
+    default:
+      return role;
+  }
+}
 
 // 個人資料表單數據
 const profileData = reactive({
@@ -516,7 +583,7 @@ function handleResize() {
   }
 }
 
-// 當組件掛載時載入用戶資料並設置Bootstrap相關功能
+// 修改 onMounted 函數，添加獲取角色資訊
 onMounted(async () => {
   // 添加窗口大小變化監聽
   window.addEventListener('resize', handleResize);
@@ -530,7 +597,25 @@ onMounted(async () => {
     profileData.email = response.data.email;
     profileData.phone = response.data.phone || '';
     
-    // 更新 localStorage (若有需要)
+    // 獲取角色資訊
+    if (response.data.roles) {
+      userRoles.value = response.data.roles;
+    } else {
+      // 如果 API 沒有返回角色信息，嘗試從 localStorage 獲取
+      const storedRoles = localStorage.getItem('userRoles');
+      if (storedRoles) {
+        try {
+          userRoles.value = JSON.parse(storedRoles);
+        } catch (e) {
+          console.error('解析存儲的角色數據失敗:', e);
+        }
+      } else if (userStore.userData && userStore.userData.roles) {
+        // 從 userStore 獲取角色信息
+        userRoles.value = userStore.userData.roles;
+      }
+    }
+    
+    // 更新 localStorage
     localStorage.setItem('username', profileData.userName);
     localStorage.setItem('userId', profileData.userId);
     localStorage.setItem('email', profileData.email);
@@ -545,7 +630,8 @@ onMounted(async () => {
         username: profileData.userName,
         userId: profileData.userId,
         email: profileData.email,
-        phone: profileData.phone
+        phone: profileData.phone,
+        roles: userRoles.value
       });
     }
   } catch (error) {
@@ -639,12 +725,25 @@ async function updateProfile() {
         });
       }
       
+      // 顯示更新成功並提示需要重新登入
       Swal.fire({
         icon: 'success',
         title: '更新成功',
-        text: '您的個人資料已成功更新',
-        timer: 2000,
-        showConfirmButton: false
+        text: '您的個人資料已成功更新，請重新登入以套用更改',
+        confirmButtonText: '確定',
+        allowOutsideClick: false
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // 執行登出操作
+          userStore.clearUserData(); // 假設 userStore 有清除用戶數據的方法
+          
+          // 清除 token
+          localStorage.removeItem('token');
+          axios.defaults.headers.common["Authorization"] = '';
+          
+          // 導航到登入頁面
+          router.push({ name: 'Login' });
+        }
       });
     } else {
       Swal.fire({
@@ -687,12 +786,25 @@ async function updatePassword() {
       passwordData.newPassword = '';
       passwordData.confirmPassword = '';
       
+      // 顯示成功訊息，並提示需要重新登入
       Swal.fire({
         icon: 'success',
         title: '密碼已更新',
-        text: '您的密碼已成功更新',
-        timer: 2000,
-        showConfirmButton: false
+        text: '您的密碼已成功更新，請重新登入以確保安全',
+        confirmButtonText: '確定',
+        allowOutsideClick: false
+      }).then((result) => {
+        if (result.isConfirmed) {
+          // 執行登出操作
+          userStore.clearUserData(); // 清除用戶數據
+          
+          // 清除 token
+          localStorage.removeItem('token');
+          axios.defaults.headers.common["Authorization"] = '';
+          
+          // 導航到登入頁面
+          router.push({ name: 'Login' });
+        }
       });
     } else {
       Swal.fire({
@@ -852,6 +964,44 @@ async function updatePassword() {
 .password-strength-text {
   font-size: 12px;
 }
+.role-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 50px;
+  font-size: 13px;
+  font-weight: 500;
+  color: white;
+}
+
+.role-badge i {
+  margin-right: 6px;
+  font-size: 14px;
+}
+
+.role-badge.admin {
+  background-color: #007bff;
+}
+
+.role-badge.product-manager {
+  background-color: #28a745;
+}
+
+.role-badge.account-manager {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.role-badge.super-admin {
+  background-color: #dc3545;
+}
 
   /* 響應式設計調整 */
 @media (max-width: 768px) {
@@ -889,5 +1039,7 @@ async function updatePassword() {
   .form-actions .btn {
     width: 100%;
   }
+
+  
 }
 </style>

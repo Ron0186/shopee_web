@@ -107,15 +107,15 @@
       </span>
     </td>
     <td>
-      <span 
-        v-for="(role, index) in admin.roles" 
-        :key="index" 
-        class="badge me-1 mb-1"
-        :class="getRoleBadgeClass(role)"
-      >
-        {{ role }}
-      </span>
-    </td>
+  <span 
+    v-for="(role, index) in admin.roles" 
+    :key="index" 
+    class="badge me-1 mb-1"
+    :class="getRoleBadgeClass(role)"
+  >
+    {{ getRoleDisplayName(role) }}
+  </span>
+</td>
     <td class="text-center">
       <div class="btn-group">
         <button class="btn btn-outline-primary btn-sm" @click="openEditProfileModal(admin)" title="編輯資料">
@@ -457,16 +457,36 @@ export default {
       if (!name) return '?';
       return name.charAt(0).toUpperCase();
     },
+
     getRoleBadgeClass(role) {
-    switch (role) {
-      case 'ADMIN':
-        return 'bg-primary text-white';
-      case 'SUPER_ADMIN':
-        return 'bg-danger text-white';
-      default:
-        return 'bg-light text-dark';
-    }
-    },
+  switch (role) {
+    case 'ADMIN':
+      return 'bg-primary text-white';
+    case 'SUPER_ADMIN':
+      return 'bg-danger text-white';
+    case 'PRODUCT_MANAGER':
+      return 'bg-dark	text-white';
+    case 'ACCOUNT_MANAGER':
+      return 'bg-warning text-dark';
+    default:
+      return 'bg-light text-dark';
+  }
+},
+// 獲取角色的中文顯示名稱
+getRoleDisplayName(role) {
+  switch (role) {
+    case 'ADMIN':
+      return '基礎管理員';
+    case 'PRODUCT_MANAGER':
+      return '商品管理員';
+    case 'ACCOUNT_MANAGER':
+      return '帳號管理員';
+    case 'SUPER_ADMIN':
+      return '超級管理員';
+    default:
+      return role; // 如果是未知角色，顯示原始角色名稱
+  }
+},
     toggleSort(field) {
     if (this.sortField === field) {
       // 如果是當前欄位，切換排序方向
