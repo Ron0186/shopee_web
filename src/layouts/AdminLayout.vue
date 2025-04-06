@@ -32,6 +32,8 @@ import Sidebar from "@/components/admin/Sidebar.vue";
 
   /* 可能需要 min-width: 0; 防止在 flex 佈局中內容溢出導致父容器變寬 */
   min-width: 0;
+      padding-top: 80px;
+
 }
 </style>
 // Compare this snippet from src/components/admin/Sidebar.vue:

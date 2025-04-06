@@ -10,10 +10,17 @@
                     required />
             </div>
 
-            <div>電話：
-                <input v-model="user.recipientPhone"
-                    class="recipient full-width" required />
-            </div>
+            <div>
+  手機號碼：
+  <input
+    v-model="user.recipientPhone"
+    class="recipient full-width"
+    @input="validatePhone"
+    required
+  />
+  <p v-if="phoneError" class="error">{{ phoneError }}</p>
+</div>
+
 
             <button type="submit">新增</button>
             <button type="button" @click="cancel">取消</button>
@@ -50,7 +57,24 @@ const user = ref({
 
 const message = ref('');
 
+const phoneError = ref("");
+
+function validatePhone() {
+  const phone = user.value.recipientPhone;
+  const regex = /^09\d{8}$/; // 台灣手機格式
+  phoneError.value = regex.test(phone)
+    ? ""
+    : "手機號碼需以09開頭，且共10位數字";
+}
+
+
+
 async function createAddress() {
+    validatePhone();
+  if (phoneError.value) {
+    message.value = "❗手機格式錯誤，請修正後再提交";
+    return;
+  }
     try {
         const token = localStorage.getItem("token");
         // 從完整地址字串中：台北市 信義區 忠孝東路100號，後端再去 split 拆解
@@ -152,4 +176,11 @@ button:active {
     width: 100%;
     margin-top: 5px;
 }
+
+.error {
+  color: red;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
 </style>

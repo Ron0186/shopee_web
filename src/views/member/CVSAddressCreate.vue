@@ -1,139 +1,123 @@
 <template>
     <div class="container">
-        <h2>變更收件資訊</h2>
-        <!-- TODO  自動帶入會員資料 -->
-        <form @submit.prevent="createCVSAddress">
-
-
-            <!-- 引入 AddressSelector 組件 -->
-            <AddressSelectorCVS v-model="user.address" />
-
-            <button type="submit">更新</button>
-            <button type="button" @click="cancel">取消</button>
-        </form>
-        <p v-if="message" class="message">{{ message }}</p>
+      <h2>選擇超商門市</h2>
+      <form @submit.prevent="createCVSAddress">
+        <!-- 門市選擇按鈕 -->
+        <button type="button" class="select-btn" @click="showPicker = true">
+          點我選擇門市
+        </button>
+  
+        <!-- 顯示選中的門市資料 -->
+        <div v-if="selectedStore" class="selected-info">
+          <p>🏪 店名：{{ selectedStore.name }}</p>
+          <p>📍 地址：{{ selectedStore.address }}</p>
+        </div>
+  
+        <!-- 門市選擇器 Modal -->
+        <CvsStorePicker v-model:show="showPicker" @selected="handleStoreSelected" />
+  
+        <button type="submit">儲存地址</button>
+        <button type="button" @click="cancel">取消</button>
+      </form>
+  
+      <p v-if="message" class="message">{{ message }}</p>
     </div>
-</template>
-
-<script>
-import axios from "axios";
-import AddressSelectorCVS from "@/components/address/AddressSelectorCVS.vue";
-import { useRouter } from 'vue-router';
-
-export default {
-    components: {
-        AddressSelectorCVS,
-    },
-    data() {
-        return {
-            userId: 1,
-            user: {
-                userName: "",
-                email: "",
-                phone: "",
-                address: "",
-            },
-            message: "",
-        };
-    },
-    mounted() {
-        this.fetchUserData();
-    },
-    methods: {
-        async fetchUserData() {
-            try {
-                const response = await axios.get(`/api/users/${this.userId}`);
-                this.user = response.data;
-            } catch (error) {
-                console.error("獲取用戶數據失敗", error);
-            }
-        },
-        async createCVSAddress() {
-            try {
-                await axios.put(`/api/users/${this.userId}`, this.user);
-                this.message = "個人資料更新成功！";
-            } catch (error) {
-                console.error("更新失敗", error);
-                this.message = "更新失敗，請稍後再試！";
-            }
-        },
-        cancel() {
-            this.$router.push('/address');
-        },
-    },
-};
-</script>
-<style scoped>
-.container {
+  </template>
+  
+  <script setup>
+  import { ref } from 'vue';
+  import { useRouter } from 'vue-router';
+  import axios from 'axios';
+  import { jwtDecode } from 'jwt-decode';
+  import CvsStorePicker from '@/components/address/CvsStorePicker.vue';
+  
+  const router = useRouter();
+  const token = localStorage.getItem('token');
+  const decoded = jwtDecode(token);
+  const userId = decoded.userId;
+  
+  const showPicker = ref(false);
+  const selectedStore = ref(null);
+  const message = ref('');
+  
+  const handleStoreSelected = (store) => {
+    selectedStore.value = store;
+    showPicker.value = false;
+    console.log('✅ 選到門市：', store.name, store.address);
+  };
+  
+  async function createCVSAddress() {
+    if (!selectedStore.value) {
+      message.value = '請先選擇門市';
+      return;
+    }
+  
+    try {
+      await axios.post(`http://localhost:8081/api/user/address/${userId}/create-cvs`, {
+        storeName: selectedStore.value.name,
+        address: selectedStore.value.address,
+        type: selectedStore.value.type,
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+  
+      message.value = '門市地址新增成功！';
+      setTimeout(() => {
+        router.push('/address');
+      }, 1000);
+    } catch (error) {
+      console.error('新增地址失敗', error);
+      message.value = '新增失敗，請稍後再試';
+    }
+  }
+  
+  function cancel() {
+    router.push('/address');
+  }
+  </script>
+  
+  <style scoped>
+  .container {
     max-width: 400px;
     margin: auto;
     padding: 20px;
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-}
-
-h2 {
-    text-align: center;
-}
-
-form div {
-    margin-bottom: 10px;
-}
-
-input,
-select {
-    width: 100%;
-    padding: 8px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-}
-
-button {
-    display: inline-block;
-    padding: 15px 25px;
-    font-size: 24px;
+  }
+  
+  .select-btn {
+    background-color: #007bff;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 8px;
     cursor: pointer;
-    text-align: center;
-    text-decoration: none;
-    outline: none;
+    margin-bottom: 10px;
+  }
+  
+  .selected-info {
+    margin-bottom: 15px;
+    font-size: 14px;
+    color: #333;
+  }
+  
+  button {
+    display: inline-block;
+    padding: 12px 20px;
+    font-size: 18px;
+    cursor: pointer;
     color: #fff;
     background-color: #04AA6D;
     border: none;
-    border-radius: 15px;
-    box-shadow: 0 9px #999;
-}
-
-button:hover {
-    background-color: #3e8e41
-}
-
-button:active {
-    background-color: #3e8e41;
-    box-shadow: 0 5px #666;
-    transform: translateY(4px);
-}
-
-.message {
+    border-radius: 8px;
+    margin-right: 10px;
+  }
+  
+  .message {
+    margin-top: 10px;
     text-align: center;
     color: green;
-    margin-top: 10px;
-}
-
-.dropdown {
-    display: flex;
-    gap: 5px;
-}
-
-.street {
-    flex-grow: 1;
-}
-
-.full-width {
-    display: block;
-    width: 100%;
-    /* 讓 input 佔滿整行 */
-    margin-top: 5px;
-    /* 可選，讓它和上面的選單稍微分開 */
-}
-</style>
+  }
+  </style>
+  

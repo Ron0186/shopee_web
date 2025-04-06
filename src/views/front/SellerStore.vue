@@ -10,6 +10,13 @@
       </button>
     </div>
 
+    <div v-if="isOwner" class="my-products-section">
+      <button class="btn btn-my-products" @click="goToMyCampaign">
+        我的行銷活動
+      </button>
+    </div>
+ <!-- 非店主顯示活動列表 -->
+ <ShopCampaigns v-if="!isOwner" :shopId="shop.shopId || route.params.shopId" />
     <!-- 分類選單 -->
     <nav class="shop-menu">
       <a href="#" class="active">回首頁</a>
@@ -135,6 +142,7 @@ import { useRouter, useRoute } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
+import ShopCampaigns from "@/components/campaign/ShopCampaigns.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -288,6 +296,12 @@ const searchProduct = () => {
 const goToMyProducts = () => {
   router.push(
     `/seller/shops/${shop.value.shopId || route.params.shopId}/products`
+  );
+};
+
+const goToMyCampaign = () => {
+  router.push(
+    `/seller/shops/${shop.value.shopId || route.params.shopId}/campaigns`
   );
 };
 

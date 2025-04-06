@@ -395,6 +395,12 @@ const router = createRouter({
           },
         },
         {
+          path: '/seller/shops/:shopId/campaigns',
+          name: 'SellerCampaigns',
+          component: () => import('@/views/front/SellerCampaigns.vue'),
+          meta: { requiresAuth: true }
+        },
+        {
           path: "seller/coupon/apply", // 注意這是相對路徑
           name: "CouponApply",
           component: () => import("@/views/front/CouponApplicationForm.vue"),
@@ -516,6 +522,12 @@ const router = createRouter({
           path: "product-review",
           name: "ProductReview",
           component: () => import("@/views/admin/ProductReview.vue"),
+        },
+        {
+          // 管理員個人資料頁面
+          path: "profile",
+          name: "AdminProfile",
+          component: () => import("@/views/admin/AdminProfile.vue"),
         },
         {
           // 分類管理頁面
