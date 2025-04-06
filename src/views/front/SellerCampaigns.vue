@@ -61,53 +61,85 @@
         </table>
       </div>
   
-      <!-- 建立/編輯活動表單 Modal -->
-      <div v-if="showCampaignModal" class="modal-overlay" @click="closeCampaignModal">
-        <div class="modal-content" @click.stop>
-          <h2>{{ editMode ? '編輯行銷活動' : '建立行銷活動' }}</h2>
-          <form @submit.prevent="submitCampaignForm">
-            <div class="form-group">
-              <label for="campaignName">活動名稱</label>
-              <input type="text" id="campaignName" v-model="campaignForm.campaignName" required>
-            </div>
-            
-            <div class="form-group">
-              <label for="description">活動描述</label>
-              <textarea id="description" v-model="campaignForm.description" rows="3"></textarea>
-            </div>
-  
-            <div class="form-group">
-              <label for="bannerImage">橫幅圖片URL</label>
-              <input type="text" id="bannerImage" v-model="campaignForm.bannerImage">
-            </div>
-  
-            <div class="form-group date-group">
-              <div>
-                <label for="startDate">開始日期</label>
-                <input type="datetime-local" id="startDate" v-model="campaignForm.startDate" required>
-              </div>
-              <div>
-                <label for="endDate">結束日期</label>
-                <input type="datetime-local" id="endDate" v-model="campaignForm.endDate" required>
-              </div>
-            </div>
-  
-            <div class="form-group">
-              <label for="status">活動狀態</label>
-              <select id="status" v-model="campaignForm.status">
-                <option value="ACTIVE">啟用</option>
-                <option value="INACTIVE">停用</option>
-                <option value="SCHEDULED">排程中</option>
-              </select>
-            </div>
-  
-            <div class="form-actions">
-              <button type="button" class="btn btn-cancel" @click="closeCampaignModal">取消</button>
-              <button type="submit" class="btn btn-submit">{{ editMode ? '更新' : '建立' }}</button>
-            </div>
-          </form>
+<!-- 建立/編輯活動表單 Modal -->
+<div v-if="showCampaignModal" class="modal-overlay" @click="closeCampaignModal">
+  <div class="modal-content" @click.stop>
+    <h2>{{ editMode ? '編輯行銷活動' : '建立行銷活動' }}</h2>
+    <form @submit.prevent="submitCampaignForm">
+      <div class="form-group">
+        <label for="campaignName">活動名稱</label>
+        <input type="text" id="campaignName" v-model="campaignForm.campaignName" required>
+      </div>
+      
+      <div class="form-group">
+        <label for="description">活動描述</label>
+        <textarea id="description" v-model="campaignForm.description" rows="3"></textarea>
+      </div>
+      
+      <div class="form-group">
+  <label for="bannerImage">活動橫幅圖片</label>
+  <div class="image-upload-container">
+    <!-- 使用計算屬性來控制預覽區域的顯示 -->
+    <div v-if="showImagePreview" class="image-preview">
+      <img 
+        :src="previewImage 
+          ? (previewImage.startsWith('data:') ? previewImage : getImageUrl(previewImage)) 
+          : getImageUrl(campaignForm.bannerImage)" 
+        alt="活動橫幅預覽" 
+      />
+      <button type="button" class="remove-image" @click="removeImage">✕</button>
+    </div>
+    <!-- 上傳提示區 -->
+    <div v-else class="upload-placeholder" @click="triggerFileInput">
+      <i class="fas fa-cloud-upload-alt"></i>
+      <p>點擊上傳圖片</p>
+      <small>支援 jpg, jpeg, png 格式</small>
+    </div>
+    <!-- 隱藏的文件選擇器 -->
+    <input
+      type="file"
+      ref="fileInput"
+      id="bannerImage"
+      accept="image/jpeg, image/jpg, image/png"
+      style="display: none"
+      @change="handleFileChange"
+    />
+  </div>
+  <!-- 上傳進度條 -->
+  <div v-if="uploadProgress > 0 && uploadProgress < 100" class="progress">
+    <div class="progress-bar" :style="{ width: uploadProgress + '%' }"></div>
+  </div>
+  <small v-if="imageError" class="text-danger">{{ imageError }}</small>
+        
+      </div>
+      
+      <div class="form-group date-group">
+        <div>
+          <label for="startDate">開始日期</label>
+          <input type="datetime-local" id="startDate" v-model="campaignForm.startDate" required>
+        </div>
+        <div>
+          <label for="endDate">結束日期</label>
+          <input type="datetime-local" id="endDate" v-model="campaignForm.endDate" required>
         </div>
       </div>
+      
+      <div class="form-group">
+        <label for="status">活動狀態</label>
+        <select id="status" v-model="campaignForm.status">
+          <option value="ACTIVE">啟用</option>
+          <option value="INACTIVE">停用</option>
+          <option value="SCHEDULED">排程中</option>
+        </select>
+      </div>
+      
+      <div class="form-actions">
+        <button type="button" class="btn btn-cancel" @click="closeCampaignModal">取消</button>
+        <button type="submit" class="btn btn-submit">{{ editMode ? '更新' : '建立' }}</button>
+      </div>
+    </form>
+  </div>
+</div>
   
       <!-- 優惠券管理 Modal -->
       <div v-if="showCouponModal" class="modal-overlay" @click="closeCouponModal">
@@ -209,15 +241,20 @@
   </template>
   
   <script setup>
-  import { ref, onMounted, computed, watch } from 'vue';
+  import { ref, onMounted, computed, watch, nextTick  } from 'vue';
   import { useRouter, useRoute } from 'vue-router';
   import axios from '@/plugins/axios';
   import Swal from 'sweetalert2';
   import { useUserStore } from '@/stores/user';
+  
   const router = useRouter();
   const route = useRoute();
   const userStore = useUserStore();
-  
+  const previewImage = ref('');
+const uploadProgress = ref(0);
+const imageError = ref('');
+const fileInput = ref(null);
+
   // 狀態變數
   const loading = ref(false);
   const campaigns = ref([]);
@@ -246,11 +283,146 @@ const filteredCoupons = ref([]);
     endDate: '',
     status: 'ACTIVE'
   });
+
+  
   
   // 初始化 - 獲取所有活動
   onMounted(async () => {
     await fetchCampaigns();
   });
+
+  // 在 script setup 部分添加一個新的計算屬性
+const showImagePreview = computed(() => {
+  // 嚴格檢查兩個值是否都為空
+  return (previewImage.value && previewImage.value !== '') || 
+         (campaignForm.bannerImage && campaignForm.bannerImage !== '');
+});
+
+  // 觸發文件輸入點擊
+const triggerFileInput = () => {
+  fileInput.value.click();
+};
+
+// 修改 getImageUrl 函數
+// 2. Improve the getImageUrl function to handle caching issues
+const getImageUrl = (path) => {
+  // Return early for empty paths
+  if (!path) {
+    return '/src/assets/default-campaign.png';
+  }
+  
+  // If path is already a data URL (from local preview), return as is
+  if (path.startsWith('data:')) {
+    return path;
+  }
+  
+  // If path is a complete URL, add timestamp to break cache
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    const timestamp = new Date().getTime();
+    return `${path}${path.includes('?') ? '&' : '?'}t=${timestamp}`;
+  }
+  
+  // Normalize path and add timestamp parameter to break caching
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  const timestamp = new Date().getTime();
+  return `${import.meta.env.VITE_API_URL}${normalizedPath}?t=${timestamp}`;
+};
+
+// 當選擇文件時的處理
+// 3. Modify handleFileChange to ensure proper state updates
+const handleFileChange = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  
+  // Clear previous errors
+  imageError.value = '';
+  
+  // Validate file type
+  const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+  if (!validTypes.includes(file.type)) {
+    imageError.value = '請上傳 jpg, jpeg 或 png 格式的圖片';
+    return;
+  }
+  
+  // Validate file size, limit to 2MB
+  const maxSize = 2 * 1024 * 1024; // 2MB
+  if (file.size > maxSize) {
+    imageError.value = '圖片大小不能超過 2MB';
+    return;
+  }
+  
+  try {
+    // Create local preview
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      previewImage.value = e.target.result; // Set to Data URL for preview
+    };
+    reader.readAsDataURL(file);
+    
+    // Prepare upload
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // Upload file
+    uploadProgress.value = 0;
+    const response = await axios.post('/api/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      onUploadProgress: (progressEvent) => {
+        uploadProgress.value = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+      }
+    });
+    
+    // Handle response
+    if (response.data.success) {
+      console.log('圖片上傳成功，路徑:', response.data.data);
+      
+      // Update form data - preserve the local preview for display
+      campaignForm.value.bannerImage = response.data.data;
+      
+      // Log current states for debugging
+      console.log('Upload complete - previewImage:', previewImage.value);
+      console.log('Upload complete - campaignForm.bannerImage:', campaignForm.value.bannerImage);
+    } else {
+      imageError.value = response.data.message || '上傳失敗';
+      // Clear preview and progress
+      previewImage.value = null;
+      uploadProgress.value = 0;
+    }
+  } catch (error) {
+    console.error('上傳圖片錯誤:', error);
+    imageError.value = error.response?.data?.message || '上傳時發生錯誤';
+    // Clear preview and progress
+    previewImage.value = null;
+    uploadProgress.value = 0;
+  }
+};
+// 將 removeImage 函數修改為：
+const removeImage = () => {
+  console.log('移除前 - previewImage:', previewImage.value);
+  console.log('移除前 - campaignForm.bannerImage:', campaignForm.bannerImage);
+  
+  // 直接設置為 null
+  previewImage.value = null;
+  campaignForm.bannerImage = null;
+  
+  // 清除文件選擇器
+  if (fileInput.value) {
+    fileInput.value.value = '';
+  }
+  
+  // 重置其他相關狀態
+  uploadProgress.value = 0;
+  imageError.value = '';
+  
+  // 強制刷新組件
+  nextTick(() => {
+    console.log('移除後 - previewImage:', previewImage.value);
+    console.log('移除後 - campaignForm.bannerImage:', campaignForm.bannerImage);
+    console.log('移除後 - showImagePreview:', showImagePreview.value);
+  });
+};
 
   // 過濾優惠券的函數
 const filterCoupons = () => {
@@ -309,26 +481,53 @@ const resetCouponSearch = () => {
     showCampaignModal.value = true;
   };
   
-  // 打開編輯活動表單
-  const openEditCampaignModal = (campaign) => {
-    editMode.value = true;
-    resetCampaignForm();
-    
-    // 複製活動數據到表單
-    campaignForm.value = {
-      campaignId: campaign.campaignId,
-      campaignName: campaign.campaignName,
-      description: campaign.description || '',
-      bannerImage: campaign.bannerImage || '',
-      // 轉換日期格式為HTML datetime-local格式
-      startDate: formatDateForInput(campaign.startDate),
-      endDate: formatDateForInput(campaign.endDate),
-      status: campaign.status,
-      shopId: campaign.shopId
-    };
-    
-    showCampaignModal.value = true;
-  };
+// 1. First, modify the openEditCampaignModal function to ensure it properly resets and loads the latest campaign data
+const openEditCampaignModal = async (campaign) => {
+  editMode.value = true;
+  
+  // Reset form and image states first
+  resetCampaignForm();
+  previewImage.value = null;
+  uploadProgress.value = 0;
+  imageError.value = '';
+  
+  // Fetch the latest campaign data from server to ensure we have the most up-to-date info
+  try {
+    const response = await axios.get(`/api/campaigns/${campaign.campaignId}`);
+    if (response.data.success) {
+      // Use the fresh campaign data from the server
+      const freshCampaign = response.data.data;
+      
+      // Copy campaign data to form
+      campaignForm.value = {
+        campaignId: freshCampaign.campaignId,
+        campaignName: freshCampaign.campaignName,
+        description: freshCampaign.description || '',
+        bannerImage: freshCampaign.bannerImage || '',
+        startDate: formatDateForInput(freshCampaign.startDate),
+        endDate: formatDateForInput(freshCampaign.endDate),
+        status: freshCampaign.status,
+        shopId: freshCampaign.shopId
+      };
+      
+      // Set preview image with a timestamp to break cache
+      if (freshCampaign.bannerImage) {
+        previewImage.value = freshCampaign.bannerImage;
+      }
+      
+      showCampaignModal.value = true;
+    } else {
+      throw new Error(response.data.message || '獲取活動數據失敗');
+    }
+  } catch (error) {
+    console.error('獲取活動數據失敗:', error);
+    Swal.fire({
+      title: '錯誤',
+      text: error.message || '獲取活動數據失敗',
+      icon: 'error'
+    });
+  }
+};
   
   // 關閉活動表單
   const closeCampaignModal = () => {
@@ -346,58 +545,71 @@ const resetCouponSearch = () => {
       status: 'ACTIVE',
       shopId: route.params.shopId
     };
+
+     // 新增這部分：
+  previewImage.value = '';
+  uploadProgress.value = 0;
+  imageError.value = '';
+  
+  // 如果是編輯模式，需要設置預覽圖片
+  if (editMode.value && campaignForm.value.bannerImage) {
+    previewImage.value = campaignForm.value.bannerImage;
+  }
   };
   
   // 提交活動表單
   const submitCampaignForm = async () => {
-    try {
-      // 檢查日期
-      if (new Date(campaignForm.value.endDate) <= new Date(campaignForm.value.startDate)) {
-        Swal.fire({
-          title: '錯誤',
-          text: '結束日期必須晚於開始日期',
-          icon: 'error'
-        });
-        return;
-      }
-  
-      const formData = {
-        ...campaignForm.value,
-        shopId: parseInt(route.params.shopId),
-        startDate: new Date(campaignForm.value.startDate).toISOString(),
-        endDate: new Date(campaignForm.value.endDate).toISOString()
-      };
-  
-      let response;
-      if (editMode.value) {
-        // 更新活動
-        response = await axios.put(`/api/campaigns/${formData.campaignId}`, formData);
-      } else {
-        // 創建新活動
-        response = await axios.post('/api/campaigns', formData);
-      }
-  
-      if (response.data.success) {
-        Swal.fire({
-          title: '成功',
-          text: editMode.value ? '活動已更新' : '活動已創建',
-          icon: 'success',
-          confirmButtonText: '確定'
-        });
-        closeCampaignModal();
-        fetchCampaigns(); // 刷新活動列表
-      } else {
-        throw new Error(response.data.message || '操作失敗');
-      }
-    } catch (error) {
-      console.error('提交活動表單失敗:', error);
+  try {
+    // Check dates
+    if (new Date(campaignForm.value.endDate) <= new Date(campaignForm.value.startDate)) {
       Swal.fire({
         title: '錯誤',
-        text: error.message || '操作失敗，請稍後再試',
+        text: '結束日期必須晚於開始日期',
         icon: 'error'
       });
+      return;
     }
-  };
+
+    // Log the form data being submitted (for debugging)
+    console.log('提交的表單數據:', campaignForm.value);
+
+    const formData = {
+      ...campaignForm.value,
+      shopId: parseInt(route.params.shopId),
+      startDate: new Date(campaignForm.value.startDate).toISOString(),
+      endDate: new Date(campaignForm.value.endDate).toISOString()
+    };
+
+    let response;
+    if (editMode.value) {
+      // Update campaign
+      response = await axios.put(`/api/campaigns/${formData.campaignId}`, formData);
+    } else {
+      // Create new campaign
+      response = await axios.post('/api/campaigns', formData);
+    }
+
+    if (response.data.success) {
+      Swal.fire({
+        title: '成功',
+        text: editMode.value ? '活動已更新' : '活動已創建',
+        icon: 'success',
+        confirmButtonText: '確定'
+      });
+      closeCampaignModal();
+      await fetchCampaigns(); // Refresh campaign list with the latest data
+    } else {
+      throw new Error(response.data.message || '操作失敗');
+    }
+  } catch (error) {
+    console.error('提交活動表單失敗:', error);
+    Swal.fire({
+      title: '錯誤',
+      text: error.message || '操作失敗，請稍後再試',
+      icon: 'error'
+    });
+  }
+};
   
   // 確認刪除活動
   const confirmDeleteCampaign = (campaign) => {
@@ -1095,5 +1307,90 @@ const removeCouponFromCampaign = async (coupon) => {
 .btn-primary:hover {
   background-color: #ff6b81;
 }
-  }
+/* 圖片上傳相關樣式 */
+.image-upload-container {
+  border: 2px dashed #ddd;
+  border-radius: 6px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background-color: #f9f9f9;
+}
+
+.upload-placeholder {
+  text-align: center;
+  padding: 30px 15px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.upload-placeholder:hover {
+  background-color: #f0f0f0;
+}
+
+.upload-placeholder i {
+  font-size: 24px;
+  color: #95a5a6;
+  margin-bottom: 10px;
+}
+
+.upload-placeholder p {
+  margin: 5px 0;
+  color: #7f8c8d;
+}
+
+.upload-placeholder small {
+  color: #95a5a6;
+}
+
+.image-preview {
+  position: relative;
+  padding: 10px;
+  text-align: center;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 200px;
+  border-radius: 4px;
+}
+
+.remove-image {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background-color: rgba(231, 76, 60, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.progress {
+  height: 10px;
+  background-color: #ecf0f1;
+  border-radius: 5px;
+  margin-top: 10px;
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background-color: #2ecc71;
+  transition: width 0.3s;
+}
+
+.text-danger {
+  color: #e74c3c;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
+}
+
+}
 </style>

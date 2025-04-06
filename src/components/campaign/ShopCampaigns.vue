@@ -18,11 +18,11 @@
           class="campaign-card"
           @click="showCampaignDetail(campaign)"
         >
-          <img 
-            :src="campaign.bannerImage || '/src/assets/default-campaign.png'" 
-            class="campaign-img" 
-            alt="活動圖片"
-          />
+        <img 
+  :src="getImageUrl(campaign.bannerImage || '/src/assets/default-campaign.png')" 
+  class="campaign-img" 
+  alt="活動圖片"
+/>
           <div class="campaign-info">
             <h3 class="campaign-name">{{ campaign.campaignName }}</h3>
             <p class="campaign-date">{{ formatDate(campaign.startDate) }} - {{ formatDate(campaign.endDate) }}</p>
@@ -43,10 +43,10 @@
           
           <h2>{{ selectedCampaign.campaignName }}</h2>
           <img 
-            :src="selectedCampaign.bannerImage || '/src/assets/default-campaign.png'" 
-            class="campaign-detail-img" 
-            alt="活動詳情圖片"
-          />
+  :src="getImageUrl(selectedCampaign.bannerImage || '/src/assets/default-campaign.png')" 
+  class="campaign-detail-img" 
+  alt="活動詳情圖片"
+/>
           
           <div class="campaign-detail-info">
             <p class="campaign-detail-date">
@@ -181,6 +181,24 @@
     showModal.value = true;
     await fetchCampaignCoupons(campaign.campaignId);
   };
+
+// 修改 getImageUrl 函數
+const getImageUrl = (path) => {
+  if (!path) return '';
+  
+  // 如果路徑已經是完整 URL，則直接返回
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
+  
+  // 如果路徑以 / 開頭，則使用完整路徑
+  if (path.startsWith('/')) {
+    return import.meta.env.VITE_API_URL + path;
+  }
+  
+  // 如果是其他形式的相對路徑，確保正確拼接
+  return import.meta.env.VITE_API_URL + '/' + path;
+};
   
   // 領取優惠券
   const redeemCoupon = async (coupon) => {
