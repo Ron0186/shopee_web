@@ -28,8 +28,14 @@
 
       <!-- 訂單統計 -->
       <div class="order-stats">
-        <p>總訂單數: <strong>{{ orders.length }}</strong></p>
-        <p>篩選後訂單數: <strong>{{ filteredOrders.length }}</strong></p>
+        <div class="stats-item">
+          <span class="stats-label">總訂單數：</span>
+          <span class="stats-value">{{ orders.length }}</span>
+        </div>
+        <div class="stats-item">
+          <span class="stats-label">篩選後訂單數：</span>
+          <span class="stats-value">{{ filteredOrders.length }}</span>
+        </div>
       </div>
 
       <!-- 訂單表格 -->
@@ -41,28 +47,54 @@
               <th>👤 用戶</th>
               <th>💰 總金額</th>
               <th>📦 訂單狀態</th>
+              <th>💳 付款方式</th>
+              <th>💰 付款狀態</th>
+              <th>🚚 運送狀態</th>
               <th>🛒 商品數量</th>
               <th>⏳ 成立時間</th>
               <th>🔍 操作</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="order in filteredOrders" :key="order.orderId">
+            <tr
+              v-for="order in filteredOrders"
+              :key="order.orderId"
+              :data-order-id="order.orderId"
+            >
               <td>{{ order.orderId }}</td>
-              <td>{{ order.username || '未知用戶' }}</td>
+              <td>{{ order.userName || "未知用戶" }}</td>
               <td class="price">${{ formatPrice(order.totalPrice) }}</td>
-              <td :class="statusClass(order.status)">{{ order.status }}</td>
-              <td>{{ order.items ? order.items.length : 0 }}</td>
+
+              <!-- 中文化 -->
+              <td :class="statusClass(order.status)" class="order-status">
+                {{ translateOrderStatus(order.status) }}
+              </td>
+              <td>{{ translatePaymentMethod(order.paymentMethod) }}</td>
+              <td :class="paymentStatusClass(order.paymentStatus)">
+                {{ translatePaymentStatus(order.paymentStatus) }}
+              </td>
+              <td :class="shipmentStatusClass(order.shipmentStatus)">
+                {{ translateShipmentStatus(order.shipmentStatus) }}
+              </td>
+
+              <td>{{ getTotalQuantity(order.items) }}</td>
               <td>{{ formatDate(order.createdAt) }}</td>
               <td>
                 <div class="action-buttons">
                   <button class="action-btn view-btn" @click="viewOrder(order)">
                     <i class="bi bi-eye"></i> 查看
                   </button>
-                  <button class="action-btn edit-btn-small" @click="quickEditOrder(order)">
+                  <button
+                    class="action-btn edit-btn-small"
+                    @click="quickEditOrder(order)"
+                    :data-order-id="order.orderId"
+                  >
                     <i class="bi bi-pencil"></i> 編輯
                   </button>
-                  <button class="action-btn delete-btn-small" @click="confirmDelete(order)">
+                  <button
+                    class="action-btn delete-btn-small"
+                    @click="confirmDelete(order)"
+                  >
                     <i class="bi bi-trash"></i> 刪除
                   </button>
                 </div>
@@ -78,15 +110,29 @@
 
       <!-- 使用Bootstrap Vue Next的模態框 -->
       <!-- 訂單詳情模態框 -->
-      <b-modal v-model="showOrderDetailModal" title="訂單詳情" size="lg" hide-footer>
+      <b-modal
+        v-model="showOrderDetailModal"
+        title="訂單詳情"
+        size="lg"
+        hide-footer
+        modal-class="detail-modal"
+      >
         <div v-if="selectedOrder">
           <div class="order-details">
             <div class="detail-section">
               <h4>📋 基本資訊</h4>
-              <p><strong>💰 總金額：</strong> ${{ formatPrice(selectedOrder.totalPrice) }}</p>
+              <p>
+                <strong>💰 總金額：</strong>
+                <span class="order-amount-highlight"
+                  >${{ formatPrice(selectedOrder.totalPrice) }}</span
+                >
+              </p>
               <p>
                 <strong>📦 訂單狀態：</strong>
-                <select v-model="selectedOrder.status" class="status-dropdown form-control">
+                <select
+                  v-model="selectedOrder.status"
+                  class="status-dropdown form-control"
+                >
                   <option value="PENDING">待處理</option>
                   <option value="PROCESSING">處理中</option>
                   <option value="SHIPPED">已出貨</option>
@@ -95,23 +141,41 @@
                   <option value="COMPLETED">已完成</option>
                 </select>
               </p>
-              <p><strong>⏳ 成立時間：</strong> {{ formatDate(selectedOrder.createdAt) }}</p>
-              <p><strong>⚡ 更新時間：</strong> {{ formatDate(selectedOrder.updatedAt) }}</p>
+              <p>
+                <strong>⏳ 成立時間：</strong>
+                {{ formatDate(selectedOrder.createdAt) }}
+              </p>
+              <p>
+                <strong>⚡ 更新時間：</strong>
+                {{ formatDate(selectedOrder.updatedAt) }}
+              </p>
             </div>
 
             <div class="detail-section">
               <h4>👤 用戶資訊</h4>
               <p>
                 <strong>用戶名稱：</strong>
-                <input type="text" v-model="selectedOrder.username" class="form-control">
+                <input
+                  type="text"
+                  v-model="selectedOrder.userName"
+                  class="form-control"
+                />
               </p>
               <p>
                 <strong>電子郵件：</strong>
-                <input type="email" v-model="selectedOrder.email" class="form-control">
+                <input
+                  type="email"
+                  v-model="selectedOrder.email"
+                  class="form-control"
+                />
               </p>
               <p>
                 <strong>電話：</strong>
-                <input type="tel" v-model="selectedOrder.phone" class="form-control">
+                <input
+                  type="tel"
+                  v-model="selectedOrder.phone"
+                  class="form-control"
+                />
               </p>
             </div>
 
@@ -119,11 +183,19 @@
               <h4>📍 地址資訊</h4>
               <p>
                 <strong>帳單地址：</strong>
-                <textarea v-model="selectedOrder.billingAddress" class="form-control" rows="2"></textarea>
+                <textarea
+                  v-model="selectedOrder.billingAddress"
+                  class="form-control"
+                  rows="2"
+                ></textarea>
               </p>
               <p>
                 <strong>收貨地址：</strong>
-                <textarea v-model="selectedOrder.shippingAddress" class="form-control" rows="2"></textarea>
+                <textarea
+                  v-model="selectedOrder.shippingAddress"
+                  class="form-control"
+                  rows="2"
+                ></textarea>
               </p>
             </div>
 
@@ -131,7 +203,10 @@
               <h4>💳 付款資訊</h4>
               <p>
                 <strong>付款方式：</strong>
-                <select v-model="selectedOrder.paymentMethod" class="form-control">
+                <select
+                  v-model="selectedOrder.paymentMethod"
+                  class="form-control"
+                >
                   <option value="">請選擇</option>
                   <option value="CREDIT_CARD">信用卡</option>
                   <option value="BANK_TRANSFER">銀行轉帳</option>
@@ -140,7 +215,10 @@
               </p>
               <p>
                 <strong>付款狀態：</strong>
-                <select v-model="selectedOrder.paymentStatus" class="form-control">
+                <select
+                  v-model="selectedOrder.paymentStatus"
+                  class="form-control"
+                >
                   <option value="">請選擇</option>
                   <option value="PAID">已付款</option>
                   <option value="UNPAID">未付款</option>
@@ -153,7 +231,10 @@
               <h4>🚚 運送資訊</h4>
               <p>
                 <strong>運送方式：</strong>
-                <select v-model="selectedOrder.shipmentMethod" class="form-control">
+                <select
+                  v-model="selectedOrder.shipmentMethod"
+                  class="form-control"
+                >
                   <option value="">請選擇</option>
                   <option value="STANDARD">標準運送</option>
                   <option value="EXPRESS">快速運送</option>
@@ -162,7 +243,10 @@
               </p>
               <p>
                 <strong>運送狀態：</strong>
-                <select v-model="selectedOrder.shipmentStatus" class="form-control">
+                <select
+                  v-model="selectedOrder.shipmentStatus"
+                  class="form-control"
+                >
                   <option value="">請選擇</option>
                   <option value="PROCESSING">處理中</option>
                   <option value="SHIPPED">已出貨</option>
@@ -171,13 +255,20 @@
               </p>
               <p>
                 <strong>追蹤號碼：</strong>
-                <input type="text" v-model="selectedOrder.trackingNumber" class="form-control">
+                <input
+                  type="text"
+                  v-model="selectedOrder.trackingNumber"
+                  class="form-control"
+                />
               </p>
             </div>
           </div>
 
           <h4>🛒 商品列表：</h4>
-          <div v-if="selectedOrder.items && selectedOrder.items.length > 0" class="order-items">
+          <div
+            v-if="selectedOrder.items && selectedOrder.items.length > 0"
+            class="order-items"
+          >
             <table class="items-table">
               <thead>
                 <tr>
@@ -190,15 +281,32 @@
               <tbody>
                 <tr v-for="(item, index) in selectedOrder.items" :key="index">
                   <td>
-                    <input type="text" v-model="item.productName" class="form-control">
+                    <input
+                      type="text"
+                      v-model="item.productName"
+                      class="form-control"
+                    />
                   </td>
                   <td>
-                    <input type="number" v-model.number="item.quantity" min="1" class="form-control">
+                    <input
+                      type="number"
+                      v-model.number="item.quantity"
+                      min="1"
+                      class="form-control"
+                    />
                   </td>
                   <td>
-                    <input type="number" v-model.number="item.unitPrice" min="0" step="0.01" class="form-control">
+                    <input
+                      type="number"
+                      v-model.number="item.unitPrice"
+                      min="0"
+                      step="0.01"
+                      class="form-control"
+                    />
                   </td>
-                  <td>${{ formatPrice(item.unitPrice * item.quantity) }}</td>
+                  <td class="item-subtotal">
+                    ${{ formatPrice(item.unitPrice * item.quantity) }}
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -221,16 +329,44 @@
       </b-modal>
 
       <!-- 快速編輯模態框 -->
-      <b-modal v-model="showQuickEditModal" title="快速編輯訂單狀態" hide-footer>
+      <b-modal
+        v-model="showQuickEditModal"
+        title="快速編輯訂單狀態"
+        hide-footer
+        modal-class="status-edit-modal"
+        id="quickEditModal"
+      >
         <div v-if="quickEditOrderData" class="quick-edit-content">
-          <p><strong>訂單編號：</strong> {{ quickEditOrderData.orderId }}</p>
-          <p><strong>用戶：</strong> {{ quickEditOrderData.username || '未知用戶' }}</p>
-          <p><strong>總金額：</strong> ${{ formatPrice(quickEditOrderData.totalPrice) }}</p>
+          <p>
+            <strong>訂單編號：</strong>
+            <span class="order-id-highlight">{{
+              quickEditOrderData.orderId
+            }}</span>
+            <input
+              type="hidden"
+              id="edit-order-id"
+              :value="quickEditOrderData.orderId"
+            />
+          </p>
+          <p>
+            <strong>用戶：</strong>
+            {{ quickEditOrderData.userName || "未知用戶" }}
+          </p>
+          <p>
+            <strong>總金額：</strong>
+            <span class="order-amount-highlight"
+              >${{ formatPrice(quickEditOrderData.totalPrice) }}</span
+            >
+          </p>
 
           <div class="edit-status-section">
-            <label for="quick-status"><strong>更新訂單狀態：</strong></label>
-            <select id="quick-status" v-model="quickEditOrderData.status" class="status-dropdown">
-              <option value="PENDING">待處理</option>
+            <label for="order-status-select"
+              ><strong>更新訂單狀態：</strong></label
+            >
+            <select v-model="quickEditOrderData.status">
+              <option value="PENDING">未付款</option>
+              <option value="PAID">已付款</option>
+              <option value="PREPARING">備貨中</option>
               <option value="PROCESSING">處理中</option>
               <option value="SHIPPED">已出貨</option>
               <option value="DELIVERED">已送達</option>
@@ -240,7 +376,11 @@
           </div>
 
           <div class="modal-buttons">
-            <button class="edit-btn" @click="saveQuickEdit">
+            <button
+              class="edit-btn btn-update"
+              id="update-status-btn"
+              @click="saveQuickEdit"
+            >
               <i class="bi bi-save"></i> 保存更改
             </button>
             <button class="close-btn" @click="closeQuickEditModal">
@@ -254,11 +394,11 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch, nextTick } from "vue";
 import axios from "axios";
 import { useUserStore } from "@/stores/user";
 // 引入 Bootstrap Vue Next 組件
-import { BModal, BButton } from 'bootstrap-vue-next';
+import { BModal, BButton } from "bootstrap-vue-next";
 
 const userStore = useUserStore();
 const orders = ref([]);
@@ -267,6 +407,123 @@ const quickEditOrderData = ref(null);
 const filterCriteria = ref({ status: "all" });
 const loading = ref(true);
 const error = ref(null);
+const updateInProgress = ref(false); // 新增：用於追蹤更新狀態
+
+// 中文對應英文代碼
+const statusCodeMap = {
+  未付款: "PENDING",
+  已付款: "PAID",
+  備貨中: "PREPARING",
+  處理中: "PROCESSING",
+  已出貨: "SHIPPED",
+  已送達: "DELIVERED",
+  已取消: "CANCELLED",
+  已完成: "COMPLETED",
+};
+
+// 英文代碼對應中文
+const statusNameMap = {
+  PENDING: "未付款",
+  PAID: "已付款",
+  PREPARING: "備貨中",
+  PROCESSING: "處理中",
+  SHIPPED: "已出貨",
+  DELIVERED: "已送達",
+  CANCELLED: "已取消",
+  COMPLETED: "已完成",
+  all: "全部",
+};
+
+// 付款方式代碼對應的中文名稱
+const paymentMethodMap = {
+  CREDIT_CARD: "信用卡",
+  BANK_TRANSFER: "銀行轉帳",
+  CASH_ON_DELIVERY: "貨到付款",
+};
+
+// 付款狀態代碼對應的中文名稱
+const paymentStatusMap = {
+  PAID: "已付款",
+  UNPAID: "未付款",
+  REFUNDED: "已退款",
+};
+
+// 運送狀態代碼對應的中文名稱
+const shipmentStatusMap = {
+  PROCESSING: "處理中",
+  SHIPPED: "已出貨",
+  DELIVERED: "已送達",
+};
+
+// 運送方式代碼對應的中文名稱
+const shipmentMethodMap = {
+  STANDARD: "標準運送",
+  EXPRESS: "快速運送",
+  STORE_PICKUP: "門市取貨",
+};
+
+// 監聽快速編輯訂單狀態的變化
+watch(
+  () => quickEditOrderData.value?.status,
+  (newStatus, oldStatus) => {
+    if (newStatus && newStatus !== oldStatus) {
+      console.log(
+        `狀態從 ${statusNameMap[oldStatus]} 變更為 ${statusNameMap[newStatus]}`
+      );
+    }
+  }
+);
+
+const getTotalQuantity = (items) => {
+  if (!items || items.length === 0) return 0;
+  return items.reduce((total, item) => total + (item.quantity || 0), 0);
+};
+
+const paymentStatusClass = (status) => {
+  switch (status) {
+    case "PAID":
+      return "text-success paid";
+    case "UNPAID":
+      return "text-danger unpaid";
+    case "REFUNDED":
+      return "text-warning refunded";
+    default:
+      return "";
+  }
+};
+
+const shipmentStatusClass = (status) => {
+  switch (status) {
+    case "SHIPPED":
+      return "text-info shipped";
+    case "DELIVERED":
+      return "text-success delivered";
+    case "PROCESSING":
+      return "text-warning processing";
+    default:
+      return "";
+  }
+};
+
+// 訂單狀態轉中文
+const translateOrderStatus = (status) => {
+  return statusNameMap[status] || "-";
+};
+
+// 付款方式轉中文
+const translatePaymentMethod = (method) => {
+  return paymentMethodMap[method] || "-";
+};
+
+// 付款狀態轉中文
+const translatePaymentStatus = (status) => {
+  return paymentStatusMap[status] || "-";
+};
+
+// 運送狀態轉中文
+const translateShipmentStatus = (status) => {
+  return shipmentStatusMap[status] || "-";
+};
 
 // 控制模態框顯示的狀態
 const showOrderDetailModal = ref(false);
@@ -274,6 +531,26 @@ const showQuickEditModal = ref(false);
 
 onMounted(async () => {
   await loadOrders();
+
+  // 確保 DOM 完全渲染後執行這些操作
+  nextTick(() => {
+    // 為訂單狀態下拉選單添加change事件監聽器
+    const statusSelect = document.getElementById("order-status-select");
+    if (statusSelect) {
+      statusSelect.addEventListener("change", function () {
+        console.log("訂單狀態變更為:", statusNameMap[this.value]);
+      });
+    }
+
+    // 為保存按鈕添加點擊事件監聽器 (作為備用方案)
+    const updateBtn = document.getElementById("update-status-btn");
+    if (updateBtn) {
+      updateBtn.addEventListener("click", function (e) {
+        console.log("更新按鈕點擊 (DOM事件)");
+        // 這裡不執行實際更新邏輯，因為Vue的@click已處理
+      });
+    }
+  });
 });
 
 async function loadOrders() {
@@ -291,8 +568,8 @@ async function loadOrders() {
     // 獲取所有訂單數據
     const response = await axios.get("/api/orders/admin/orders", {
       headers: {
-        Authorization: `Bearer ${userStore.token}`
-      }
+        Authorization: `Bearer ${userStore.token}`,
+      },
     });
 
     console.log("API 回應:", response);
@@ -323,7 +600,9 @@ async function loadOrders() {
       } else if (statusCode === 403) {
         error.value = "您沒有權限訪問此資源";
       } else {
-        error.value = `伺服器錯誤 (${statusCode}): ${err.response.data?.message || "未知錯誤"}`;
+        error.value = `伺服器錯誤 (${statusCode}): ${
+          err.response.data?.message || "未知錯誤"
+        }`;
       }
     } else if (err.request) {
       error.value = "無法連接到伺服器，請檢查網絡連接";
@@ -345,7 +624,7 @@ const filteredOrders = computed(() => {
   );
 });
 
-// 修改為使用bootstrap-vue-next的模態框
+// 查看訂單詳情
 const viewOrder = (order) => {
   try {
     console.log("查看訂單詳情:", order);
@@ -373,11 +652,30 @@ const closeOrderDetailModal = () => {
   }, 300);
 };
 
-// 快速編輯訂單 - 使用bootstrap-vue-next的模態框
+// 快速編輯訂單 - 改進版本
 const quickEditOrder = (order) => {
   console.log("快速編輯訂單:", order);
-  quickEditOrderData.value = { ...order }; // 避免直接修改原始資料
+
+  // 創建一個深拷貝，避免直接修改原始資料
+  quickEditOrderData.value = JSON.parse(JSON.stringify(order));
+
+  // 打開模態窗口
   showQuickEditModal.value = true;
+
+  // 確保下次DOM更新後執行
+  nextTick(() => {
+    // 更新隱藏的訂單ID字段
+    const editOrderIdField = document.getElementById("edit-order-id");
+    if (editOrderIdField) {
+      editOrderIdField.value = order.orderId;
+    }
+
+    // 確保狀態下拉選單選中正確的值
+    const statusSelect = document.getElementById("order-status-select");
+    if (statusSelect) {
+      statusSelect.value = order.status;
+    }
+  });
 };
 
 // 關閉快速編輯模態框
@@ -389,44 +687,102 @@ const closeQuickEditModal = () => {
   }, 300);
 };
 
+// 保存快速編輯 - 改進版本
 const saveQuickEdit = async () => {
-  if (!quickEditOrderData.value) return;
+  if (!quickEditOrderData.value) {
+    console.error("未找到要更新的訂單數據");
+    return;
+  }
+
+  // 防止重複提交
+  if (updateInProgress.value) {
+    console.log("更新已在進行中，請稍候...");
+    return;
+  }
+
+  updateInProgress.value = true;
 
   try {
+    console.log(
+      "正在嘗試更新訂單狀態...",
+      quickEditOrderData.value.orderId,
+      quickEditOrderData.value.status,
+      statusNameMap[quickEditOrderData.value.status]
+    );
+
+    // 獲取更新按鈕並顯示加載狀態
+    const updateBtn = document.querySelector("#quickEditModal .btn-update");
+    if (updateBtn) {
+      updateBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 更新中...';
+      updateBtn.disabled = true;
+    }
+
+    // 發送更新請求
     const response = await axios.put(
       `/api/orders/${quickEditOrderData.value.orderId}`,
       {
-        status: quickEditOrderData.value.status
+        status: quickEditOrderData.value.status,
       },
       {
         headers: {
-          Authorization: `Bearer ${userStore.token}`
-        }
+          Authorization: `Bearer ${userStore.token}`,
+        },
       }
     );
 
     console.log("訂單快速更新回應:", response);
 
     // 根據回應更新本地訂單數據
-    if (response.data && (response.data.success || response.data.status === "success")) {
+    if (
+      response.data &&
+      (response.data.success || response.data.status === "success")
+    ) {
       // 找到並更新本地訂單
-      const index = orders.value.findIndex(o => o.orderId === quickEditOrderData.value.orderId);
+      const index = orders.value.findIndex(
+        (o) => o.orderId === quickEditOrderData.value.orderId
+      );
+
       if (index !== -1) {
         // 更新訂單數據
         const updatedOrder = response.data.data || response.data;
         orders.value[index] = { ...orders.value[index], ...updatedOrder };
+
         // 如果只有狀態變更，則手動更新
         orders.value[index].status = quickEditOrderData.value.status;
+
+        console.log("本地訂單數據已更新:", orders.value[index]);
       }
 
-      alert("✅ 訂單狀態更新成功！");
+      // 提供成功視覺反饋
+      alert(
+        `✅ 訂單狀態已更新為「${
+          statusNameMap[quickEditOrderData.value.status]
+        }」！`
+      );
       closeQuickEditModal();
     } else {
-      alert(`❌ 訂單狀態更新失敗: ${response.data?.message || "伺服器返回了意外的回應"}`);
+      alert(
+        `❌ 訂單狀態更新失敗: ${
+          response.data?.message || "伺服器返回了意外的回應"
+        }`
+      );
     }
   } catch (err) {
     console.error("❌ 訂單狀態更新失敗:", err);
-    alert(`❌ 訂單狀態更新失敗: ${err.response?.data?.message || err.message || "未知錯誤"}`);
+    alert(
+      `❌ 訂單狀態更新失敗: ${
+        err.response?.data?.message || err.message || "未知錯誤"
+      }`
+    );
+  } finally {
+    // 恢復按鈕狀態
+    const updateBtn = document.querySelector("#quickEditModal .btn-update");
+    if (updateBtn) {
+      updateBtn.innerHTML = '<i class="bi bi-save"></i> 保存更改';
+      updateBtn.disabled = false;
+    }
+
+    updateInProgress.value = false;
   }
 };
 
@@ -440,28 +796,34 @@ const confirmDelete = (order) => {
 // 刪除指定ID的訂單
 const deleteOrderById = async (orderId) => {
   try {
-    const response = await axios.delete(
-      `/api/orders/${orderId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${userStore.token}`
-        }
-      }
-    );
+    const response = await axios.delete(`/api/orders/${orderId}`, {
+      headers: {
+        Authorization: `Bearer ${userStore.token}`,
+      },
+    });
 
     console.log("訂單刪除回應:", response);
 
     // 根據回應更新本地訂單數據
-    if (response.data && (response.data.success || response.data.status === "success")) {
+    if (
+      response.data &&
+      (response.data.success || response.data.status === "success")
+    ) {
       // 從本地移除已刪除的訂單
-      orders.value = orders.value.filter(o => o.orderId !== orderId);
+      orders.value = orders.value.filter((o) => o.orderId !== orderId);
       alert("🗑️ 訂單已成功刪除！");
     } else {
-      alert(`❌ 訂單刪除失敗: ${response.data?.message || "伺服器返回了意外的回應"}`);
+      alert(
+        `❌ 訂單刪除失敗: ${response.data?.message || "伺服器返回了意外的回應"}`
+      );
     }
   } catch (err) {
     console.error("❌ 訂單刪除失敗:", err);
-    alert(`❌ 訂單刪除失敗: ${err.response?.data?.message || err.message || "未知錯誤"}`);
+    alert(
+      `❌ 訂單刪除失敗: ${
+        err.response?.data?.message || err.message || "未知錯誤"
+      }`
+    );
   }
 };
 
@@ -470,10 +832,17 @@ const updateOrder = async () => {
   if (!selectedOrder.value) return;
 
   try {
+    // 顯示加載狀態
+    const updateBtn = document.querySelector(".modal-buttons .edit-btn");
+    if (updateBtn) {
+      updateBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> 更新中...';
+      updateBtn.disabled = true;
+    }
+
     // 準備要發送的數據，包含所有可編輯字段
     const orderData = {
       status: selectedOrder.value.status,
-      username: selectedOrder.value.username,
+      userName: selectedOrder.value.userName,
       email: selectedOrder.value.email,
       phone: selectedOrder.value.phone,
       billingAddress: selectedOrder.value.billingAddress,
@@ -483,11 +852,11 @@ const updateOrder = async () => {
       shipmentMethod: selectedOrder.value.shipmentMethod,
       shipmentStatus: selectedOrder.value.shipmentStatus,
       trackingNumber: selectedOrder.value.trackingNumber,
-      items: selectedOrder.value.items.map(item => ({
+      items: selectedOrder.value.items.map((item) => ({
         productName: item.productName,
         quantity: item.quantity,
-        unitPrice: item.unitPrice
-      }))
+        unitPrice: item.unitPrice,
+      })),
     };
 
     const response = await axios.put(
@@ -495,17 +864,22 @@ const updateOrder = async () => {
       orderData,
       {
         headers: {
-          Authorization: `Bearer ${userStore.token}`
-        }
+          Authorization: `Bearer ${userStore.token}`,
+        },
       }
     );
 
     console.log("訂單更新回應:", response);
 
     // 根據回應更新本地訂單數據
-    if (response.data && (response.data.success || response.data.status === "success")) {
+    if (
+      response.data &&
+      (response.data.success || response.data.status === "success")
+    ) {
       // 找到並更新本地訂單
-      const index = orders.value.findIndex(o => o.orderId === selectedOrder.value.orderId);
+      const index = orders.value.findIndex(
+        (o) => o.orderId === selectedOrder.value.orderId
+      );
       if (index !== -1) {
         // 更新訂單數據
         const updatedOrder = response.data.data || response.data;
@@ -517,14 +891,27 @@ const updateOrder = async () => {
         }
       }
 
-      alert("✅ 訂單更新成功！");
+      alert("✅ 訂單資料更新成功！");
       closeOrderDetailModal();
     } else {
-      alert(`❌ 訂單更新失敗: ${response.data?.message || "伺服器返回了意外的回應"}`);
+      alert(
+        `❌ 訂單更新失敗: ${response.data?.message || "伺服器返回了意外的回應"}`
+      );
     }
   } catch (err) {
     console.error("❌ 訂單更新失敗:", err);
-    alert(`❌ 訂單更新失敗: ${err.response?.data?.message || err.message || "未知錯誤"}`);
+    alert(
+      `❌ 訂單更新失敗: ${
+        err.response?.data?.message || err.message || "未知錯誤"
+      }`
+    );
+  } finally {
+    // 恢復按鈕狀態
+    const updateBtn = document.querySelector(".modal-buttons .edit-btn");
+    if (updateBtn) {
+      updateBtn.innerHTML = '<i class="bi bi-save"></i> 更新訂單';
+      updateBtn.disabled = false;
+    }
   }
 };
 
@@ -540,15 +927,18 @@ const deleteOrder = async () => {
       `/api/orders/${selectedOrder.value.orderId}`,
       {
         headers: {
-          Authorization: `Bearer ${userStore.token}`
-        }
+          Authorization: `Bearer ${userStore.token}`,
+        },
       }
     );
 
     console.log("訂單刪除回應:", response);
 
     // 根據回應更新本地訂單數據
-    if (response.data && (response.data.success || response.data.status === "success")) {
+    if (
+      response.data &&
+      (response.data.success || response.data.status === "success")
+    ) {
       // 從本地移除已刪除的訂單
       orders.value = orders.value.filter(
         (o) => o.orderId !== selectedOrder.value.orderId
@@ -557,23 +947,36 @@ const deleteOrder = async () => {
       alert("🗑️ 訂單已成功刪除！");
       closeOrderDetailModal();
     } else {
-      alert(`❌ 訂單刪除失敗: ${response.data?.message || "伺服器返回了意外的回應"}`);
+      alert(
+        `❌ 訂單刪除失敗: ${response.data?.message || "伺服器返回了意外的回應"}`
+      );
     }
   } catch (err) {
     console.error("❌ 訂單刪除失敗:", err);
-    alert(`❌ 訂單刪除失敗: ${err.response?.data?.message || err.message || "未知錯誤"}`);
+    alert(
+      `❌ 訂單刪除失敗: ${
+        err.response?.data?.message || err.message || "未知錯誤"
+      }`
+    );
   }
 };
 
 const statusClass = (status) => {
   switch (status) {
-    case "PENDING": return "pending";
-    case "PROCESSING": return "processing";
-    case "SHIPPED": return "shipped";
-    case "DELIVERED": return "delivered";
-    case "CANCELLED": return "cancelled";
-    case "COMPLETED": return "completed";
-    default: return "";
+    case "PENDING":
+      return "pending";
+    case "PROCESSING":
+      return "processing";
+    case "SHIPPED":
+      return "shipped";
+    case "DELIVERED":
+      return "delivered";
+    case "CANCELLED":
+      return "cancelled";
+    case "COMPLETED":
+      return "completed";
+    default:
+      return "";
   }
 };
 
@@ -581,11 +984,11 @@ const formatDate = (date) => {
   if (!date) return "未知";
   return new Date(date).toLocaleString("zh-TW", {
     timeZone: "Asia/Taipei",
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -596,434 +999,631 @@ const formatPrice = (price) => {
 </script>
 
 <style scoped>
-/* 樣式美化 */
+/* 訂單管理頁面全局樣式 */
 .admin-orders {
   padding: 20px;
-  max-width: 1200px;
-  margin: auto;
+  max-width: 1400px;
+  margin: 0 auto;
+  font-family: "Noto Sans TC", sans-serif;
 }
 
-h2 {
-  text-align: center;
+/* 修正標題區域，確保不被擋住 */
+.admin-orders h2 {
+  font-size: 1.8rem;
+  margin-top: 60px; /* 增加頂部間距，確保標題不被頂部導航欄擋住 */
   margin-bottom: 20px;
   color: #333;
-  font-weight: 600;
+  border-bottom: 2px solid #f5a623;
+  padding-bottom: 10px;
+  clear: both; /* 清除浮動 */
 }
 
-/* 載入及錯誤狀態 */
+/* 載入和錯誤訊息區域 */
 .loading-section,
 .error-section {
   text-align: center;
-  padding: 20px;
-  margin: 20px 0;
-  border-radius: 8px;
-}
-
-.loading-section {
+  padding: 30px;
   background-color: #f8f9fa;
-}
-
-.error-section {
-  background-color: #f8d7da;
-  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  margin-bottom: 20px;
 }
 
 .error-message {
-  color: #721c24;
-  margin-bottom: 15px;
+  color: #dc3545;
+  font-weight: 500;
 }
 
 .retry-btn {
   background-color: #dc3545;
   color: white;
-  padding: 8px 15px;
   border: none;
-  border-radius: 5px;
+  padding: 8px 16px;
+  border-radius: 4px;
+  margin-top: 10px;
   cursor: pointer;
-  font-size: 14px;
+  transition: all 0.3s ease;
 }
 
 .retry-btn:hover {
   background-color: #c82333;
 }
 
-/* 訂單統計 */
-.order-stats {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 15px;
-  background-color: #e9ecef;
-  padding: 10px;
-  border-radius: 5px;
-}
-
-.order-stats p {
-  margin: 0;
-}
-
-/* 訂單篩選 */
+/* 篩選區域 */
 .filter-section {
-  margin-bottom: 15px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  margin-bottom: 20px;
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.filter-section label {
+  margin-right: 10px;
+  font-weight: 500;
 }
 
 .status-dropdown {
-  padding: 8px;
-  margin-left: 10px;
-  border-radius: 5px;
+  padding: 8px 12px;
+  border-radius: 4px;
   border: 1px solid #ced4da;
-}
-
-/* 訂單表格 */
-.table-wrapper {
-  overflow-x: auto;
-  margin-bottom: 20px;
-}
-
-.order-table {
-  width: 100%;
-  border-collapse: collapse;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-}
-
-.order-table th,
-.order-table td {
-  border: 1px solid #dee2e6;
-  padding: 12px;
-  text-align: center;
-}
-
-.order-table th {
-  background-color: #f8f9fa;
-  font-weight: 600;
-}
-
-.order-table tr:nth-child(even) {
-  background-color: #f8f9fa;
-}
-
-.order-table tr:hover {
-  background-color: #e9ecef;
-}
-
-/* 操作按鈕容器 */
-.action-buttons {
-  display: flex;
-  gap: 5px;
-  justify-content: center;
-}
-
-/* 按鈕樣式 */
-.action-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+  background-color: white;
+  min-width: 150px;
   font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
+  transition: border-color 0.15s ease-in-out;
 }
 
-.view-btn {
-  background-color: #007bff;
-  color: white;
-}
-
-.view-btn:hover {
-  background-color: #0056b3;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.edit-btn-small {
-  background-color: #28a745;
-  color: white;
-}
-
-.edit-btn-small:hover {
-  background-color: #218838;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-.delete-btn-small {
-  background-color: #dc3545;
-  color: white;
-}
-
-.delete-btn-small:hover {
-  background-color: #c82333;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-}
-
-/* 狀態樣式 */
-.pending {
-  color: #ffc107;
-  font-weight: bold;
-}
-
-.processing {
-  color: #17a2b8;
-  font-weight: bold;
-}
-
-.shipped {
-  color: #007bff;
-  font-weight: bold;
-}
-
-.delivered {
-  color: #28a745;
-  font-weight: bold;
-}
-
-.completed {
-  color: #28a745;
-  font-weight: bold;
-}
-
-.cancelled {
-  color: #dc3545;
-  font-weight: bold;
-}
-
-/* 訂單詳情區塊 */
-.order-details {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin: 0 0 20px;
-  padding-top: 20px;
-}
-
-.detail-section {
-  background-color: #f8f9fa;
-  padding: 15px;
-  border-radius: 5px;
-  border: 1px solid #e9ecef;
-}
-
-.detail-section h4 {
-  margin: 0 0 15px 0;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #dee2e6;
-  font-weight: 600;
-}
-
-.detail-section p {
-  margin: 8px 0;
-}
-
-/* 表單控件樣式 */
-.form-control {
-  display: block;
-  width: 100%;
-  padding: 0.375rem 0.75rem;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: #495057;
-  background-color: #fff;
-  background-clip: padding-box;
-  border: 1px solid #ced4da;
-  border-radius: 0.25rem;
-  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-  margin-top: 0.25rem;
-}
-
-.form-control:focus {
-  color: #495057;
-  background-color: #fff;
+.status-dropdown:focus {
   border-color: #80bdff;
   outline: 0;
   box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-/* 訂單商品表格 */
+/* 訂單統計信息 */
+.order-stats {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.stats-item {
+  background-color: #fff;
+  padding: 12px 15px;
+  border-radius: 6px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stats-label {
+  font-weight: 500;
+  color: #555;
+}
+
+.stats-value {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #f5a623;
+}
+
+/* 訂單表格 - 修正表格跑版問題 */
+.table-wrapper {
+  overflow-x: auto; /* 允許在小螢幕上水平滾動 */
+  margin-bottom: 30px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.order-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  table-layout: fixed; /* 固定表格布局，防止跑版 */
+}
+
+/* 定義每列的寬度 */
+.order-table th:nth-child(1),
+.order-table td:nth-child(1) {
+  width: 5%; /* 訂單編號列 */
+  text-align: center;
+}
+
+.order-table th:nth-child(2),
+.order-table td:nth-child(2) {
+  width: 10%; /* 用戶列 */
+}
+
+.order-table th:nth-child(3),
+.order-table td:nth-child(3) {
+  width: 10%; /* 總金額列 */
+  text-align: right;
+}
+
+.order-table th:nth-child(4),
+.order-table td:nth-child(4) {
+  width: 10%; /* 訂單狀態列 */
+  text-align: center;
+}
+
+.order-table th:nth-child(5),
+.order-table td:nth-child(5) {
+  width: 10%; /* 付款方式列 */
+  text-align: center;
+}
+
+.order-table th:nth-child(6),
+.order-table td:nth-child(6) {
+  width: 10%; /* 付款狀態列 */
+  text-align: center;
+}
+
+.order-table th:nth-child(7),
+.order-table td:nth-child(7) {
+  width: 10%; /* 運送狀態列 */
+  text-align: center;
+}
+
+.order-table th:nth-child(8),
+.order-table td:nth-child(8) {
+  width: 5%; /* 商品數量列 */
+  text-align: center;
+}
+
+.order-table th:nth-child(9),
+.order-table td:nth-child(9) {
+  width: 15%; /* 成立時間列 */
+  text-align: center;
+}
+
+.order-table th:nth-child(10),
+.order-table td:nth-child(10) {
+  width: 15%; /* 操作列 */
+  text-align: center;
+}
+
+.order-table th {
+  background-color: #f8f9fa;
+  color: #333;
+  font-weight: 600;
+  text-align: left;
+  padding: 12px 15px;
+  border-bottom: 2px solid #dee2e6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-table td {
+  padding: 12px 15px;
+  border-bottom: 1px solid #dee2e6;
+  vertical-align: middle;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-table tr:hover {
+  background-color: #f8f9fa;
+}
+
+.order-table .price {
+  font-weight: 500;
+  color: #28a745;
+}
+
+/* 訂單狀態樣式 - 簡化為純文字樣式 */
+.order-status {
+  font-size: 14px;
+  font-weight: 500;
+  text-align: center;
+}
+
+.pending {
+  color: #c0932a;
+}
+
+.processing {
+  color: #3498db;
+}
+
+.shipped {
+  color: #27ae60;
+}
+
+.delivered {
+  color: #16a085;
+}
+
+.cancelled {
+  color: #e74c3c;
+}
+
+.completed {
+  color: #2c3e50;
+}
+
+/* 付款狀態樣式 - 簡化為純文字樣式 */
+.paid,
+.unpaid,
+.refunded {
+  font-size: 14px;
+  text-align: center;
+}
+
+.paid {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.unpaid {
+  color: #dc3545;
+  font-weight: 500;
+}
+
+.refunded {
+  color: #ffc107;
+  font-weight: 500;
+}
+
+/* 運送狀態樣式 - 簡化為純文字樣式 */
+.shipped,
+.delivered,
+.processing {
+  font-size: 14px;
+  text-align: center;
+}
+
+.shipped {
+  color: #17a2b8;
+  font-weight: 500;
+}
+
+.delivered {
+  color: #28a745;
+  font-weight: 500;
+}
+
+.processing {
+  color: #ffc107;
+  font-weight: 500;
+}
+
+/* 操作按鈕樣式 - 修正跑版問題 */
+.action-buttons {
+  display: flex;
+  justify-content: center; /* 居中對齊 */
+  gap: 8px;
+}
+
+.action-btn {
+  border: none;
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center; /* 文字圖標居中 */
+  transition: all 0.2s ease;
+  min-width: 60px; /* 統一按鈕寬度 */
+}
+
+.action-btn i {
+  margin-right: 4px;
+}
+
+.view-btn {
+  background-color: #e9f7fe;
+  color: #3498db;
+}
+
+.view-btn:hover {
+  background-color: #3498db;
+  color: white;
+}
+
+.edit-btn-small {
+  background-color: #eafaf1;
+  color: #27ae60;
+}
+
+.edit-btn-small:hover {
+  background-color: #27ae60;
+  color: white;
+}
+
+.delete-btn-small {
+  background-color: #fdedec;
+  color: #e74c3c;
+}
+
+.delete-btn-small:hover {
+  background-color: #e74c3c;
+  color: white;
+}
+
+/* 沒有訂單的提示 */
+.no-orders {
+  text-align: center;
+  padding: 40px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  color: #6c757d;
+  font-size: 16px;
+}
+
+/* 模態框樣式 */
+.detail-modal .modal-content,
+.status-edit-modal .modal-content {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.detail-modal .modal-header,
+.status-edit-modal .modal-header {
+  background-color: #f8f9fa;
+  border-bottom: 1px solid #dee2e6;
+  padding: 15px 20px;
+}
+
+.detail-modal .modal-title,
+.status-edit-modal .modal-title {
+  font-weight: 600;
+  color: #333;
+}
+
+.detail-modal .modal-body,
+.status-edit-modal .modal-body {
+  padding: 20px;
+}
+
+/* 訂單詳情模態框 */
+.order-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.detail-section {
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
+}
+
+.detail-section h4 {
+  margin-top: 0;
+  margin-bottom: 15px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 8px;
+}
+
+.detail-section p {
+  margin-bottom: 10px;
+}
+
+.order-amount-highlight {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #28a745;
+}
+
+.order-id-highlight {
+  font-weight: 600;
+  color: #3498db;
+}
+
+/* 訂單項目表格 */
 .order-items {
-  margin: 0 0 20px;
+  margin-top: 15px;
+  margin-bottom: 20px;
+  background-color: #f8f9fa;
+  padding: 15px;
+  border-radius: 6px;
 }
 
 .items-table {
   width: 100%;
   border-collapse: collapse;
-  margin: 15px 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.items-table th,
-.items-table td {
-  padding: 12px;
-  border: 1px solid #ddd;
-  text-align: left;
 }
 
 .items-table th {
-  background-color: #f8f9fa;
-  font-weight: 600;
+  background-color: #e9ecef;
+  padding: 10px;
+  text-align: left;
+  font-weight: 500;
+  border-bottom: 1px solid #dee2e6;
 }
 
-.items-table tr:nth-child(even) {
-  background-color: #f8f9fa;
+.items-table td {
+  padding: 10px;
+  border-bottom: 1px solid #dee2e6;
 }
 
-/* 調整表格中的輸入框 */
-.items-table .form-control {
-  padding: 0.25rem 0.5rem;
-  font-size: 0.75rem;
+.item-subtotal {
+  font-weight: 500;
+  color: #28a745;
 }
 
-.no-items {
-  color: #dc3545;
-  font-style: italic;
-  margin: 0 0 20px;
+.form-control {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: 1px solid #ced4da;
+  font-size: 14px;
+  transition: border-color 0.15s ease-in-out;
 }
 
-.no-orders {
-  text-align: center;
-  padding: 30px;
-  background-color: #f8f9fa;
-  border-radius: 8px;
-  margin: 20px 0;
-  color: #6c757d;
-  font-style: italic;
+.form-control:focus {
+  border-color: #80bdff;
+  outline: 0;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
 }
 
-/* 操作按鈕 */
+/* 模態框按鈕 */
 .modal-buttons {
   display: flex;
-  justify-content: center;
   gap: 10px;
-  margin: 20px 0;
-  padding: 15px 0;
-  border-top: 1px solid #dee2e6;
+  margin-top: 20px;
+  justify-content: flex-end;
 }
 
 .edit-btn {
   background-color: #28a745;
   color: white;
-  padding: 10px 20px;
   border: none;
-  border-radius: 5px;
+  padding: 8px 16px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+}
+
+.edit-btn i {
+  margin-right: 6px;
 }
 
 .edit-btn:hover {
   background-color: #218838;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .delete-btn {
   background-color: #dc3545;
   color: white;
-  padding: 10px 20px;
   border: none;
-  border-radius: 5px;
+  padding: 8px 16px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+}
+
+.delete-btn i {
+  margin-right: 6px;
 }
 
 .delete-btn:hover {
   background-color: #c82333;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .close-btn {
   background-color: #6c757d;
   color: white;
-  padding: 10px 20px;
   border: none;
-  border-radius: 5px;
+  padding: 8px 16px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 16px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
+}
+
+.close-btn i {
+  margin-right: 6px;
 }
 
 .close-btn:hover {
   background-color: #5a6268;
-  transform: translateY(-2px);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
-/* 快速編輯內容 */
+/* 快速編輯模態框 */
 .quick-edit-content {
   padding: 10px;
 }
 
 .edit-status-section {
-  margin: 20px 0;
-  padding: 15px;
   background-color: #f8f9fa;
-  border-radius: 5px;
-  border: 1px solid #dee2e6;
+  padding: 15px;
+  border-radius: 6px;
+  margin: 15px 0;
 }
 
-/* 加強表單標籤顯示 */
-.detail-section strong {
+.edit-status-section label {
   display: block;
-  margin-bottom: 5px;
-  color: #495057;
-  font-size: 0.9rem;
+  margin-bottom: 8px;
 }
 
-/* 響應式設計 */
-@media (max-width: 768px) {
+/* 沒有商品的提示 */
+.no-items {
+  text-align: center;
+  padding: 20px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  color: #6c757d;
+}
+
+/* 響應式調整 - 修改以確保表格在小螢幕上也能正常顯示 */
+@media (max-width: 992px) {
   .order-details {
     grid-template-columns: 1fr;
   }
 
+  /* 在較小的螢幕上隱藏某些列，但保持重要列 */
+  .order-table th:nth-child(7),
+  .order-table td:nth-child(7) {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .order-table th:nth-child(6),
+  .order-table td:nth-child(6),
+  .order-table th:nth-child(8),
+  .order-table td:nth-child(8) {
+    display: none;
+  }
+
+  /* 保持操作按鈕垂直排列但確保它們能夠正確顯示 */
   .action-buttons {
     flex-direction: column;
     gap: 5px;
+    align-items: center;
   }
 
   .action-btn {
     width: 100%;
-  }
-
-  .modal-buttons {
-    flex-direction: column;
-  }
-
-  .edit-btn,
-  .delete-btn,
-  .close-btn {
-    width: 100%;
     justify-content: center;
   }
+}
 
-  .order-table th,
-  .order-table td {
-    padding: 8px;
-    font-size: 14px;
+@media (max-width: 576px) {
+  /* 進一步優化小螢幕顯示 */
+  .filter-section {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
-  .form-control {
-    font-size: 0.75rem;
-    padding: 0.25rem 0.5rem;
+  .filter-section label {
+    margin-bottom: 8px;
   }
 
-  .detail-section strong {
-    font-size: 0.8rem;
+  .status-dropdown {
+    width: 100%;
+  }
+
+  .order-stats {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* 在最小螢幕上隱藏更多非關鍵列 */
+  .order-table th:nth-child(5),
+  .order-table td:nth-child(5) {
+    display: none;
+  }
+
+  /* 確保表格仍然可以水平滾動 */
+  .table-wrapper {
+    overflow-x: auto;
   }
 }
 </style>
