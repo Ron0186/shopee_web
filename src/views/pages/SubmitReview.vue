@@ -1,119 +1,106 @@
 <template>
-    <div class="container mt-4">
-      <h2 class="mb-3">📝 商品評價</h2>
-  
-      <!-- 商品列表 -->
-      <div v-if="products.length" class="mb-4">
-        <div
-          v-for="product in products"
-          :key="product.productId"
-          class="card mb-3"
-        >
-          <div class="card-body">
-            <h5 class="card-title">{{ product.productName }}</h5>
-            <p class="card-text">{{ product.description }}</p>
-  
-            <div class="mb-2">
-              <label class="form-label">評分：</label>
-              <select v-model="reviewInputs[product.productId].rating" class="form-select w-auto d-inline-block">
-                <option disabled value="">選擇星數</option>
-                <option v-for="n in 5" :key="n" :value="n">{{ n }} 星</option>
-              </select>
-            </div>
-  
-            <div class="mb-2">
-              <label class="form-label">留言：</label>
-              <textarea
-                v-model="reviewInputs[product.productId].content"
-                class="form-control"
-                rows="2"
-                placeholder="請輸入您的評價..."
-              ></textarea>
-            </div>
-  
-            <button class="btn btn-primary" @click="submitReview(product.productId)">
-              送出評價
-            </button>
-          </div>
-        </div>
+  <div class="container py-5">
+    <div
+      v-for="product in products"
+      :key="product.orderItemId"
+      class="card mb-4 p-3"
+    >
+      <h5>{{ product.productName }}</h5>
+      <div>
+        <label>評分：</label>
+        <select v-model="reviewInputs[product.orderItemId].rating">
+          <option value="5">5 星</option>
+          <option value="4">4 星</option>
+          <option value="3">3 星</option>
+          <option value="2">2 星</option>
+          <option value="1">1 星</option>
+        </select>
       </div>
-  
-      <div v-else>
-        <p>目前沒有可評價的商品。</p>
+      <div>
+        <label>留言：</label>
+        <textarea
+          class="form-control"
+          v-model="reviewInputs[product.orderItemId].content"
+          placeholder="留下評論..."
+        ></textarea>
       </div>
+      <button
+        class="btn btn-primary mt-2"
+        @click="submitReview(product.orderItemId)"
+      >
+        送出評價
+      </button>
     </div>
-  </template>
-  
-  <script setup>
-  import { ref, onMounted } from "vue";
-  import axios from "@/plugins/axios"; // ✅ 改成你們專案設定的 axios instance
-  import { useUserStore } from "@/stores/user";
-  
-  const userStore = useUserStore();
-  const userId = userStore.userId;
-  
-  const products = ref([]); // 可評價商品
-  const reviewInputs = ref({});
-  
-  // 取得可評價的商品清單
+  </div>
+</template>
+
+<script setup>
+import { onMounted, ref, reactive } from "vue";
+import axios from "@/plugins/axios";
+import Swal from "sweetalert2";
+import { useUserStore } from "@/stores/userStore";
+
+const userStore = useUserStore();
+const userId = userStore.userId;
+
+const products = ref([]);
+const reviewInputs = reactive({});
+
 const fetchProductsToReview = async () => {
   try {
-    const res = await axios.get(`/api/orders/completed/${userId}/products-to-review`);
-    console.log("🛠 API 回傳：", res.data); //測試用
-
-    if (!Array.isArray(res.data)) {
-    products.value = [];
-     return; // 提早結束
-}
-
+    const res = await axios.get(
+      `/api/orders/completed/${userId}/products-to-review`
+    );
     products.value = res.data;
 
-    // 初始化每個商品的輸入欄位
-    products.value.forEach((p) => {
-      reviewInputs.value[p.productId] = {
+    res.data.forEach((item) => {
+      reviewInputs[item.orderItemId] = {
+        orderItemId: item.orderItemId, // ✅ 必填
+        productId: item.productId,
         content: "",
-        rating: ""
+        rating: 5,
       };
     });
-  } catch (err) {
-    console.error("載入商品失敗", err);
-    alert("❌ 無法載入可評價商品");
+  } catch (error) {
+    console.error("載入可評價商品失敗", error);
   }
 };
 
+const submitReview = async (orderItemId) => {
+  const input = reviewInputs[orderItemId];
+  console.log("🧪 input 值：", input);
+  try {
+    await axios.post(`/api/review/submit?userId=${userId}`, {
+      orderItemId: input.orderItemId,
+      productId: input.productId,
+      content: input.content,
+      rating: input.rating,
+    });
+    Swal.fire("送出成功", "", "success");
+  } catch (error) {
+    console.error("送出失敗", error);
+    Swal.fire("送出失敗", "", "error");
+  }
+};
 
-  
-  const submitReview = async (productId) => {
-    const input = reviewInputs.value[productId];
-  
-    if (!input.content || !input.rating) {
-      alert("請填寫完整的評分與留言");
-      return;
-    }
-  
-    try {
-      const response = await axios.post(
-        `/api/review/submit?userId=${userId}`,
-        {
-          productId: productId,
-          content: input.content,
-          rating: input.rating
-        }
-      );
-  
-      alert("✅ 評價送出成功！");
-  
-      // 清空欄位並移除該商品
-      delete reviewInputs.value[productId];
-      products.value = products.value.filter((p) => p.productId !== productId);
-    } catch (error) {
-      console.error("送出評價失敗", error);
-      alert("❌ 發生錯誤，請稍後再試");
-    }
-  };
-  
-  onMounted(() => {
-    fetchProductsToReview();
-  });
-  </script>
-  
+onMounted(() => {
+  fetchProductsToReview();
+});
+</script>
+
+<style scoped>
+.card {
+  background-color: #fff7e8;
+  border: 1px solid #f2d4a3;
+  border-radius: 8px;
+}
+h5 {
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+select,
+textarea {
+  margin-bottom: 10px;
+  width: 100%;
+}
+</style>

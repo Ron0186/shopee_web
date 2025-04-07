@@ -1,16 +1,13 @@
 <template>
   <div class="shop-container">
-    <!-- 商店資訊 -->
     <SellerStoreInfo :shop="shop" :isOwner="isOwner" />
 
-    <!-- 賣家專屬「我的商品」按鈕 -->
     <div v-if="isOwner" class="my-products-section">
       <button class="btn btn-my-products" @click="goToMyProducts">
         🛍️ 我的商品
       </button>
     </div>
 
-    <!-- 分類選單 -->
     <nav class="shop-menu">
       <a href="#" class="active">回首頁</a>
       <a href="#">所有商品</a>
@@ -19,7 +16,6 @@
       <a href="#">配件 / 飾品</a>
     </nav>
 
-    <!-- 商品區塊  這是搜尋商品跟上架商品-->
     <div class="product-section">
       <div class="section-header">
         <input
@@ -38,7 +34,6 @@
         </button>
       </div>
 
-      <!-- 商品區塊  都是商品資訊相關 是商店擁有者的話你會看到編輯&刪除-->
       <div class="product-wrapper">
         <div v-if="loading" class="loading-spinner">
           <div class="spinner"></div>
@@ -65,47 +60,27 @@
             @click="viewProductDetail(product.productId)"
           >
             <img
-              :src="
-                product.primaryImageUrl
-                  ? product.primaryImageUrl.startsWith('http')
-                    ? product.primaryImageUrl
-                    : `${baseUrl}${product.primaryImageUrl}`
-                  : defaultImage
-              "
+              :src="product.primaryImageUrl?.startsWith('http') ? product.primaryImageUrl : baseUrl + product.primaryImageUrl"
               class="product-img"
               alt="商品圖片"
             />
             <div class="product-info">
               <p class="product-title">{{ product.productName }}</p>
-              <p
-                class="product-price"
-                v-if="product.minPrice === product.maxPrice"
-              >
+              <p class="product-price" v-if="product.minPrice === product.maxPrice">
                 $ {{ formatPrice(product.minPrice) }}
               </p>
               <p class="product-price" v-else>
-                $ {{ formatPrice(product.minPrice) }} -
-                {{ formatPrice(product.maxPrice) }}
+                $ {{ formatPrice(product.minPrice) }} - {{ formatPrice(product.maxPrice) }}
               </p>
               <p class="product-rating">
-                ⭐ {{ product.rating || "暫無評分" }} 已售出
-                {{ product.soldCount || 0 }}
+                ⭐ {{ reviewSummaries[product.productId]?.averageRating?.toFixed(1) || "0.0" }}
+                （{{ reviewSummaries[product.productId]?.reviewCount || 0 }} 則評論）
               </p>
               <p v-if="!product.active" class="not-active">未上架</p>
             </div>
             <div class="product-actions" v-if="isOwner" @click.stop>
-              <button
-                class="btn btn-edit"
-                @click="editProduct(product.productId)"
-              >
-                ✏️ 編輯
-              </button>
-              <button
-                class="btn btn-delete"
-                @click="confirmDeleteProduct(product.productId)"
-              >
-                🗑️ 刪除
-              </button>
+              <button class="btn btn-edit" @click="editProduct(product.productId)">✏️ 編輯</button>
+              <button class="btn btn-delete" @click="confirmDeleteProduct(product.productId)">🗑️ 刪除</button>
             </div>
           </div>
         </div>
@@ -116,7 +91,7 @@
 
 <script setup>
 import SellerStoreInfo from "@/components/SellerStore/SellerStoreInfo.vue";
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, watch, computed, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
@@ -125,8 +100,6 @@ import { useUserStore } from "@/stores/user";
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
-
-// 取得用戶資訊
 const token = userStore.token;
 
 const isOwner = ref(false);
@@ -136,183 +109,116 @@ const searchQuery = ref("");
 const errorMessage = ref("");
 const loading = ref(true);
 const baseUrl = ref(import.meta.env.VITE_API_URL);
-const defaultImage = "/src/assets/default-image.png"; // 預設商品圖片路徑
+const defaultImage = "/src/assets/default-image.png";
 
-// 根據搜尋條件過濾商品
+// ⭐ 新增：用來存每個商品的星等和留言數
+const reviewSummaries = reactive({});
+
 const filteredProducts = computed(() => {
   if (!searchQuery.value) return products.value;
-
   const query = searchQuery.value.toLowerCase();
-  return products.value.filter(
-    (product) =>
-      product.productName.toLowerCase().includes(query) ||
-      (product.description && product.description.toLowerCase().includes(query))
+  return products.value.filter((product) =>
+    product.productName.toLowerCase().includes(query)
   );
 });
 
-// 取得商店資訊
 const fetchShopData = async () => {
   const shopId = route.params.shopId;
   try {
     const response = await axios.get(`/api/shop/${shopId}`);
-    if (response.data.success && response.data.shopDTO) {
-      shop.value = response.data.shopDTO;
-    } else {
-      errorMessage.value = response.data.message || "商店資訊獲取失敗";
-    }
+    shop.value = response.data.shopDTO;
   } catch (error) {
-    if (error.response && error.response.status === 404) {
-      Swal.fire({
-        title: "錯誤",
-        text: "此商店不存在!",
-        icon: "error",
-        confirmButtonText: "確定",
-      }).then(() => {
-        if (window.history.length > 1) {
-          router.back();
-        } else {
-          router.push("/shop");
-        }
-      });
-    } else {
-      errorMessage.value = "無法獲取商店資訊，請稍後再試";
-    }
+    console.error("商店資料載入失敗", error);
   }
 };
 
-// 檢查是否為商店擁有者
 const checkOwner = async () => {
   const shopId = route.params.shopId;
   try {
-    const response = await axios.get(`/api/shop/${shopId}/is-owner`);
+    const response = await axios.get(`/api/shop/${shopId}/is-owner`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     isOwner.value = response.data.isOwner;
   } catch (error) {
-    console.error("檢查擁有者錯誤:", error);
-    isOwner.value = false;
+    console.error("檢查商店擁有者錯誤", error);
   }
 };
 
-// 獲取商店的所有商品
+// ⭐ 新增：根據 productId 抓 review summary
+const fetchReviewSummary = async (productId) => {
+  try {
+    const res = await axios.get(`/api/review/summary/product/${productId}`);
+    reviewSummaries[productId] = res.data;
+  } catch (error) {
+    console.error(`取得商品 ${productId} 評價失敗`, error);
+    reviewSummaries[productId] = { averageRating: 0, reviewCount: 0 };
+  }
+};
+
 const fetchProducts = async () => {
   const shopId = route.params.shopId;
-  loading.value = true;
-
   try {
     const response = await axios.get(`/api/products`, {
-      params: {
-        shopId: shopId,
-        page: 0,
-        size: 100,
-      },
+      params: { shopId },
     });
+    products.value = response.data.content || [];
 
-    if (response.data && response.data.content) {
-      products.value = response.data.content;
-    } else if (Array.isArray(response.data)) {
-      products.value = response.data;
-    } else if (response.data && Array.isArray(response.data.products)) {
-      products.value = response.data.products;
-    } else {
-      products.value = [];
+    // ⭐ 每筆商品抓一次評價統計
+    for (const product of products.value) {
+      fetchReviewSummary(product.productId);
     }
   } catch (error) {
-    console.error("獲取商品失敗:", error);
+    console.error("商品載入失敗", error);
     products.value = [];
   } finally {
     loading.value = false;
   }
 };
 
-// 搜尋功能
-const filterProducts = () => {
-  // 使用 computed 屬性自動更新，這裡可以放其他邏輯
-};
-
-// 導航到「我的商品」頁面，並攜帶 shopId 作為路由參數
 const goToMyProducts = () => {
-  router.push(
-    `/seller/shops/${shop.value.shopId || route.params.shopId}/products`
-  );
+  router.push(`/seller/shops/${shop.value.shopId}/products`);
 };
 
-// 查看商品詳情
 const viewProductDetail = (productId) => {
-  // 這裡應該導向商品詳情頁面，目前先使用 alert 示範
   router.push(`/products/${productId}`);
 };
 
-// 編輯商品
 const editProduct = (productId) => {
-  router.push(
-    `/seller/shops/${shop.value.shopId || route.params.shopId}/products`
-  );
+  router.push(`/seller/shops/${shop.value.shopId}/products`);
 };
 
-// 確認刪除商品
 const confirmDeleteProduct = async (productId) => {
-  try {
-    const result = await Swal.fire({
-      title: "確定要刪除該商品嗎？",
-      text: "刪除後將無法恢復!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "確定刪除",
-      cancelButtonText: "取消",
-    });
+  const result = await Swal.fire({
+    title: "確定刪除該商品？",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "刪除",
+  });
 
-    if (result.isConfirmed) {
-      await deleteProduct(productId);
-    }
-  } catch (error) {
-    console.error("刪除確認錯誤:", error);
-  }
-};
-
-// 刪除商品
-const deleteProduct = async (productId) => {
-  try {
-    const response = await axios.delete(`/api/products/${productId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (response.status >= 200 && response.status < 300) {
-      await Swal.fire({
-        title: "刪除成功",
-        icon: "success",
+  if (result.isConfirmed) {
+    try {
+      await axios.delete(`/api/products/${productId}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-
-      // 重新載入商品列表
       await fetchProducts();
+      Swal.fire("刪除成功", "", "success");
+    } catch (err) {
+      Swal.fire("刪除失敗", "", "error");
     }
-  } catch (error) {
-    Swal.fire({
-      title: "錯誤",
-      text: error.response?.data?.message || "刪除商品失敗",
-      icon: "error",
-    });
   }
 };
 
-// 格式化價格
 const formatPrice = (price) => {
-  if (!price && price !== 0) return "未定價";
-  return price.toLocaleString("zh-TW");
+  return price?.toLocaleString("zh-TW") || "未定價";
 };
 
-// 監聽 shopId 變化
-watch(
-  () => route.params.shopId,
-  async () => {
-    loading.value = true;
-    await fetchShopData();
-    await checkOwner();
-    await fetchProducts();
-  }
-);
+watch(() => route.params.shopId, async () => {
+  loading.value = true;
+  await fetchShopData();
+  await checkOwner();
+  await fetchProducts();
+});
 
-// 組件掛載時請求商店資訊 & 檢查擁有者 & 獲取商品列表
 onMounted(async () => {
   await fetchShopData();
   await checkOwner();
