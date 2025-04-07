@@ -1,28 +1,32 @@
 <template>
-    <!-- 讓手風琴容器可以在右側顯示 (之後用 RWD CSS) -->
-    <div class="accordion" id="faqAccordion">
-        <div v-for="category in store.faqCategories" :key="category.id" class="accordion-item">
-            <h2 class="accordion-header" :id="'heading' + category.id">
-                <!-- 移除 Bootstrap 的 data-bs-toggle, data-bs-target, aria-xxx 等屬性 -->
-                <button
-                    class="accordion-button btn-toggle justify-content-start align-items-center rounded border-0 fw-bold"
-                    :class="{ collapsed: !isCategoryOpen(category.id) }" type="button"
-                    @click="toggleCategory(category.id)">
-                    {{ category.title }}
-                </button>
-            </h2>
+    <div class="accordion-container">
+        <div class="accordion" id="faqAccordion">
+            <div v-for="category in store.faqCategories" :key="category.id" class="accordion-item">
+                <h2 class="accordion-header" :id="'heading' + category.id">
+                    <button
+                        class="accordion-button btn-toggle justify-content-start align-items-center rounded border-0 fw-bold"
+                        :class="{ collapsed: !isCategoryOpen(category.id) }" type="button"
+                        @click="toggleCategory(category.id)">
+                        <span class="category-icon">{{ getCategoryIcon(category.title) }}</span>
+                        <span>{{ category.title }}</span>
+                        <span class="accordion-arrow" :class="{ 'rotate': isCategoryOpen(category.id) }">▼</span>
+                    </button>
+                </h2>
 
-            <!-- 同樣移除 data-bs-parent, 只保留視覺用的 class -->
-            <div :id="'collapse' + category.id" class="accordion-collapse collapse"
-                :class="{ show: isCategoryOpen(category.id) }" :aria-labelledby="'heading' + category.id">
-                <ul class="btn-toggle-nav">
-                    <li v-for="item in category.items" :key="item.id">
-                        <router-link :to="'/article/' + item.id" class="text-decoration-none"
-                            :class="{ 'text-danger fw-bold': item.id === store.selectedArticleId }">
-                            {{ item.question }}
-                        </router-link>
-                    </li>
-                </ul>
+                <div :id="'collapse' + category.id" class="accordion-collapse collapse"
+                    :class="{ show: isCategoryOpen(category.id) }" :aria-labelledby="'heading' + category.id">
+                    <div class="accordion-body">
+                        <ul class="btn-toggle-nav">
+                            <li v-for="item in category.items" :key="item.id" class="faq-item">
+                                <router-link :to="'/article/' + item.id" class="faq-link"
+                                    :class="{ 'active': item.id === store.selectedArticleId }">
+                                    <span class="question-icon">❓</span>
+                                    <span>{{ item.question }}</span>
+                                </router-link>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -31,7 +35,7 @@
 
 <script>
 import { useHelpStore } from "../stores/HelpStore";
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { useRoute } from "vue-router";
 
 export default {
@@ -56,6 +60,21 @@ export default {
                 // 若尚未開啟，則展開
                 openCategories.value.push(categoryId);
             }
+        };
+
+        // 根據分類標題返回對應的圖標
+        const getCategoryIcon = (title) => {
+            const iconMap = {
+                '帳戶設定': '👤',
+                '訂單問題': '📦',
+                '支付問題': '💳',
+                '配送問題': '🚚',
+                '退款政策': '💰',
+                '技術支援': '🔧',
+                '隱私安全': '🔒'
+            };
+            
+            return iconMap[title] || '📋'; // 默認圖標
         };
 
         // 監聽 route.params.id，並同步到 store.selectedArticleId
@@ -94,17 +113,25 @@ export default {
             store,
             openCategories,
             isCategoryOpen,
-            toggleCategory
+            toggleCategory,
+            getCategoryIcon
         };
     }
 };
 </script>
 
 <style scoped>
-/* 讓 accordion 有 Bootstrap 的外觀 */
+.accordion-container {
+    overflow: hidden;
+}
+
+/* 優化手風琴容器樣式 */
 .accordion {
     margin: 0 auto;
-    /* 先預設置中 */
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background: white;
+    overflow: hidden;
 }
 
 /* 在小螢幕 (max-width: 767px) 時，accordion 佔滿 100% 寬度 */
@@ -121,36 +148,127 @@ export default {
         margin-top: 32px;
         width: 380px;
         float: right;
-        margin-right: 1rem;
-        /* 可自行調整右側距離 */
+        margin-right: 1.5rem;
+        transition: all 0.3s ease;
     }
 }
 
-.accordion-button {
-    margin-top: 10px;
-    border-color: white;
-    background-color: #fff;
-    font-size: large;
+/* 優化手風琴項目樣式 */
+.accordion-item {
+    border: none;
+    border-bottom: 1px solid #f0f0f0;
 }
 
-.accordion-button.collapsed {
-    background-color: #fff;
-    font-size: 19px;
+.accordion-item:last-child {
+    border-bottom: none;
+}
+
+/* 優化手風琴按鈕樣式 */
+.accordion-button {
+    padding: 1rem 1.25rem;
+    margin: 0;
+    background-color: white;
+    font-size: 1.1rem;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    transition: all 0.2s ease;
+}
+
+.accordion-button:hover {
+    background-color: #f9f9f9;
 }
 
 .accordion-button:focus {
     box-shadow: none;
     border-radius: 0;
+    background-color: #f9f9f9;
 }
 
-.btn-toggle-nav li {
-    margin-top: 15px;
-    line-height: 2;
+.accordion-button.collapsed {
+    background-color: white;
+}
+
+/* 分類圖標 */
+.category-icon {
+    font-size: 1.25rem;
+    opacity: 0.9;
+}
+
+/* 箭頭圖標 */
+.accordion-arrow {
+    margin-left: auto;
+    font-size: 0.75rem;
+    transition: transform 0.3s ease;
+    color: #777;
+}
+
+.accordion-arrow.rotate {
+    transform: rotate(180deg);
+}
+
+/* 手風琴內容區 */
+.accordion-body {
+    padding: 0.5rem 0;
+    background-color: #f9f9f9;
+}
+
+/* 問題列表樣式 */
+.btn-toggle-nav {
+    padding: 0;
+    margin: 0;
+}
+
+.faq-item {
+    margin: 0;
     list-style-type: none;
-    margin-left: -3%;
 }
 
-a {
-    color: rgb(0, 0, 0);
+.faq-link {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem 0.75rem 3rem;
+    color: #444;
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: all 0.2s ease;
+}
+
+.faq-link:hover {
+    background-color: #eee;
+    color: #000;
+}
+
+.faq-link.active {
+    background-color: #fff0e0;
+    color: #ff9b20;
+    font-weight: 600;
+    border-left: 3px solid #ff9b20;
+}
+
+.question-icon {
+    opacity: 0.7;
+}
+
+/* 過渡動畫 */
+.accordion-collapse {
+    transition: all 0.3s ease-out;
+}
+
+.accordion-collapse.show {
+    animation: fadeIn 0.3s ease forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0.8;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 </style>
