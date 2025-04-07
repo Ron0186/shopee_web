@@ -314,32 +314,56 @@ async function login() {
       localStorage.setItem("userId", decodedToken.userId);
       localStorage.setItem("username", decodedToken.sub);
 
-      const result = await Swal.fire({
-        title: response.data.message,
-        icon: "success",
-      });
-      axios.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${response.data.token}`;
+      // 設定 Authorization header
+      axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
 
-      //設定userStore
-      userStore.saveUserData(
-        decodedToken.sub,
-        decodedToken.userId,
-        response.data.token,
-        decodedToken.roles
-      );
-      console.log("[Login] 更新後 userStore 狀態:", { userId: userStore.userId, username: userStore.username, roles: JSON.stringify(userStore.roles), token: userStore.token });
-      // ** 檢查這裡的 userId 是否變成了 44 **
+      // 獲取使用者資料，包括頭像URL
+      try {
+        const profileResponse = await axios.get(`/api/user/profile`);
+        if (profileResponse.data) {
+          // 使用更新後的 saveUserData 方法，加入頭像參數
+          userStore.saveUserData(
+            decodedToken.sub,
+            decodedToken.userId,
+            response.data.token,
+            decodedToken.roles,
+            profileResponse.data.profilePhoto // 傳入頭像URL
+          );
+        } else {
+          // 如果無法獲取頭像，仍設定基本用戶資料
+          userStore.saveUserData(
+            decodedToken.sub,
+            decodedToken.userId,
+            response.data.token,
+            decodedToken.roles
+          );
+        }
+      } catch (profileError) {
+        console.error("獲取使用者資料失敗:", profileError);
+        // 即使獲取頭像失敗，仍設定基本用戶資料
+        userStore.saveUserData(
+          decodedToken.sub,
+          decodedToken.userId,
+          response.data.token,
+          decodedToken.roles
+        );
+      }
+
+      console.log("[Login] 更新後 userStore 狀態:", { 
+        userId: userStore.userId, 
+        username: userStore.username, 
+        roles: JSON.stringify(userStore.roles), 
+        token: userStore.token,
+        profilePhoto: userStore.profilePhoto // 記錄頭像URL
+      });
+
       // 如果用戶是賣家，獲取他們的商店 ID
       if (decodedToken.roles && decodedToken.roles.includes("SELLER")) {
         try {
-          // 調用新增的 API 獲取商店 ID
           const shopResponse = await axios.get(
             `/api/user/${decodedToken.userId}/shop`
           );
           if (shopResponse.data && shopResponse.data.shopId) {
-            // 將 shopId 轉換為字符串並更新到 UserStore
             userStore.updateShopId(shopResponse.data.shopId.toString());
             console.log("成功獲取商店 ID:", shopResponse.data.shopId);
           }
@@ -348,6 +372,10 @@ async function login() {
         }
       }
 
+      const result = await Swal.fire({
+        title: response.data.message,
+        icon: "success",
+      });
 
       if (result.isConfirmed) {
         router.push("/shop");
