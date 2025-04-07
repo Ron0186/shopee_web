@@ -48,20 +48,21 @@
         <!-- <p class="text-muted small mb-3">{{ product.productId }}</p> -->
 
         <!-- 評分 -->
-        <div class="mb-3 d-flex align-items-center">
-          <div class="me-2">
-            <i
-              v-for="n in 5"
-              :key="n"
-              class="bi"
-              :class="n <= product.rating ? 'bi-star-fill' : 'bi-star'"
-              style="color: #ffd700"
-            ></i>
-          </div>
-          <a href="#reviews" class="text-decoration-none"
-            >{{ product.reviewCount || 0 }} 評價</a
-          >
-        </div>
+<div class="mb-3 d-flex align-items-center">
+  <div class="me-2">
+    <i
+      v-for="n in 5"
+      :key="n"
+      class="bi"
+      :class="n <= Math.round(product.rating || 0) ? 'bi-star-fill' : 'bi-star'"
+      style="color: #ffd700"
+    ></i>
+  </div>
+  <a href="#reviews" class="text-decoration-none">
+    {{ product.reviewCount ?? 0 }} 評價
+  </a>
+</div>
+
 
         <!-- 價格 -->
         <div class="mb-4">
@@ -212,6 +213,22 @@
         </div>
       </div>
     </div>
+
+    <!-- 評價數星星數 -->
+    <div class="mb-3 d-flex align-items-center">
+    <div class="me-2">
+      <i
+        v-for="n in 5"
+        :key="n"
+        class="bi"
+        :class="n <= Math.round(product.rating) ? 'bi-star-fill' : 'bi-star'"
+        style="color: #ffd700"
+      ></i>
+    </div>
+    <a href="#reviews" class="text-decoration-none">
+      {{ product.reviewCount || 0 }} 評價
+    </a>
+  </div>
 
     <!-- 商品詳情內容 -->
     <div class="row mt-5">
@@ -462,8 +479,8 @@ const product = ref({
   price: 0,
   originalPrice: 0,
   stock: 100,
-  rating: 4.5,
-  reviewCount: 12,
+  rating: 0,
+  reviewCount: 0,
 });
 
 // 商品圖片
@@ -844,42 +861,45 @@ const fetchProductDetail = async () => {
   try {
     console.log("獲取商品詳情, 商品ID:", productId);
 
-    // 使用新的API路徑獲取完整商品詳情
     const response = await axios.get(
       `/api/products/${productId}/active-detail`
     );
 
     if (response.status === 200 && response.data) {
-      console.log("商品詳情原始回應:", response.data);
+      const productData = response.data.product;
+      console.log("商品詳情原始回應:", productData);
+      console.log("⭐ 星數:", productData.rating);
+      console.log("📝 評論數:", productData.reviewCount);
 
-      // 設置商品基本信息
-      product.value = response.data.product;
+      product.value = {
+        ...product.value,
+        ...productData,
+        rating: productData.rating || 0,
+        reviewCount: productData.reviewCount || 0,
+      };
 
-      // 設置SKU資料
       skus.value = response.data.skus || [];
 
-      // 處理圖片資源
       if (
-        response.data.product.productImages &&
-        Array.isArray(response.data.product.productImages) &&
-        response.data.product.productImages.length > 0
+        productData.productImages &&
+        Array.isArray(productData.productImages) &&
+        productData.productImages.length > 0
       ) {
-        productImages.value = response.data.product.productImages.map((img) =>
+        productImages.value = productData.productImages.map((img) =>
           typeof img === "string" ? { imagePath: img } : img
         );
         console.log("商品圖片數據:", productImages.value);
       } else if (
-        response.data.product.primaryImageUrl ||
-        response.data.product.image
+        productData.primaryImageUrl ||
+        productData.image
       ) {
         console.log("使用主圖/圖片字段:", {
-          primaryImageUrl: response.data.product.primaryImageUrl,
-          image: response.data.product.image,
+          primaryImageUrl: productData.primaryImageUrl,
+          image: productData.image,
         });
       }
     }
 
-    // 處理規格信息
     processSpecifications(response.data.specifications);
   } catch (error) {
     console.error("獲取商品詳情失敗:", error);
