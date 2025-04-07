@@ -1,15 +1,19 @@
 <template>
   <div class="shop-container">
-    <!-- 商店資訊 -->
     <SellerStoreInfo :shop="shop" :isOwner="isOwner" />
 
-    <!-- 賣家專屬「我的商品」按鈕 -->
     <div v-if="isOwner" class="my-products-section">
-      <button class="btn btn-my-products" @click="goToMyProducts">
-        🛍️ 我的商品
-      </button>
-    </div>
-
+  <div class="buttons-container">
+    <button class="btn-my-products" @click="goToMyProducts">
+      <span class="icon">🛍️</span> 我的商品
+    </button>
+    <button class="btn-my-products" @click="goToMyCampaign">
+      <span class="icon">📣</span> 我的行銷活動
+    </button>
+  </div>
+</div>
+ <!-- 非店主顯示活動列表 -->
+ <ShopCampaigns v-if="!isOwner" :shopId="shop.shopId || route.params.shopId" />
     <!-- 分類選單 -->
     <nav class="shop-menu">
       <a href="#" class="active">回首頁</a>
@@ -22,19 +26,18 @@
     <!-- 商品區塊 - 搜尋商品跟上架商品-->
     <div class="product-section">
       <div class="section-header">
-        <input
-          type="text"
-          class="search-bar"
-          placeholder="🔍 搜尋商品..."
-          v-model="searchQuery"
-          @keyup.enter="searchProduct"
-        />
-        <button
-          class="btn btn-add-product"
-          v-if="isOwner"
-          @click="goToMyProducts"
-        >
-          ➕ 上架商品
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-bar"
+            placeholder="搜尋商品..."
+            v-model="searchQuery"
+            @keyup.enter="searchProduct"
+          />
+          <span class="search-icon">🔍</span>
+        </div>
+        <button class="btn-add-product" v-if="isOwner" @click="goToMyProducts">
+          <span class="icon">➕</span> 上架商品
         </button>
       </div>
 
@@ -48,11 +51,7 @@
         <div v-else-if="products.length === 0" class="no-products">
           <p v-if="searchQuery">沒有符合「{{ searchQuery }}」的商品</p>
           <p v-else>商店目前沒有任何商品</p>
-          <button
-            v-if="isOwner"
-            class="btn btn-add-first"
-            @click="goToMyProducts"
-          >
+          <button v-if="isOwner" class="btn-add-first" @click="goToMyProducts">
             立即上架第一個商品
           </button>
         </div>
@@ -64,31 +63,39 @@
             :key="product.productId"
             @click="viewProductDetail(product.productId)"
           >
-            <img
-              :src="
-                getImageUrl(
-                  product.primaryImageUrl ||
-                    (product.imageUrls && product.imageUrls[0])
-                )
-              "
-              class="product-img"
-              alt="商品圖片"
-            />
+            <div class="image-container">
+              <img
+                :src="
+                  getImageUrl(
+                    product.primaryImageUrl ||
+                      (product.imageUrls && product.imageUrls[0])
+                  )
+                "
+                class="product-img"
+                alt="商品圖片"
+              />
+              <div class="product-badge" v-if="!isProductActive(product)">
+                未上架
+              </div>
+            </div>
             <div class="product-info">
-              <p class="product-title">{{ product.productName }}</p>
+              <h3 class="product-title">{{ product.productName }}</h3>
               <p class="product-price">
                 $ {{ formatPrice(product.lowestPrice) }}
               </p>
               <p class="product-categories" v-if="product.category1Name">
                 {{ product.category1Name }} / {{ product.category2Name }}
               </p>
-              <p class="product-rating">
-                ⭐ {{ product.rating || "暫無評分" }} 已售出
-                {{ product.soldCount || 0 }}
-              </p>
-              <p v-if="!isProductActive(product)" class="not-active">未上架</p>
+              <div class="product-meta">
+                <span class="product-rating">
+                  <span class="rating-icon">⭐</span>
+                  <span>{{ product.rating || "暫無評分" }}</span>
+                </span>
+                <span class="sold-count"
+                  >已售出 {{ product.soldCount || 0 }}</span
+                >
+              </div>
             </div>
-            <!-- 移除編輯和刪除按鈕 -->
           </div>
         </div>
       </div>
@@ -98,17 +105,17 @@
         <button
           :disabled="currentPage === 0"
           @click="changePage(currentPage - 1)"
-          class="btn page-btn prev"
+          class="page-btn prev"
         >
-          上一頁
+          <span class="page-icon">◀</span> 上一頁
         </button>
         <span class="page-info">{{ currentPage + 1 }} / {{ totalPages }}</span>
         <button
           :disabled="currentPage >= totalPages - 1"
           @click="changePage(currentPage + 1)"
-          class="btn page-btn next"
+          class="page-btn next"
         >
-          下一頁
+          下一頁 <span class="page-icon">▶</span>
         </button>
       </div>
     </div>
@@ -127,17 +134,16 @@
 <script setup>
 import SellerStoreInfo from "@/components/SellerStore/SellerStoreInfo.vue";
 import ProductDetail from "@/components/product.components/ProductDetail.vue";
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, watch, computed, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
+import ShopCampaigns from "@/components/campaign/ShopCampaigns.vue";
 
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
-
-// 取得用戶資訊
 const token = userStore.token;
 
 // 狀態變數
@@ -157,20 +163,17 @@ const totalPages = ref(0);
 // 商品詳情彈窗相關
 const showProductDetail = ref(false);
 const selectedProductId = ref(null);
+// ⭐ 新增：用來存每個商品的星等和留言數
+const reviewSummaries = reactive({});
 
-// 根據搜尋條件過濾商品
 const filteredProducts = computed(() => {
   if (!searchQuery.value) return products.value;
-
   const query = searchQuery.value.toLowerCase();
-  return products.value.filter(
-    (product) =>
-      product.productName.toLowerCase().includes(query) ||
-      (product.description && product.description.toLowerCase().includes(query))
+  return products.value.filter((product) =>
+    product.productName.toLowerCase().includes(query)
   );
 });
 
-// 取得商店資訊
 const fetchShopData = async () => {
   const shopId = route.params.shopId;
   try {
@@ -186,30 +189,16 @@ const fetchShopData = async () => {
       errorMessage.value = response.data.message || "商店資訊獲取失敗";
     }
   } catch (error) {
-    if (error.response && error.response.status === 404) {
-      Swal.fire({
-        title: "錯誤",
-        text: "此商店不存在!",
-        icon: "error",
-        confirmButtonText: "確定",
-      }).then(() => {
-        if (window.history.length > 1) {
-          router.back();
-        } else {
-          router.push("/shop");
-        }
-      });
-    } else {
-      errorMessage.value = "無法獲取商店資訊，請稍後再試";
-    }
+    console.error("商店資料載入失敗", error);
   }
 };
 
-// 檢查是否為商店擁有者
 const checkOwner = async () => {
   const shopId = route.params.shopId;
   try {
-    const response = await axios.get(`/api/shop/${shopId}/is-owner`);
+    const response = await axios.get(`/api/shop/${shopId}/is-owner`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     isOwner.value = response.data.isOwner;
 
     // 如果是店主，存儲 shopId
@@ -217,16 +206,24 @@ const checkOwner = async () => {
       userStore.updateShopId(shopId);
     }
   } catch (error) {
-    console.error("檢查擁有者錯誤:", error);
-    isOwner.value = false;
+    console.error("檢查商店擁有者錯誤", error);
+  }
+};
+
+// ⭐ 新增：根據 productId 抓 review summary
+const fetchReviewSummary = async (productId) => {
+  try {
+    const res = await axios.get(`/api/review/summary/product/${productId}`);
+    reviewSummaries[productId] = res.data;
+  } catch (error) {
+    console.error(`取得商品 ${productId} 評價失敗`, error);
+    reviewSummaries[productId] = { averageRating: 0, reviewCount: 0 };
   }
 };
 
 // 獲取商店的所有商品 - 使用新的 API 端點
 const fetchProducts = async () => {
   const shopId = route.params.shopId;
-  loading.value = true;
-
   try {
     const res = await axios.get(`/api/products/public/shop/${shopId}`, {
       params: {
@@ -259,6 +256,11 @@ const fetchProducts = async () => {
       products.value = [];
       totalPages.value = 0;
     }
+    // products.value = response.data.content || []; 先保留
+
+// ⭐ 每筆商品抓一次評價統計
+// for (const product of products.value) {
+  // fetchReviewSummary(product.productId);
   } catch (error) {
     console.error("❌ 取得商品失敗：", error);
     products.value = [];
@@ -283,12 +285,17 @@ const searchProduct = () => {
 
 // 導航到「我的商品」頁面，並攜帶 shopId 作為路由參數
 const goToMyProducts = () => {
+  router.push(`/seller/shops/${shop.value.shopId}/products`);
+};
+
+
+
+const goToMyCampaign = () => {
   router.push(
-    `/seller/shops/${shop.value.shopId || route.params.shopId}/products`
+    `/seller/shops/${shop.value.shopId || route.params.shopId}/campaigns`
   );
 };
 
-// 查看商品詳情
 const viewProductDetail = (productId) => {
   // router.push(`/products/${productId}`); ///////////
   // 使用彈窗顯示商品詳情
@@ -453,18 +460,37 @@ const handleBuyNow = async (data) => {
   }
 };
 
-// 移除了編輯商品和刪除商品的相關函數
-
-// 格式化價格
 const formatPrice = (price) => {
   if (!price && price !== 0) return "未定價";
   return typeof price === "number" ? price.toLocaleString("zh-TW") : price;
 };
 
-// 圖片處理
-const getImageUrl = (url) => {
-  if (!url) return defaultImage;
-  return url.startsWith("http") ? url : `${baseUrl.value}${url}`;
+// 修改 getImageUrl 函數
+const getImageUrl = (path) => {
+  // 記錄原始路徑以便調試
+  console.log('getImageUrl 收到的原始路徑:', path);
+  
+  if (!path) {
+    console.log('路徑為空，使用預設圖片');
+    return '/src/assets/default-campaign.png';
+  }
+  
+  // 如果路徑已經是完整 URL，則直接返回
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    console.log('使用完整 URL:', path);
+    return path;
+  }
+  
+  // 確保路徑以 / 開頭
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  console.log('正規化後的路徑:', normalizedPath);
+  
+  // 添加時間戳參數以防止緩存問題
+  const timestamp = new Date().getTime();
+  const fullPath = `${import.meta.env.VITE_API_URL}${normalizedPath}?t=${timestamp}`;
+  console.log('最終完整 URL:', fullPath);
+  
+  return fullPath;
 };
 
 // 監聽 shopId 變化
@@ -501,7 +527,6 @@ const isProductActive = (product) => {
   );
 };
 
-// 組件掛載時請求商店資訊 & 檢查擁有者 & 獲取商品列表
 onMounted(async () => {
   await fetchShopData();
   await checkOwner();
@@ -512,147 +537,299 @@ onMounted(async () => {
 <style scoped>
 /* 整體背景 */
 .shop-container {
-  background-color: #f7e9d2;
-  padding: 20px;
+  background-color: #f9fafb;
+  padding: 24px;
   min-height: 100vh;
+  font-family: "Noto Sans TC", sans-serif;
+  color: #333;
 }
 
 /* 選單 */
 .shop-menu {
   display: flex;
   justify-content: center;
-  margin: 20px 0;
-  border-bottom: 2px solid #ddd;
+  margin: 32px 0;
+  border-radius: 16px;
+  padding: 8px;
+  background-color: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .shop-menu a {
-  padding: 10px 20px;
+  padding: 16px 28px;
   text-decoration: none;
-  color: #333;
+  color: #555;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  margin: 0;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.shop-menu a:hover {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.06);
 }
 
 .shop-menu .active {
-  color: #ff4757;
-  border-bottom: 3px solid #ff4757;
+  color: #ff6b6b;
+  font-weight: 600;
+  background-color: rgba(255, 107, 107, 0.08);
+}
+
+.shop-menu .active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  background-color: #ff6b6b;
+  border-radius: 3px;
 }
 
 /* 我的商品按鈕 */
 .my-products-section {
   display: flex;
   justify-content: center;
-  margin: 20px 0;
+  margin: 28px 0;
 }
 
 .btn-my-products {
-  background-color: #ff4757;
+  background-color: #ff6b6b;
   color: white;
-  padding: 10px 20px;
+  padding: 14px 32px;
   border: none;
-  border-radius: 5px;
+  border-radius: 50px;
   cursor: pointer;
   font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 18px rgba(255, 107, 107, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
-/* 商品列表 */
-.section-title {
-  margin: 20px 0;
+.btn-my-products:hover {
+  transform: translateY(-3px);
+  background-color: #ff5252;
+  box-shadow: 0 8px 24px rgba(255, 107, 107, 0.35);
+}
+
+.btn-my-products .icon {
   font-size: 18px;
 }
 
-.product-wrapper {
+/* 商品列表 */
+.product-section {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 0 20px;
+  background-color: white;
+  border-radius: 20px;
+  padding: 36px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.product-wrapper {
+  margin: 30px auto;
 }
 
 .product-list {
   display: grid;
-  grid-template-columns: repeat(5, 1fr); /* 修改為固定5列 */
-  gap: 25px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 28px;
 }
 
 .product-card {
   background: white;
-  border-radius: 8px;
-  padding: 15px;
-  text-align: center;
-  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease-in-out;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+  transition: all 0.4s ease;
   cursor: pointer;
   position: relative;
+  border: 1px solid #f0f0f0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(0);
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 2px 5px 15px rgba(0, 0, 0, 0.2);
+  transform: translateY(-8px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.08);
+  border-color: #e8e8e8;
+}
+
+.image-container {
+  position: relative;
+  overflow: hidden;
+  height: 240px;
 }
 
 .product-img {
   width: 100%;
-  height: 180px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 5px;
+  transition: transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.product-card:hover .product-img {
+  transform: scale(1.08);
+}
+
+.product-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background-color: rgba(255, 152, 0, 0.95);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 2;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.product-info {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: space-between;
 }
 
 .product-title {
-  font-size: 14px;
+  font-size: 16px;
   color: #333;
-  margin-top: 10px;
-  height: 40px;
+  margin: 0 0 12px 0;
+  font-weight: 500;
+  height: 42px;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.4;
 }
 
 .product-price {
-  font-size: 16px;
-  color: #e84118;
-  font-weight: bold;
-  margin: 8px 0;
+  font-size: 22px;
+  color: #ff6b6b;
+  font-weight: 700;
+  margin: 10px 0;
 }
 
 .product-categories {
-  font-size: 12px;
-  color: #666;
-  margin: 5px 0;
+  font-size: 13px;
+  color: #888;
+  margin: 10px 0;
+}
+
+.product-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  font-size: 13px;
+  color: #777;
 }
 
 .product-rating {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+
+.rating-icon {
+  color: #ffc107;
+}
+
+.sold-count {
+  background-color: #f8f9fa;
+  padding: 6px 12px;
+  border-radius: 50px;
   font-size: 12px;
-  color: #666;
-  margin-bottom: 10px;
+  font-weight: 500;
 }
 
-/* 上架商品按鈕 */
-.btn-add-product {
-  background-color: #2ecc71;
-  color: white;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-
-/* 移除了編輯 & 刪除商品按鈕的樣式 */
-
+/* 搜尋區域 */
 .section-header {
   display: flex;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 24px;
+  margin-bottom: 30px;
   width: 100%;
+}
+
+.search-container {
+  position: relative;
+  flex-grow: 1;
+  max-width: 1000px;
 }
 
 .search-bar {
-  flex-grow: 1;
-  max-width: 1000px;
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  padding: 18px 24px 18px 56px;
+  border: 1px solid #eaeaea;
+  border-radius: 50px;
   font-size: 16px;
+  transition: all 0.4s ease;
+  background-color: #f9fafb;
+  color: #555;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.search-bar:focus {
+  outline: none;
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.1);
+  background-color: white;
+}
+
+.search-icon {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.btn-add-product {
+  background-color: #4bb543;
+  color: white;
+  padding: 16px 28px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 16px rgba(75, 181, 67, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.btn-add-product:hover {
+  background-color: #429e3a;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(75, 181, 67, 0.3);
+}
+
+.btn-add-product .icon {
+  font-size: 18px;
 }
 
 /* 載入動畫 */
@@ -661,24 +838,23 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 200px;
+  height: 320px;
 }
 
 .spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
+  border: 5px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
-  border-top: 4px solid #3498db;
-  width: 40px;
-  height: 40px;
+  border-top: 5px solid #ff6b6b;
+  width: 56px;
+  height: 56px;
   animation: spin 1s linear infinite;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 @keyframes spin {
   0% {
     transform: rotate(0deg);
   }
-
   100% {
     transform: rotate(360deg);
   }
@@ -690,29 +866,35 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 200px;
-  color: #777;
+  height: 320px;
+  color: #888;
+  text-align: center;
+  padding: 24px;
+}
+
+.no-products p {
+  font-size: 20px;
+  margin-bottom: 24px;
+  color: #666;
 }
 
 .btn-add-first {
   background-color: #3498db;
   color: white;
-  padding: 10px 15px;
+  padding: 16px 32px;
   border: none;
-  border-radius: 5px;
-  margin-top: 15px;
+  border-radius: 50px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 6px 18px rgba(52, 152, 219, 0.3);
+  font-size: 15px;
 }
 
-/* 未上架標籤 */
-.not-active {
-  background-color: #f39c12;
-  color: white;
-  padding: 3px 8px;
-  border-radius: 12px;
-  font-size: 12px;
-  display: inline-block;
-  margin-top: 5px;
+.btn-add-first:hover {
+  background-color: #2980b9;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(52, 152, 219, 0.4);
 }
 
 /* 分頁控制 */
@@ -720,52 +902,430 @@ onMounted(async () => {
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-top: 20px;
-  margin-bottom: 20px;
+  margin-top: 48px;
+  padding: 12px 0;
 }
 
 .page-btn {
-  padding: 8px 15px;
-  background: #3498db;
+  padding: 14px 28px;
+  background: #ff6b6b;
   color: white;
   border: none;
-  border-radius: 5px;
+  border-radius: 50px;
   cursor: pointer;
-  margin: 0 10px;
+  margin: 0 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+  box-shadow: 0 6px 18px rgba(255, 107, 107, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #ff5252;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(255, 107, 107, 0.3);
 }
 
 .page-btn:disabled {
-  background: #ccc;
+  background: #e0e0e0;
   cursor: not-allowed;
+  box-shadow: none;
+}
+
+.page-icon {
+  font-size: 12px;
 }
 
 .page-info {
   font-size: 16px;
-  color: #666;
+  color: #555;
+  font-weight: 500;
+  background: #f8f9fa;
+  padding: 12px 28px;
+  border-radius: 50px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
-/* 增加響應式設計，在較小的螢幕上減少列數 */
-@media (max-width: 1200px) {
+/* 增加響應式設計 */
+@media (max-width: 1600px) {
   .product-list {
     grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+
+  .product-section {
+    padding: 32px;
+  }
+}
+
+@media (max-width: 1600px) {
+  .product-list {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+
+  .product-section {
+    padding: 32px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .product-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .shop-menu a {
+    padding: 14px 24px;
+    font-size: 14px;
+  }
+
+  .product-section {
+    padding: 28px;
+    border-radius: 16px;
+  }
+
+  .image-container {
+    height: 220px;
   }
 }
 
 @media (max-width: 992px) {
   .product-list {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .shop-menu {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 6px;
+  }
+
+  .shop-menu a {
+    padding: 12px 18px;
+    margin: 4px;
+    font-size: 14px;
+  }
+
+  .shop-container {
+    padding: 16px;
+  }
+
+  .product-section {
+    padding: 24px;
+  }
+
+  .btn-my-products,
+  .btn-add-product {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  .search-bar {
+    padding: 16px 20px 16px 50px;
+    font-size: 15px;
+  }
+
+  .search-icon {
+    left: 20px;
+  }
+
+  .product-title {
+    font-size: 15px;
+    height: 40px;
+  }
+
+  .product-price {
+    font-size: 20px;
   }
 }
 
 @media (max-width: 768px) {
-  .product-list {
-    grid-template-columns: repeat(2, 1fr);
+  .section-header {
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .search-container {
+    width: 100%;
+  }
+
+  .btn-add-product {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .product-section {
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .shop-menu {
+    margin: 24px 0;
+    padding: 4px;
+  }
+
+  .shop-menu a {
+    padding: 10px 14px;
+    font-size: 13px;
+    margin: 3px;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 36px;
+  }
+
+  .page-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    margin: 0 10px;
+  }
+
+  .page-info {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .my-products-section {
+    margin: 20px 0;
+  }
+
+  .btn-my-products {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .product-wrapper {
+    margin: 20px auto;
+  }
+
+  .no-products p {
+    font-size: 18px;
+  }
+
+  .btn-add-first {
+    width: 100%;
+    padding: 14px 24px;
   }
 }
 
 @media (max-width: 480px) {
   .product-list {
     grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .shop-menu a {
+    font-size: 12px;
+    padding: 8px 12px;
+    margin: 2px;
+  }
+
+  .product-section {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .image-container {
+    height: 200px;
+  }
+
+  .shop-container {
+    padding: 12px;
+  }
+
+  .btn-my-products,
+  .btn-add-product,
+  .btn-add-first {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .product-info {
+    padding: 16px;
+  }
+
+  .product-title {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .product-price {
+    font-size: 18px;
+    margin: 8px 0;
+  }
+
+  .product-categories {
+    font-size: 12px;
+    margin: 8px 0;
+  }
+
+  .product-meta {
+    font-size: 12px;
+    margin-top: 10px;
+  }
+
+  .search-bar {
+    padding: 14px 16px 14px 44px;
+    font-size: 14px;
+  }
+
+  .search-icon {
+    left: 16px;
+    font-size: 16px;
+  }
+
+  .section-header {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .product-badge {
+    top: 10px;
+    right: 10px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .page-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    margin: 0 8px;
+  }
+
+  .page-info {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .loading-spinner {
+    height: 280px;
+  }
+
+  .spinner {
+    width: 48px;
+    height: 48px;
+  }
+
+  .no-products {
+    height: 260px;
+    padding: 20px;
+  }
+
+  .no-products p {
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+}
+
+/* 增強視覺效果 */
+.product-card {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.product-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.product-card:hover::after {
+  opacity: 1;
+}
+
+.shop-menu a::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background-color: #ff6b6b;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+  opacity: 0;
+}
+
+.shop-menu a:hover::before {
+  width: 30px;
+  opacity: 0.6;
+}
+
+.shop-menu .active::before {
+  opacity: 0;
+}
+
+/* 改善動畫效果 */
+.btn-my-products,
+.btn-add-product,
+.btn-add-first,
+.page-btn {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.product-card {
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.search-bar {
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 交互反饋增強 */
+.btn-my-products:active,
+.btn-add-product:active,
+.btn-add-first:active,
+.page-btn:active:not(:disabled) {
+  transform: translateY(0);
+  transition: all 0.1s;
+}
+
+.search-bar:focus {
+  transition: all 0.25s;
+}
+
+/* 微妙陰影與深度 */
+.product-section {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), 0 1px 1px rgba(0, 0, 0, 0.025);
+}
+
+.shop-menu {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04), 0 2px 2px rgba(0, 0, 0, 0.02);
+}
+
+.product-card {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03), 0 2px 3px rgba(0, 0, 0, 0.01);
+}
+
+.buttons-container {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .buttons-container {
+    flex-direction: column;
+    gap: 15px;
   }
 }
 </style>

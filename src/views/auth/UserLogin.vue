@@ -75,11 +75,11 @@
         <div class="quick-login">
           <h3 class="quick-login-title">快速登入</h3>
           <div class="quick-login-buttons">
-            <button type="button" @click="quickLogin('Waylay')" class="quick-login-btn">
-              <i class="bi bi-lightning-charge"></i> Waylay
+            <button type="button" @click="quickLogin('買家')" class="quick-login-btn">
+              <i class="bi bi-lightning-charge"></i> 買家
             </button>
-            <button type="button" @click="quickLogin('Cypher')" class="quick-login-btn">
-              <i class="bi bi-shield-lock"></i> Cypher
+            <button type="button" @click="quickLogin('賣家')" class="quick-login-btn">
+              <i class="bi bi-shield-lock"></i> 賣家
             </button>
           </div>
         </div>
@@ -96,6 +96,7 @@ import { useRouter, useRoute } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 import { useUserStore } from "@/stores/user";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
+const SiteKey=import.meta.env.VITE_RECAPTCHA_V2_SITE_KEY;
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -149,7 +150,7 @@ function togglePasswordVisibility() {
 }
 
 // reCAPTCHA 網站金鑰 - 替換成你的 Site Key
-const recaptchaSiteKey = "6LdxawIrAAAAAHO4ioKiJ8BM20rteeaTjuLylhmT";
+const recaptchaSiteKey = SiteKey;
 
 // 載入 reCAPTCHA 腳本
 function loadRecaptchaScript() {
@@ -391,10 +392,10 @@ async function login() {
 async function quickLogin(user) {
   // 快速登入的邏輯
   let userData = {};
-  if (user === "Waylay") {
-    userData = { username: "Waylay", password: "Test" };
-  } else if (user === "Cypher") {
-    userData = { username: "Cypher", password: "Test" };
+  if (user === "買家") {
+    userData = { username: "買家", password: "Test" };
+  } else if (user === "賣家") {
+    userData = { username: "賣家", password: "Test" };
   } else {
     return; // 未知的用戶
   }

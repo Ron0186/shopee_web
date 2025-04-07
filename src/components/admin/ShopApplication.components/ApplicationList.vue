@@ -20,6 +20,12 @@
           ref="appControls"
         />
         
+        <!-- 搜尋功能 -->
+        <ApplicationSearch 
+          @search="handleSearch"
+          ref="searchComponent"
+        />
+        
         <!-- 表格容器 -->
         <div class="table-container position-relative mt-3">
           <!-- 表格加載指示器 -->
@@ -46,9 +52,9 @@
                 </tr>
               </thead>
               <tbody>
-                <template v-if="pendingApplications.length > 0">
+                <template v-if="applications.length > 0">
                   <ApplicationItem 
-                    v-for="app in pendingApplications"
+                    v-for="app in applications"
                     :key="app.applicationId" 
                     :app="app"
                     :countManager="countManager" 
@@ -61,7 +67,7 @@
                   <td colspan="8" class="text-center py-4">
                     <div class="empty-state">
                       <i class="bi bi-inbox fa-3x text-muted mb-3"></i>
-                      <p>查無待審核申請</p>
+                      <p>{{ searchPerformed ? '查無符合搜尋條件的申請' : '查無待審核申請' }}</p>
                     </div>
                   </td>
                 </tr>
@@ -86,9 +92,9 @@
                 </tr>
               </thead>
               <tbody>
-                <template v-if="approvedApplications.length > 0">
+                <template v-if="applications.length > 0">
                   <ApprovedApplicationItem 
-                    v-for="app in approvedApplications"
+                    v-for="app in applications"
                     :key="app.applicationId" 
                     :app="app" 
                   />
@@ -97,7 +103,7 @@
                   <td colspan="9" class="text-center py-4">
                     <div class="empty-state">
                       <i class="bi bi-check-circle fa-3x text-muted mb-3"></i>
-                      <p>查無已核准申請</p>
+                      <p>{{ searchPerformed ? '查無符合搜尋條件的申請' : '查無已核准申請' }}</p>
                     </div>
                   </td>
                 </tr>
@@ -124,9 +130,9 @@
                 </tr>
               </thead>
               <tbody>
-                <template v-if="rejectedApplications.length > 0">
+                <template v-if="applications.length > 0">
                   <RejectedApplicationItem 
-                    v-for="app in rejectedApplications"
+                    v-for="app in applications"
                     :key="app.applicationId" 
                     :app="app"
                     :countManager="countManager"
@@ -138,13 +144,23 @@
                   <td colspan="11" class="text-center py-4">
                     <div class="empty-state">
                       <i class="bi bi-x-circle fa-3x text-muted mb-3"></i>
-                      <p>查無已拒絕申請</p>
+                      <p>{{ searchPerformed ? '查無符合搜尋條件的申請' : '查無已拒絕申請' }}</p>
                     </div>
                   </td>
                 </tr>
               </tbody>
             </table>
           </div>
+          
+          <!-- 分頁控制 -->
+          <PaginationControls
+            v-if="totalItems > 0"
+            :current-page="currentPage"
+            :page-size="pageSize"
+            :total-items="totalItems"
+            :total-pages="totalPages"
+            @page-change="handlePageChange"
+          />
         </div>
       </div>
     </div>
@@ -163,53 +179,70 @@ import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import ApplicationControls from "@/components/admin/ShopApplication.components/ApplicationControls.vue";
 import ApplicationItem from "@/components/admin/ShopApplication.components/ApplicationItem.vue";
-import RejectedApplicationItem from "./RejectedApplicationItem.vue";
-import ApprovedApplicationItem from "./ApprovedApplicationItem.vue";
+import RejectedApplicationItem from "@/components/admin/ShopApplication.components/RejectedApplicationItem.vue";
+import ApprovedApplicationItem from "@/components/admin/ShopApplication.components/ApprovedApplicationItem.vue";
+import ApplicationSearch from "@/components/admin/ShopApplication.components/ApplicationSearch.vue";
+import PaginationControls from "@/components/admin/ShopApplication.components/PaginationControls.vue";
 
 export default {
   components: {
     ApplicationControls,
     ApplicationItem,
     RejectedApplicationItem,
-    ApprovedApplicationItem
+    ApprovedApplicationItem,
+    ApplicationSearch,
+    PaginationControls
   },
   data() {
     return {
-      pendingApplications: [],
-      approvedApplications: [],
-      rejectedApplications: [],
+      applications: [], // 統一使用一個數組存儲當前顯示的申請
       adminId: null,
       showPending: true,
       showApproved: false,
       showRejected: false,
       isLoading: false,
       globalLoading: false,
+      
+      // 分頁相關
+      currentPage: 0,
+      pageSize: 10,
+      totalItems: 0,
+      totalPages: 0,
+      
+      // 計數相關
+      pendingCount: 0,
+      approvedCount: 0,
+      rejectedCount: 0,
+      
+      // 搜索相關
+      searchParams: null,
+      searchPerformed: false,
+      
       // 計數管理對象
       countManager: null
     };
   },
   methods: {
-      
-  updateNavBadgeCount() {
-    // 更新頂部導航欄的徽章
-    const navBadgeElement = document.querySelector('.badge.bg-danger');
-    if (navBadgeElement) {
-      if (this.pendingApplications.length > 0) {
-        navBadgeElement.textContent = this.pendingApplications.length;
-        navBadgeElement.style.display = '';
-      } else {
-        navBadgeElement.style.display = 'none';
+    updateNavBadgeCount() {
+      // 更新頂部導航欄的徽章
+      const navBadgeElement = document.querySelector('.badge.bg-danger');
+      if (navBadgeElement) {
+        if (this.pendingCount > 0) {
+          navBadgeElement.textContent = this.pendingCount;
+          navBadgeElement.style.display = '';
+        } else {
+          navBadgeElement.style.display = 'none';
+        }
       }
-    }
-    
-    // 同時更新整個應用中的其他地方
-    if (window.$shopApp) {
-      window.$shopApp.pendingCount = this.pendingApplications.length;
-    }
-    
-    // 也可以使用事件通知其他元件
-    this.$root.$emit('update-shop-badge', this.pendingApplications.length);
-  },
+      
+      // 同時更新整個應用中的其他地方
+      if (window.$shopApp) {
+        window.$shopApp.pendingCount = this.pendingCount;
+      }
+      
+      // 也可以使用事件通知其他元件
+      this.$root.$emit('update-shop-badge', this.pendingCount);
+    },
     getAdminId() {
       const adminIdStr = localStorage.getItem("userId");
       if (!adminIdStr) {
@@ -223,58 +256,98 @@ export default {
       }
       return adminId;
     },
+    async handleSearch(params) {
+      this.searchParams = params;
+      this.currentPage = params.page || 0;
+      this.pageSize = params.size || 10;
+      
+      await this.fetchApplications();
+      this.searchPerformed = true;
+    },
+    async handlePageChange(page) {
+      this.currentPage = page;
+      await this.fetchApplications();
+    },
     async fetchApplications() {
-      if (!this.showPending) return; // 避免不必要請求
+  this.isLoading = true;
+  
+  try {
+    // 如果有搜索參數，使用搜索 API
+    if (this.searchParams) {
+      const params = {
+        ...this.searchParams,
+        page: this.currentPage,
+        size: this.pageSize
+      };
       
-      this.isLoading = true;
-      try {
-        const response = await axios.get("/api/shop/application/pending");
-        this.pendingApplications = response.data;
-        
-        // 更新待審核計數
-        this.updateCountsFromData();
-      } catch (error) {
-        this.showError("載入待審核申請失敗：" + (error.response?.data.message || error.message));
-      } finally {
-        setTimeout(() => {
-          this.isLoading = false;
-        }, 300);
+      // 如果通過頁簽切換，更新 status 參數
+      if (this.showPending) params.status = "PENDING";
+      else if (this.showApproved) params.status = "APPROVED";
+      else if (this.showRejected) params.status = "REJECTED";
+      
+      // 將 applicationTime 替換為 createdAt（如果存在）
+      if (params.sortBy === "applicationTime") {
+        params.sortBy = "createdAt";
       }
-    },
-    async fetchApprovedApplications() {
-      if (!this.showApproved) return; // 避免不必要請求
       
-      this.isLoading = true;
-      try {
-        const response = await axios.get("/api/shop/application/approved");
-        this.approvedApplications = response.data;
-        
-        // 更新已核准計數
-        this.updateCountsFromData();
-      } catch (error) {
-        this.showError("載入已核准申請失敗：" + (error.response?.data.message || error.message));
-      } finally {
-        setTimeout(() => {
-          this.isLoading = false;
-        }, 300);
+      const response = await axios.get("/api/shop/application/search", { params });
+      
+      this.applications = response.data.content;
+      this.totalItems = response.data.totalItems;
+      this.totalPages = response.data.totalPages;
+      this.currentPage = response.data.currentPage;
+      
+      // 更新計數
+      if (response.data.counts) {
+        this.pendingCount = response.data.counts.pending || 0;
+        this.approvedCount = response.data.counts.approved || 0;
+        this.rejectedCount = response.data.counts.rejected || 0;
+        // 更新 ApplicationControls 組件的計數
+        this.updateCountsDisplayFromData();
       }
-    },
-    async fetchRejectedApplications() {
-      if (!this.showRejected) return; // 避免不必要請求
+    } 
+    // 如果沒有搜索參數，使用原有 API
+    else {
+      let response;
+      if (this.showPending) {
+        response = await axios.get("/api/shop/application/pending");
+        this.applications = response.data;
+        this.pendingCount = response.data.length;
+      } else if (this.showApproved) {
+        response = await axios.get("/api/shop/application/approved");
+        this.applications = response.data;
+        this.approvedCount = response.data.length;
+      } else if (this.showRejected) {
+        response = await axios.get("/api/shop/application/rejected");
+        this.applications = response.data;
+        this.rejectedCount = response.data.length;
+      }
       
-      this.isLoading = true;
-      try {
-        const response = await axios.get("/api/shop/application/rejected");
-        this.rejectedApplications = response.data;
-        
-        // 更新已拒絕計數
-        this.updateCountsFromData();
-      } catch (error) {
-        this.showError("載入已拒絕申請失敗：" + (error.response?.data.message || error.message));
-      } finally {
-        setTimeout(() => {
-          this.isLoading = false;
-        }, 300);
+      this.totalItems = this.applications.length;
+      this.totalPages = 1;
+      this.currentPage = 0;
+      
+      // 更新 ApplicationControls 組件的計數
+      this.updateCountsDisplayFromData();
+    }
+  } catch (error) {
+    this.showError("載入申請失敗：" + (error.response?.data.message || error.message));
+    console.error("載入申請錯誤詳情:", error);
+    this.applications = [];
+    this.totalItems = 0;
+    this.totalPages = 0;
+  } finally {
+    setTimeout(() => {
+      this.isLoading = false;
+    }, 300);
+  }
+},
+    updateCountsFromResponse(data) {
+      // 假設 API 回傳包含各狀態的計數
+      if (data.counts) {
+        this.pendingCount = data.counts.pending || 0;
+        this.approvedCount = data.counts.approved || 0;
+        this.rejectedCount = data.counts.rejected || 0;
       }
     },
     async approveApplication(applicationId) {
@@ -308,33 +381,14 @@ export default {
         
         this.showSuccess("核准成功", response.data.message || "申請已成功核准!");
         
-        // 如果當前是從待審核列表操作
-        if (this.showPending) {
-          // 從待審核列表中移除該項
-          const index = this.pendingApplications.findIndex(app => app.applicationId === applicationId);
-          if (index !== -1) {
-            this.pendingApplications.splice(index, 1);
-          }
-          this.updateNavBadgeCount();
-
-        } 
+        // 重新加載當前頁面數據
+        await this.fetchApplications();
         
-        // 如果是從已拒絕列表重新核准
-        else if (this.showRejected) {
-          // 從已拒絕列表中移除該項
-          const index = this.rejectedApplications.findIndex(app => app.applicationId === applicationId);
-          if (index !== -1) {
-            this.rejectedApplications.splice(index, 1);
-          }
-          this.updateNavBadgeCount();
-
+        // 如果是從已拒絕列表批准的，更新計數
+        if (this.showRejected) {
+          this.pendingCount++;
+          this.rejectedCount--;
         }
-        
-        // 重新獲取已核准列表（如果當前顯示的是已核准列表）
-        if (this.showApproved) {
-          await this.fetchApprovedApplications();
-        }
-        
         
         return Promise.resolve(true);
       } catch (error) {
@@ -400,20 +454,8 @@ export default {
         
         this.showSuccess("已拒絕", response.data.message || "申請已被拒絕");
         
-        // 從待審核列表中移除該項
-        const index = this.pendingApplications.findIndex(app => app.applicationId === applicationId);
-        if (index !== -1) {
-          this.pendingApplications.splice(index, 1);
-        }
-        this.updateNavBadgeCount();
-
-        
-        // 如果當前顯示的是已拒絕列表，重新獲取數據
-        if (this.showRejected) {
-          await this.fetchRejectedApplications();
-        }
-        
-        // 注意：這裡不再主動更新計數，而是通過子組件的事件觸發
+        // 重新加載當前頁面數據
+        await this.fetchApplications();
         
         return Promise.resolve(true);
       } catch (error) {
@@ -424,24 +466,47 @@ export default {
       }
     },
     updateCountsFromData() {
-      // 使用現有數據更新計數器
+      // 計算計數（適用於搜索頁面載入後）
+      this.pendingCount = this.showPending ? this.applications.length : this.pendingCount;
+      this.approvedCount = this.showApproved ? this.applications.length : this.approvedCount;
+      this.rejectedCount = this.showRejected ? this.applications.length : this.rejectedCount;
+    },
+    updateCountsDisplayFromData() {
+      // 更新顯示的計數
       if (this.$refs.appControls) {
         this.$refs.appControls.updateCounts({
-          pending: this.pendingApplications.length,
-          approved: this.approvedApplications.length,
-          rejected: this.rejectedApplications.length
+          pending: this.pendingCount,
+          approved: this.approvedCount,
+          rejected: this.rejectedCount
         });
       }
     },
     provideCounts() {
       // 提供計數給子組件
-      this.updateCountsFromData();
+      this.updateCountsDisplayFromData();
     },
     updateApplicationCounts(countData) {
       // 將計數更新轉發給 ApplicationControls 組件
       if (this.$refs.appControls) {
         this.$refs.appControls.updateCounts(countData);
       }
+      
+      // 同時更新本地計數
+      if (countData.type === 'pending') {
+        this.pendingCount += countData.amount;
+      } else if (countData.type === 'approved') {
+        this.approvedCount += countData.amount;
+      } else if (countData.type === 'rejected') {
+        this.rejectedCount += countData.amount;
+      }
+      
+      // 確保計數不為負
+      this.pendingCount = Math.max(0, this.pendingCount);
+      this.approvedCount = Math.max(0, this.approvedCount);
+      this.rejectedCount = Math.max(0, this.rejectedCount);
+      
+      // 更新導航欄徽章
+      this.updateNavBadgeCount();
     },
     showError(message) {
       Swal.fire({
@@ -466,14 +531,20 @@ export default {
       this.showApproved = view === "approved";
       this.showRejected = view === "rejected";
       
-      if (this.showPending) {
-        this.fetchApplications();
-      } else if (this.showApproved) {
-        this.fetchApprovedApplications();
-      } else if (this.showRejected) {
-        this.fetchRejectedApplications();
+      // 重置搜索參數
+      if (this.$refs.searchComponent) {
+        this.$refs.searchComponent.resetFilters();
+      } else {
+        this.searchParams = null;
+        this.searchPerformed = false;
       }
-    },
+      
+      // 重置分頁
+      this.currentPage = 0;
+      
+      // 獲取新數據
+      this.fetchApplications();
+    }
   },
   created() {
     // 創建計數管理者對象
@@ -486,7 +557,33 @@ export default {
   mounted() {
     this.adminId = this.getAdminId();
     this.fetchApplications();
+    
+    // 設置定時器定期更新計數（例如每5分鐘）
+    this.countUpdateTimer = setInterval(() => {
+      if (!this.searchPerformed) {
+        // 如果沒有正在搜索，則獲取最新計數
+        axios.get("/api/shop/application/counts")
+          .then(response => {
+            if (response.data) {
+              this.pendingCount = response.data.pending || 0;
+              this.approvedCount = response.data.approved || 0;
+              this.rejectedCount = response.data.rejected || 0;
+              this.updateCountsDisplayFromData();
+              this.updateNavBadgeCount();
+            }
+          })
+          .catch(error => {
+            console.warn("無法自動更新申請計數:", error);
+          });
+      }
+    }, 300000); // 5分鐘 = 300000毫秒
   },
+  beforeDestroy() {
+    // 清理定時器
+    if (this.countUpdateTimer) {
+      clearInterval(this.countUpdateTimer);
+    }
+  }
 };
 </script>
 

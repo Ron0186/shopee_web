@@ -363,6 +363,19 @@ const router = createRouter({
             title: "連結帳號",
             requiresAuth: false, // 此頁面不需要身份驗證
           },
+          
+        },
+        //跳到商品的頁面
+        {
+          path: '/products/:productId',
+          name: 'ProductDetail',
+          component: () => import('@/views/front/ProductDetail.vue'),
+        },
+        {
+          path: '/seller/shops/:shopId/campaigns',
+          name: 'SellerCampaigns',
+          component: () => import('@/views/front/SellerCampaigns.vue'),
+          meta: { requiresAuth: true }
         },
         {
           path: "seller/coupon/apply", // 注意這是相對路徑

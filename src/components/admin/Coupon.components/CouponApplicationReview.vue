@@ -248,7 +248,7 @@ onMounted(() => {
 
 <style scoped>
 .container-fluid {
-    padding-top: 25px;
+    padding-top: 0px;
 }
 
 .review-table th,

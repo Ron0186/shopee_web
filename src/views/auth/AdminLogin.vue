@@ -34,12 +34,16 @@
       <!-- 登入按鈕 -->
       <button class="login-btn" @click="login">登入</button>
 
-      <!-- 快速登入區塊 -->
-      <div class="quick-login">
-        <p>快速登入：</p>
-        <button class="quick-btn watcher" @click="quickLogin('Watcher')">Watcher</button>
-        <button class="quick-btn admin" @click="quickLogin('SuperAdmin')">SuperAdmin</button>
-      </div>
+<!-- 快速登入區塊 -->
+<div class="quick-login">
+  <p>快速登入：</p>
+  <div class="quick-btn-container">
+    <button class="quick-btn watcher" @click="quickLogin('Watcher')">Watcher</button>
+    <button class="quick-btn product-manager" @click="quickLogin('ProductManager')">商品管理員</button>
+    <button class="quick-btn account-manager" @click="quickLogin('AccountManager')">帳號管理員</button>
+    <button class="quick-btn admin" @click="quickLogin('SuperAdmin')">SuperAdmin</button>
+  </div>
+</div>
     </div>
   </div>
 </template>
@@ -51,6 +55,8 @@ import Swal from 'sweetalert2';
 import { useRouter, useRoute } from 'vue-router';
 import { jwtDecode } from 'jwt-decode';
 import { useUserStore } from '@/stores/user';
+const SiteKey=import.meta.env.VITE_RECAPTCHA_V2_SITE_KEY;
+
 const userStore = useUserStore();
 
 const router = useRouter();
@@ -89,7 +95,7 @@ function handleRecaptchaToggle() {
 }
 
 // reCAPTCHA 網站金鑰 - 替換成你的 Site Key
-const recaptchaSiteKey = "6LdxawIrAAAAAHO4ioKiJ8BM20rteeaTjuLylhmT";
+const recaptchaSiteKey = SiteKey;
 
 // 載入 reCAPTCHA 腳本
 function loadRecaptchaScript() {
@@ -254,8 +260,27 @@ async function login() {
 
 // 快速登入功能
 function quickLogin(role) {
-  username.value = role;
-  password.value = "admin123";
+  switch(role) {
+    case 'ProductManager':
+      username.value = "我是商品管理員";
+      password.value = "admin123";
+      break;
+    case 'AccountManager':
+      username.value = "我是帳號管理員";
+      password.value = "admin123";
+      break;
+    case 'SuperAdmin':
+      username.value = "SuperAdmin";
+      password.value = "admin123";
+      break;
+    case 'Watcher':
+      username.value = "Watcher";
+      password.value = "admin123";
+      break;
+    default:
+      username.value = role;
+      password.value = "admin123";
+  }
   login();
 }
 </script>
@@ -391,7 +416,9 @@ input {
 
 /* 快速登入區塊 */
 .quick-login {
-  margin-top: 15px;
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid #eee;
 }
 
 .quick-login p {
@@ -400,16 +427,36 @@ input {
   color: #666;
 }
 
+/* 快速登入按鈕容器 */
+.quick-btn-container {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+}
+
 /* 快速登入按鈕 */
 .quick-btn {
-  padding: 10px 15px;
-  font-size: 16px;
+  padding: 8px 12px;
+  font-size: 14px;
   color: white;
   border: none;
   border-radius: 5px;
   cursor: pointer;
-  transition: background 0.3s ease;
-  margin: 5px;
+  transition: background 0.3s ease, transform 0.2s ease;
+  flex-grow: 1;
+  max-width: calc(50% - 8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.quick-btn:hover {
+  transform: translateY(-2px);
+}
+
+.quick-btn:active {
+  transform: translateY(0);
 }
 
 .quick-btn.watcher {
@@ -420,12 +467,36 @@ input {
   background-color: #218838;
 }
 
+.quick-btn.product-manager {
+  background-color: #17a2b8;
+}
+
+.quick-btn.product-manager:hover {
+  background-color: #138496;
+}
+
+.quick-btn.account-manager {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.quick-btn.account-manager:hover {
+  background-color: #e0a800;
+}
+
 .quick-btn.admin {
   background-color: #dc3545;
 }
 
 .quick-btn.admin:hover {
   background-color: #c82333;
+}
+
+/* 在較小屏幕上讓按鈕堆疊 */
+@media (max-width: 480px) {
+  .quick-btn {
+    max-width: 100%;
+  }
 }
 
 /* reCAPTCHA 相關樣式 */
