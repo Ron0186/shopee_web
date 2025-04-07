@@ -143,7 +143,10 @@
       }
     })
   }
-  watch([sortBy, sortOrder, timeOrderDirection], sortReviews)
+  watch([sortBy, sortOrder, timeOrderDirection], () => {
+  currentPage.value = 1
+  sortReviews()
+})
   
   // 分頁
   const totalPages = computed(() =>
