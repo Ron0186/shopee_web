@@ -32,7 +32,17 @@ export const useUserStore = defineStore("user", () => {
   console.log(isSeller.value)
 
   async function logout() {
-    console.log("[UserStore] 執行登出...");
+
+    const chatStore = useChatStore(); // <--- *** 3. 獲取 chatStore 實例 ***
+
+    // --- 4. 先嘗試清理 chatStore 狀態並斷開 WebSocket ---
+    try {
+      console.log("[UserStore logout] 正在呼叫 chatStore.resetChatState()...");
+      chatStore.resetChatState(); // <--- *** 確保呼叫 chatStore 的清理函數 ***
+      console.log("[UserStore logout] chatStore.resetChatState() 已呼叫。");
+    } catch (error) {
+      console.error("[UserStore logout] 呼叫 chatStore.resetChatState() 時發生錯誤:", error);
+    }
     // 清理本地資料
     clearUserData();
     // 通知後端 (可選)
