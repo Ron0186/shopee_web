@@ -19,16 +19,13 @@ export const fetchStores = async () => {
 
 /**
  * 获取未读消息计数
- * @param {string} userId 用户ID
+ * @param {string} userId 用户ID (在這裡應該是 sellerId)
  * @returns {Promise<Array>} 未读消息计数数据
  */
 export const fetchUnreadCounts = async (userId) => {
     try {
-        const response = await axios.get(`/api/messages/unread-count?userId=${userId}`)
-        return {
-            success: true,
-            data: response.data || []
-        }
+        const response = await axios.get(`/api/chat/unread?sellerId=${userId}`)
+        return response.data
     } catch (error) {
         console.error('获取未读消息计数失败:', error)
         return {
@@ -37,5 +34,3 @@ export const fetchUnreadCounts = async (userId) => {
         }
     }
 }
-
-

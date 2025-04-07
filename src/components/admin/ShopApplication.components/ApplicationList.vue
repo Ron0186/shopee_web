@@ -492,7 +492,7 @@ export default {
 
 <style scoped>
 .admin-dashboard {
-  background-color: #f8f9fc;
+  /* background-color: #f8f9fc; */
   min-height: 100vh;
 }
 

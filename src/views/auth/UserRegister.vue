@@ -3,11 +3,11 @@
     <div class="register-card">
       <h2 class="register-title">會員註冊</h2>
       <form @submit.prevent="register" class="register-form">
-        <div class="demo-button-container">
+        <!--  <div class="demo-button-container">
           <button type="button" @click="fillDemoData" class="demo-button">
             <i class="bi bi-magic"></i> 一鍵帶入
           </button>
-        </div>
+        </div>  -->
         
         <div class="form-group">
           <label for="username">使用者名稱</label>
@@ -18,8 +18,8 @@
             v-model="username"
             class="form-input"
           />
-          <div v-if="username && username.length < 6" class="input-error">
-            使用者名稱至少需要6個字
+          <div v-if="username && username.length < 3" class="input-error">
+            使用者名稱至少需要3個字
           </div>
         </div>
         
@@ -205,6 +205,7 @@ import { ref, onMounted, nextTick, watch, computed } from "vue";
 import Swal from "sweetalert2";
 import { useRouter, useRoute } from "vue-router";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
+const SiteKey=import.meta.env.VITE_RECAPTCHA_V2_SITE_KEY;
 
 const router = useRouter();
 const route = useRoute();
@@ -333,7 +334,7 @@ const isFormValid = computed(() => {
   return isPasswordValid.value && 
          !passwordMismatch.value && 
          confirmPassword.value !== "" &&
-         username.value.length >= 6;
+         username.value.length >= 3;
 });
 
 // 密碼正則表達式
@@ -412,7 +413,7 @@ function checkPasswordStrength() {
 }
 
 // reCAPTCHA 網站金鑰 - 替換成你的 Site Key
-const recaptchaSiteKey = "6LdxawIrAAAAAHO4ioKiJ8BM20rteeaTjuLylhmT";
+const recaptchaSiteKey = SiteKey;
 
 // 載入 reCAPTCHA 腳本
 function loadRecaptchaScript() {
@@ -599,82 +600,62 @@ async function register() {
 </script>
 
 <style scoped>
-:root {
-  --primary-color: #ff9b20; /* 橙色 */
-  --primary-hover: #e7840b; /* 深橙色 */
-  --error-color: #dc3545;
-  --success-color: #28a745;
-  --warning-color: #ffc107;
-  --text-color: #333;
-  --text-light: #666;
-  --border-color: #ddd;
-  --bg-color: #f9f9f9;
-  --card-bg: #fff;
-  --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  --border-radius: 8px;
-  --input-radius: 6px;
-}
-
-/* 整體容器 */
+/* 整體容器 - 調整高度和大小 */
 .register-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 85vh; /* 從100vh改為85vh，考慮到navbar和footer的空間 */
-  background-color: var(--bg-color);
-  padding: 15px; /* 減少內邊距 */
+  min-height: 75vh; /* 從85vh降低到75vh */
+  padding: 15px;
 }
 
 .register-card {
   width: 100%;
-  max-width: 480px; /* 微調最大寬度 */
-  background-color: var(--card-bg);
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow);
-  padding: 20px; /* 減少內邊距 */
+  max-width: 500px; /* 從480px減小到420px */
+  background-color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
+  padding: 25px; /* 從25px減小到20px */
+  border: 1px solid #e8e8e8;
 }
 
 .register-title {
   text-align: center;
-  margin-bottom: 20px; /* 減少下邊距 */
-  color: var(--primary-color);
+  margin-bottom: 15px; /* 從20px減小到15px */
+  color: #ff9b20;
   font-weight: 600;
+  font-size: 1.4rem; /* 從1.5rem減小 */
 }
 
 .register-form {
   display: flex;
   flex-direction: column;
-  gap: 15px; /* 減少表單元素間距 */
+  gap: 12px; /* 從16px減小到12px */
 }
 
 /* DEMO按鈕 */
 .demo-button-container {
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 10px; /* 減少間距 */
+  margin-bottom: 8px; /* 從10px減小到8px */
 }
 
 .demo-button {
   background-color: #6c757d;
   color: white;
   border: none;
-  border-radius: var(--input-radius);
-  padding: 5px 10px; /* 減少內邊距 */
-  font-size: 13px; /* 縮小字體 */
+  border-radius: 4px;
+  padding: 4px 10px; /* 從6px 12px減小 */
+  font-size: 12px; /* 從13px減小 */
   cursor: pointer;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 4px; /* 減少圖標間距 */
+  gap: 4px;
 }
 
 .demo-button:hover {
   background-color: #5a6268;
-  transform: translateY(-1px);
-}
-
-.demo-button i {
-  font-size: 13px; /* 縮小圖標 */
 }
 
 /* 表單元素 */
@@ -685,30 +666,31 @@ async function register() {
 
 .form-input {
   width: 100%;
-  padding: 10px 12px; /* 減少內邊距 */
-  border: 1px solid var(--border-color);
-  border-radius: var(--input-radius);
-  font-size: 15px; /* 略微縮小字體 */
-  transition: all 0.2s ease;
+  padding: 8px 10px; /* 從10px 12px減小 */
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px; /* 從15px減小 */
+  transition: border-color 0.2s ease;
 }
 
 .form-input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgba(255, 155, 32, 0.1);
+  border-color: #ff9b20;
+  box-shadow: 0 0 0 2px rgba(255, 155, 32, 0.1);
   outline: none;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px; /* 減少標籤下邊距 */
+  margin-bottom: 4px; /* 從5px減小 */
   font-weight: 500;
-  color: var(--text-color);
+  color: #333;
+  font-size: 14px; /* 新增字體大小控制 */
 }
 
 /* 表單排列 */
 .form-row {
   display: flex;
-  gap: 15px; /* 減少間距 */
+  gap: 20px; /* 從14px增加到20px，提供更多水平空間 */
 }
 
 .form-col {
@@ -717,17 +699,17 @@ async function register() {
 
 /* 錯誤提示 */
 .input-error {
-  color: var(--error-color);
-  font-size: 12px; /* 縮小字體 */
-  margin-top: 3px; /* 減少上邊距 */
+  color: #dc3545;
+  font-size: 11px; /* 從12px減小 */
+  margin-top: 2px; /* 從3px減小 */
 }
 
 /* 密碼強度相關樣式 */
 .password-strength-meter {
-  height: 5px; /* 降低高度 */
+  height: 4px; /* 從5px減小 */
   background-color: #e0e0e0;
-  border-radius: 3px;
-  margin: 6px 0 3px; /* 減少上下間距 */
+  border-radius: 2px; /* 從3px減小 */
+  margin: 5px 0 2px; /* 從6px 0 3px減小 */
   overflow: hidden;
 }
 
@@ -738,7 +720,7 @@ async function register() {
 }
 
 .password-strength-text {
-  font-size: 11px; /* 縮小字體 */
+  font-size: 10px; /* 從11px減小 */
   margin-bottom: 0;
   text-align: right;
 }
@@ -748,31 +730,31 @@ async function register() {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 15px; /* 縮小尺寸 */
-  height: 15px; /* 縮小尺寸 */
+  width: 14px; /* 從15px減小 */
+  height: 14px; /* 從15px減小 */
   border-radius: 50%;
-  margin-left: 4px; /* 減少間距 */
+  margin-left: 4px;
   cursor: pointer;
-  color: var(--text-light);
+  color: #666;
   transition: color 0.2s;
 }
 
 .password-info-icon:hover {
-  color: var(--primary-color);
+  color: #ff9b20;
 }
 
 .password-popover {
   position: absolute;
   top: 0;
-  left: 105%; /* 放在輸入框右側 */
-  width: 230px; /* 稍微縮小寬度 */
+  left: 105%;
+  width: 220px; /* 從230px減小 */
   background: white;
-  border-radius: var(--border-radius);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   z-index: 100;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e0e0e0;
   animation: fadeIn 0.2s ease-in-out;
-  max-height: 280px; /* 減少最大高度 */
+  max-height: 260px; /* 從280px減小 */
   overflow-y: auto;
 }
 
@@ -780,26 +762,26 @@ async function register() {
   position: absolute;
   top: 15px;
   left: -8px;
-  width: 16px;
-  height: 16px;
+  width: 14px; /* 從16px減小 */
+  height: 14px; /* 從16px減小 */
   transform: rotate(45deg);
   background: white;
-  border-left: 1px solid var(--border-color);
-  border-bottom: 1px solid var(--border-color);
+  border-left: 1px solid #e0e0e0;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .popover-header {
-  padding: 8px 12px; /* 減少內邊距 */
+  padding: 6px 10px; /* 從8px 12px減小 */
   font-weight: 600;
-  border-bottom: 1px solid var(--border-color);
+  border-bottom: 1px solid #e0e0e0;
   background-color: #f8f9fa;
-  border-top-left-radius: var(--border-radius);
-  border-top-right-radius: var(--border-radius);
-  font-size: 14px; /* 縮小字體 */
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  font-size: 13px; /* 從14px減小 */
 }
 
 .popover-body {
-  padding: 12px; /* 減少內邊距 */
+  padding: 10px; /* 從12px減小 */
 }
 
 @keyframes fadeIn {
@@ -810,22 +792,22 @@ async function register() {
 .requirement {
   display: flex;
   align-items: center;
-  margin-bottom: 6px; /* 減少間距 */
-  color: var(--text-light);
-  font-size: 12px; /* 縮小字體 */
+  margin-bottom: 5px; /* 從6px減小 */
+  color: #666;
+  font-size: 11px; /* 從12px減小 */
 }
 
 .requirement.met {
-  color: var(--success-color);
+  color: #28a745;
 }
 
 .check-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 18px; /* 縮小尺寸 */
-  height: 18px; /* 縮小尺寸 */
-  margin-right: 6px; /* 減少間距 */
+  width: 16px; /* 從18px減小 */
+  height: 16px; /* 從18px減小 */
+  margin-right: 5px; /* 從6px減小 */
 }
 
 .check-icon i {
@@ -833,7 +815,7 @@ async function register() {
 }
 
 .check-icon.checked i {
-  color: var(--success-color);
+  color: #28a745;
 }
 
 .check-icon:not(.checked) i {
@@ -848,54 +830,71 @@ async function register() {
 
 .password-container input {
   width: 100%;
-  padding-right: 40px; /* 為眼睛圖標預留空間 */
+  padding-right: 35px; /* 從40px減小 */
 }
 
 .eye-icon {
   position: absolute;
-  right: 8px;
+  right: 8px; /* 從10px減小 */
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
   z-index: 10;
   user-select: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 30px; /* 縮小尺寸 */
-  height: 30px; /* 縮小尺寸 */
-  color: var(--text-light);
+  color: #666;
   transition: color 0.2s;
 }
 
 .eye-icon:hover {
-  color: var(--primary-color);
+  color: #ff9b20;
 }
 
 /* 註冊按鈕容器 */
 .register-button-container {
   width: 100%;
-  margin-top: 8px; /* 減少上邊距 */
+  margin-top: 6px; /* 從8px減小 */
+}
+
+/* 按鈕樣式 */
+button[type="submit"] {
+  background-color: #ccc !important;
+  color: white !important;
+  padding: 8px 12px !important; /* 從10px 15px減小 */
+  border: none !important;
+  border-radius: 4px !important;
+  font-size: 15px !important; /* 從16px減小 */
+  font-weight: 500 !important;
+  cursor: pointer !important;
+  width: 100% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 6px !important; /* 從8px減小 */
+}
+
+button[type="submit"]:not(:disabled) {
+  background-color: #ff9b20 !important;
+  cursor: pointer !important;
 }
 
 /* 連結樣式 */
 .form-links {
-  margin-top: 10px; /* 減少上邊距 */
+  margin-top: 8px; /* 從10px減小 */
   text-align: center;
 }
 
 .login-link {
-  color: var(--primary-color);
+  color: #ff9b20;
   text-decoration: none;
-  font-size: 13px; /* 縮小字體 */
+  font-size: 13px; /* 從14px減小 */
   display: inline-flex;
   align-items: center;
-  gap: 4px; /* 減少間距 */
+  gap: 4px; /* 從5px減小 */
   transition: color 0.2s;
 }
 
 .login-link:hover {
-  color: var(--primary-hover);
+  color: #e7840b;
   text-decoration: underline;
 }
 
@@ -904,20 +903,20 @@ async function register() {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 8px 0; /* 減少上下間距 */
+  margin: 6px 0; /* 從8px減小 */
 }
 
 .captcha-error {
-  color: var(--error-color);
-  font-size: 12px; /* 縮小字體 */
-  margin-top: 3px; /* 減少上邊距 */
+  color: #dc3545;
+  font-size: 11px; /* 從12px減小 */
+  margin-top: 2px; /* 從3px減小 */
 }
 
 /* 分隔線 */
 .divider {
   position: relative;
   text-align: center;
-  margin: 15px 0; /* 減少上下間距 */
+  margin: 12px 0; /* 從15px減小 */
 }
 
 .divider::before {
@@ -927,48 +926,58 @@ async function register() {
   left: 0;
   width: 100%;
   height: 1px;
-  background-color: var(--border-color);
+  background-color: #e0e0e0;
 }
 
 .divider span {
   position: relative;
-  background-color: var(--card-bg);
-  padding: 0 10px;
-  color: var(--text-light);
-  font-size: 13px; /* 縮小字體 */
+  background-color: #fff;
+  padding: 0 8px; /* 從10px減小 */
+  color: #888;
+  font-size: 13px; /* 從14px減小 */
+  padding: 0 15px; /* 增加左右內邊距 */
+
 }
 
 /* 社交登入按鈕 */
 .social-login {
   display: flex;
   justify-content: center;
-  margin-bottom: 8px; /* 減少下邊距 */
+  margin-bottom: 8px; /* 從10px減小 */
+}
+
+/* Google 登入按鈕 */
+:deep(.google-login-button) {
+  width: 100%;
+  text-align: center;
 }
 
 /* 響應式設計 */
 @media (max-width: 768px) {
   .form-row {
     flex-direction: column;
-    gap: 15px; /* 減少間距 */
+    gap: 12px; /* 從15px減小 */
   }
   
   .password-popover {
     left: 0;
     top: 100%;
     width: 100%;
-    margin-top: 8px; /* 減少間距 */
+    margin-top: 6px; /* 從8px減小 */
+    width: 260px;
   }
   
   .popover-arrow {
-    top: -8px;
+    top: -7px; /* 從-8px減小 */
     left: 20px;
-    border-left: 1px solid var(--border-color);
-    border-top: 1px solid var(--border-color);
+    border-left: 1px solid #e0e0e0;
+    border-top: 1px solid #e0e0e0;
     border-bottom: none;
   }
   
   .register-card {
-    padding: 15px; /* 減少內邊距 */
+    max-width: 95%;
+    padding: 20px; /* 從20px減小 */
   }
 }
 </style>

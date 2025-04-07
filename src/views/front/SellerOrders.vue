@@ -9,18 +9,37 @@
           <div class="card-body">
             <!-- 訂單篩選 -->
             <div class="row mb-3">
-              <div class="col-md-6">
+              <div class="col-md-6"></div>
+            </div>
+            <!-- 新增付款狀態與運送狀態 -->
+            <div class="row mb-3">
+              <div class="col-md-4">
                 <div class="input-group">
-                  <span class="input-group-text">篩選狀態</span>
+                  <span class="input-group-text">付款狀態</span>
                   <select
                     class="form-select"
-                    id="statusFilter"
-                    v-model="filterCriteria.status"
+                    v-model="filterCriteria.paymentStatus"
                   >
                     <option value="all">所有狀態</option>
+                    <option value="未付款">未付款</option>
                     <option value="處理中">處理中</option>
-                    <option value="已完成">已完成</option>
-                    <option value="已取消">已取消</option>
+                    <option value="已付款">已付款</option>
+                    <option value="已退款">已退款</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-4">
+                <div class="input-group">
+                  <span class="input-group-text">運送狀態</span>
+                  <select
+                    class="form-select"
+                    v-model="filterCriteria.shipmentStatus"
+                  >
+                    <option value="all">所有狀態</option>
+                    <option value="未出貨">未出貨</option>
+                    <option value="已出貨">已出貨</option>
+                    <option value="運送中">運送中</option>
+                    <option value="已送達">已送達</option>
                   </select>
                 </div>
               </div>
@@ -656,7 +675,11 @@ const orders = ref([]);
 const selectedOrder = ref({});
 const showDetailModal = ref(false);
 const showEditModal = ref(false);
-const filterCriteria = ref({ status: "all" });
+const filterCriteria = ref({
+  status: "all",
+  paymentStatus: "all", // ✅ 新增
+  shipmentStatus: "all", // ✅ 新增
+});
 const sortAscending = ref(true);
 const loading = ref(true);
 const error = ref(null);
@@ -845,13 +868,23 @@ onMounted(() => {
 
 // 訂單篩選功能
 const filteredOrders = computed(() => {
+  if (!orders.value || !Array.isArray(orders.value)) return [];
+
   return orders.value.filter((order) => {
-    if (
-      filterCriteria.value.status !== "all" &&
-      order.status !== filterCriteria.value.status
-    ) {
+    const status = (order.status || "").trim();
+    const paymentStatus = (order.paymentStatus || "").trim();
+    const shipmentStatus = (order.shipmentStatus || "").trim();
+
+    const statusFilter = filterCriteria.value.status;
+    const paymentFilter = filterCriteria.value.paymentStatus;
+    const shipmentFilter = filterCriteria.value.shipmentStatus;
+
+    if (statusFilter !== "all" && status !== statusFilter) return false;
+    if (paymentFilter !== "all" && paymentStatus !== paymentFilter)
       return false;
-    }
+    if (shipmentFilter !== "all" && shipmentStatus !== shipmentFilter)
+      return false;
+
     return true;
   });
 });
@@ -1146,24 +1179,6 @@ const formatDate = (dateString) => {
     second: "2-digit",
   });
 };
-
-const forceCloseEditModal = () => {
-  showEditModal.value = false;
-  editError.value = null;
-  successMessage.value = null;
-
-  if (!showDetailModal.value) {
-    document.body.classList.remove("modal-open");
-    document.body.style.overflow = "";
-    document.body.style.paddingRight = "";
-  }
-};
-
-setTimeout(() => {
-  if (successMessage.value) {
-    forceCloseEditModal();
-  }
-}, 2000);
 </script>
 
 <style scoped>

@@ -5,15 +5,15 @@
         <form @submit.prevent="updateProfile">
             <div>
                 <label>使用者名稱：</label>
-                <input type="text" v-model="user.username"
-                    :placeholder="userPlaceholder.username" required />
+                <input type="text" v-model="user.userName"
+                    :placeholder="userPlaceholder.userName" required />
             </div>
 
             <div>
-                <label>電子郵件：</label>
-                <input type="email" v-model="user.email"
-                    :placeholder="userPlaceholder.email" required />
-            </div>
+  <label>電子郵件：</label>
+  <input type="email" v-model="user.email" :placeholder="userPlaceholder.email" required />
+  <p v-if="emailError" class="error">{{ emailError }}</p>
+</div>
 
             <div>
                 <label>手機號碼：</label>
@@ -41,86 +41,86 @@ export default {
         return {
             userId: null,
             user: {
-                username: "",
+                userName: "",
                 email: "",
                 phone: "",
             },
             userPlaceholder: {
-                username: "載入中...",
+                userName: "載入中...",
                 email: "載入中...",
                 phone: "載入中...",
             },
-
             message: "",
             phoneError: "",
+            emailError: "",
             router: useRouter()
         };
+    },
+    computed: {
+        isValidEmail() {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(this.user.email);
+        }
     },
     mounted() {
         this.loadUserId();
         if (this.userId) {
             this.fetchUserData();
         } else {
-            this.router.push('/user/login'); // 未登入則跳轉登入頁
+            this.router.push('/user/login');
         }
     },
     methods: {
         loadUserId() {
             const token = localStorage.getItem("token");
-            console.log("獲取的 Token:", token);  // ✅ 確認 Token 是否存在
-
             if (!token) {
-                console.warn("未找到 Token，跳轉至登入頁");
                 this.router.push('/user/login');
                 return;
             }
-
             try {
                 const decodedToken = jwtDecode(token);
                 this.userId = decodedToken.userId;
-                console.log("解析的 JWT User ID:", this.userId);  // ✅ 確認 userId 是否正確解析
             } catch (error) {
-                console.error("無法解析 JWT:", error);
                 this.router.push('/user/login');
             }
         },
         async fetchUserData() {
             try {
                 const token = localStorage.getItem("token");
-                console.log("使用 Token 取得用戶資訊，User ID:", this.userId);  // ✅ 確保請求時 userId 正確
-
-                const response = await axios.get(`http://localhost:8081/api/user/check/${this.userId}`, {
+                const response = await axios.get(`http://localhost:8081/api/user/membercenter/id/${this.userId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
-
                 this.user = response.data;
-                this.userPlaceholder = { ...this.user }; // 設定 placeholder
-                console.log("獲取的用戶資料:", this.user);  // ✅ 檢查 API 回傳的用戶資料
-
+                this.userPlaceholder = { ...this.user };
             } catch (error) {
-                console.error("獲取用戶數據失敗:", error);
                 this.router.push('/user/login');
             }
         },
         async updateProfile() {
+            if (!this.isValidEmail) {
+                this.emailError = "請輸入有效的電子郵件格式";
+                return;
+            } else {
+                this.emailError = "";
+            }
+
+            if (this.phoneError) {
+                return;
+            }
+
             try {
                 const token = localStorage.getItem("token");
-                console.log("更新 User ID:", this.userId);  // ✅ 確認 userId 在更新時是否存在
-
                 const updatedUser = { ...this.user };
-                // delete updatedUser.password; // **不變更密碼**
 
                 await axios.put(`http://localhost:8081/api/user/update/${this.userId}`, updatedUser, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
 
                 this.message = "個人資料更新成功！";
-                console.log("更新成功:", updatedUser);  // ✅ 確認更新的內容
                 setTimeout(() => {
                     this.router.push('/memberCenter');
                 }, 1000);
             } catch (error) {
-                console.error("更新失敗:", error);
                 this.message = "更新失敗，請稍後再試！";
             }
         },
@@ -134,11 +134,12 @@ export default {
             }
         },
         cancel() {
-            this.router.push('/memberCenter'); // 返回會員中心
+            this.router.push('/memberCenter');
         }
     }
 };
 </script>
+
 
 <style scoped>
 .container {

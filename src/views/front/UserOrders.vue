@@ -217,13 +217,7 @@
             >
               取消訂單
             </button>
-            <button
-              v-if="canPayNow(order)"
-              @click="payOrder(order.orderId)"
-              class="action-btn pay-btn"
-            >
-              立即付款
-            </button>
+
             <button
               @click="directPayOrder(order.orderId)"
               class="action-btn pay-btn"

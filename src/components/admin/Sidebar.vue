@@ -23,9 +23,7 @@ async function logout() {
     <h1 class="title">後台管理系統</h1>
     <router-link to="/admin/dashboard">📊 儀表板</router-link>
     <router-link to="/admin/orders">📦 訂單管理</router-link>
-    <router-link to="/admin/orders/all">📜 所有訂單</router-link>
-    <router-link to="/admin/orders/pending">⏳ 待處理訂單</router-link>
-    <router-link to="/admin/orders/cancelled">❌ 取消/退貨</router-link>
+    <router-link to="/admin/reviews"> 評價管理</router-link>
     <router-link to="/admin/integrated-management">🛒 付款/物流</router-link>
     <router-link to="/admin/category-management">📑 商品分類</router-link>
     <router-link to="/admin/products/tags">🔖 商品標籤</router-link>
@@ -35,9 +33,9 @@ async function logout() {
       v-if="userStore.roles.includes('SUPER_ADMIN')"
       >👥 管理員管理</router-link
     >
-    <router-link to="/admin/users/customers">🙍‍♂️ 客戶管理</router-link>
+    <router-link to="/admin/product-review">👔 商品管理</router-link>
     <router-link to="/admin/shop/review">🛍 商店申請管理</router-link>
-    <router-link to="/coupon/AdminCouponManager">🎟️ 優惠券管理</router-link>
+    <router-link to="/coupon/adminCouponManager">🎟️ 優惠券管理</router-link>
     <router-link to="/admin/analytics">📊 數據分析</router-link>
     <router-link to="/admin/analytics/sales">📈 銷售報告</router-link>
     <router-link to="/admin/analytics/user-behavior"
