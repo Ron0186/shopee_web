@@ -253,7 +253,7 @@ const handleNotificationClick = (chatRoomId) => {
 <style scoped>
 /* 📌 Navbar 樣式 */
 .navbar {
-  width: 100vw;
+  width: 100%;
   max-width: 100%;
   height: 60px;
   display: flex;
