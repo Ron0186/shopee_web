@@ -10,7 +10,6 @@ export const useUserStore = defineStore("user", () => {
   const token = ref("");
   const roles = ref([]);
   const shopId = ref(""); // 新增賣場ID欄位
-  const currentUser = ref(null);
 
   // ✅ 改為 computed 確保 Vue 會自動監聽變更
   const isSeller = computed(() => roles.value.includes("SELLER"));
@@ -23,7 +22,17 @@ export const useUserStore = defineStore("user", () => {
   console.log(isSeller.value)
 
   async function logout() {
-    console.log("[UserStore] 執行登出...");
+
+    const chatStore = useChatStore(); // <--- *** 3. 獲取 chatStore 實例 ***
+
+    // --- 4. 先嘗試清理 chatStore 狀態並斷開 WebSocket ---
+    try {
+      console.log("[UserStore logout] 正在呼叫 chatStore.resetChatState()...");
+      chatStore.resetChatState(); // <--- *** 確保呼叫 chatStore 的清理函數 ***
+      console.log("[UserStore logout] chatStore.resetChatState() 已呼叫。");
+    } catch (error) {
+      console.error("[UserStore logout] 呼叫 chatStore.resetChatState() 時發生錯誤:", error);
+    }
     // 清理本地資料
     clearUserData();
     // 通知後端 (可選)
@@ -197,27 +206,7 @@ export const useUserStore = defineStore("user", () => {
     console.log("🏪 賣場ID變更:", newShopId);
   });
 
-  // 🔴 新增 fetchCurrentUser 函式
-  async function fetchCurrentUser() {
-    try {
-      const authToken = localStorage.getItem('authToken');
-      if (!authToken) {
-        router.push('/user/login');
-        return;
-      }
-      const response = await axios.get(`http://localhost:8081/api/user/check/${userId.value}`, { // 使用 userId.value
-        headers: {
-          Authorization: `Bearer ${authToken}`
-        }
-      });
-      currentUser.value = response.data; // 假設後端返回包含使用者資訊的物件
-      updateShopId(response.data.shopId); // 如果後端也返回 shopId，則更新
-    } catch (error) {
-      console.error('獲取用戶失敗', error);
-      clearUserData();
-      router.push('/user/login');
-    }
-  }
+
 
   /**
        * Store 初始化時從儲存空間載入資料
@@ -275,8 +264,6 @@ export const useUserStore = defineStore("user", () => {
     saveUserData,
     reloadUserData,
     updateShopId, // 暴露更新賣場ID的方法
-    fetchCurrentUser, // 🔴 暴露 fetchCurrentUser 函式
-    currentUser, // 🔴 暴露 currentUser ref
     logout,
     isLoggedIn,
     loadUserFromStorage,

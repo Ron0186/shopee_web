@@ -64,8 +64,7 @@
         </div>
       </div>
 
-      <span @click="logoutToAdmin"
-        class="logout-link admin-logout">
+      <span @click="logoutToAdmin" class="logout-link admin-logout">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
       </span>
     </div>
@@ -203,7 +202,8 @@ const fetchNotificationCount = async () => {
 // ✅ 登出功能
 async function logout() {
   axios.defaults.headers.common["Authorization"] = ``;
-  userStore.clearUserData();
+  // userStore.clearUserData();
+  userStore.logout();
   userMenuOpen.value = false; // 關閉下拉選單
   const response = await Swal.fire({
     title: "您已成功登出",

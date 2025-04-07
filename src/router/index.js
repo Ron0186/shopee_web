@@ -148,11 +148,11 @@ const router = createRouter({
         //   name: "memberOrders",
         //   component: () => import("@/views/member/MemberOrders.vue"),
         // },
-        {
-          path: "/memberCoupons",
-          name: "memberCoupons",
-          component: () => import("@/views/member/MemberCoupons.vue"),
-        },
+        // {
+        //   path: "/memberCoupons",
+        //   name: "memberCoupons",
+        //   component: () => import("@/views/member/MemberCoupons.vue"),
+        // },
         {
           path: "/updateHomeAddress/:addressId",
           name: "UpdateHomeAddress",
@@ -363,7 +363,7 @@ const router = createRouter({
             title: "連結帳號",
             requiresAuth: false, // 此頁面不需要身份驗證
           },
-          
+
         },
         //跳到商品的頁面
         {
