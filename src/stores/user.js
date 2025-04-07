@@ -11,6 +11,7 @@ export const useUserStore = defineStore("user", () => {
   const roles = ref([]);
   const shopId = ref(""); // 新增賣場ID欄位
   const currentUser = ref(null);
+  const profilePhoto = ref(""); // 新增頭像 URL ref
 
   // ✅ 改為 computed 確保 Vue 會自動監聽變更
   const isSeller = computed(() => roles.value.includes("SELLER"));
@@ -19,6 +20,14 @@ export const useUserStore = defineStore("user", () => {
   const isUser = computed(() => roles.value.includes("USER"));
   shopId.value = localStorage.getItem("shopId") || ""; // 讀取賣場ID
   const isLoggedIn = computed(() => !!userId.value && !!token.value);
+
+  // 新增 computed 用來獲取頭像，處理預設頭像的邏輯
+  const getProfilePhoto = computed(() => {
+    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+    // 如果頭像 URL 已經是完整路徑就直接使用，否則加上 baseUrl
+    const photoUrl = profilePhoto.value || '/uploads/default.jpg';
+    return photoUrl.startsWith('http') ? photoUrl : `${baseUrl}${photoUrl}`;
+  });
 
   console.log(isSeller.value)
 
@@ -33,11 +42,11 @@ export const useUserStore = defineStore("user", () => {
     router.push('/user/login'); // 導向登入頁
   }
 
-
   function loadUserData() {
     username.value = localStorage.getItem('username') || '';
     userId.value = localStorage.getItem('userId') || '';
     token.value = localStorage.getItem('token') || '';
+    profilePhoto.value = localStorage.getItem('profilePhoto') || ''; // 讀取頭像URL
 
     try {
       const rolesString = localStorage.getItem('roles');
@@ -61,16 +70,23 @@ export const useUserStore = defineStore("user", () => {
       userId: userId.value,
       token: token.value,
       roles: roles.value,
-      shopId: shopId.value, // 加入日誌
+      shopId: shopId.value,
+      profilePhoto: profilePhoto.value, // 加入日誌
     });
   }
 
   //登入儲存
-  function saveUserData(newUsername, newUserId, newToken, newRoles) {
+  function saveUserData(newUsername, newUserId, newToken, newRoles, newProfilePhoto) {
     username.value = newUsername;
     userId.value = newUserId;
     token.value = newToken;
     roles.value = newRoles || [];
+
+    // 新增設定頭像
+    if (newProfilePhoto) {
+      profilePhoto.value = newProfilePhoto;
+      localStorage.setItem("profilePhoto", newProfilePhoto);
+    }
 
     if (!Array.isArray(roles.value)) {
       console.error("roles 不是陣列，無法存入 localStorage:", roles.value);
@@ -87,6 +103,7 @@ export const useUserStore = defineStore("user", () => {
       userId: userId.value,
       token: token.value,
       roles: roles.value,
+      profilePhoto: profilePhoto.value, // 加入日誌
     });
   }
 
@@ -97,6 +114,7 @@ export const useUserStore = defineStore("user", () => {
     token.value = localStorage.getItem("token") || "";
     roles.value = JSON.parse(localStorage.getItem("roles") || "[]");
     shopId.value = localStorage.getItem("shopId") || ""; // 重新讀取賣場ID
+    profilePhoto.value = localStorage.getItem("profilePhoto") || ""; // 重新讀取頭像URL
   }
 
   function setUserData(userData) {
@@ -107,6 +125,7 @@ export const useUserStore = defineStore("user", () => {
     const newToken = userData.token || ''; // JWT Token
     const newRoles = Array.isArray(userData.roles) ? userData.roles : [];
     const newShopId = userData.shopId ? Number(userData.shopId) : null;
+    const newProfilePhoto = userData.profilePhoto || ''; // 新增頭像處理
 
     // 更新 Pinia State
     userId.value = newUserId;
@@ -114,6 +133,7 @@ export const useUserStore = defineStore("user", () => {
     token.value = newToken; // 更新 token ref
     roles.value = newRoles;
     shopId.value = newShopId;
+    profilePhoto.value = newProfilePhoto; // 更新頭像 ref
 
     // --- 持久化到指定的儲存空間 ---
     // 核心身份資訊存 localStorage
@@ -121,6 +141,7 @@ export const useUserStore = defineStore("user", () => {
     if (newUsername) localStorage.setItem('username', newUsername); else localStorage.removeItem('username');
     localStorage.setItem('roles', JSON.stringify(newRoles));
     if (newShopId) localStorage.setItem('shopId', String(newShopId)); else localStorage.removeItem('shopId');
+    if (newProfilePhoto) localStorage.setItem('profilePhoto', newProfilePhoto); else localStorage.removeItem('profilePhoto');
     localStorage.removeItem('token'); // 確保 localStorage 不存 token
     localStorage.removeItem('userData'); // 移除舊的組合鍵
 
@@ -139,7 +160,6 @@ export const useUserStore = defineStore("user", () => {
     console.log("✅ [UserStore] 使用者資料已儲存至 state、localStorage(身份)、sessionStorage(Token)。");
   }
 
-
   // 新增：更新賣場ID的函數
   function updateShopId(newShopId) {
     // 檢查是否為有效值 (不是 undefined, null, 空字串等)
@@ -154,9 +174,22 @@ export const useUserStore = defineStore("user", () => {
     }
   }
 
+  // 新增：更新頭像URL的函數
+  function updateProfilePhoto(newProfilePhoto) {
+    if (newProfilePhoto && newProfilePhoto !== "undefined") {
+      profilePhoto.value = newProfilePhoto;
+      localStorage.setItem("profilePhoto", newProfilePhoto);
+      console.log("🖼️ 更新使用者頭像:", profilePhoto.value);
+    } else {
+      profilePhoto.value = "";
+      localStorage.removeItem("profilePhoto");
+      console.log("🖼️ 移除使用者頭像");
+    }
+  }
+
   /**
-     * 清除使用者資料（登出時呼叫）
-     */
+   * 清除使用者資料（登出時呼叫）
+   */
   function clearUserData() {
     console.log("🗑️ [UserStore] 清除使用者資料...");
     // 清除 Pinia State
@@ -165,12 +198,14 @@ export const useUserStore = defineStore("user", () => {
     token.value = ''; // 清除 token ref
     roles.value = [];
     shopId.value = null;
+    profilePhoto.value = ''; // 清除頭像 ref
 
     // 清除 localStorage
     localStorage.removeItem('userId');
     localStorage.removeItem('username');
     localStorage.removeItem('roles');
     localStorage.removeItem('shopId');
+    localStorage.removeItem('profilePhoto'); // 清除頭像
     localStorage.removeItem('token'); // 確保清除
     localStorage.removeItem('userData');
 
@@ -180,7 +215,6 @@ export const useUserStore = defineStore("user", () => {
     sessionStorage.removeItem('userId');
     sessionStorage.removeItem('username');
     sessionStorage.removeItem('roles');
-
 
     // 清除 Axios 標頭
     delete axios.defaults.headers.common['Authorization'];
@@ -195,6 +229,11 @@ export const useUserStore = defineStore("user", () => {
   // 監聽賣場ID變更
   watch(shopId, (newShopId) => {
     console.log("🏪 賣場ID變更:", newShopId);
+  });
+
+  // 監聽頭像URL變更
+  watch(profilePhoto, (newProfilePhoto) => {
+    console.log("🖼️ 頭像URL變更:", newProfilePhoto);
   });
 
   // 🔴 新增 fetchCurrentUser 函式
@@ -212,6 +251,7 @@ export const useUserStore = defineStore("user", () => {
       });
       currentUser.value = response.data; // 假設後端返回包含使用者資訊的物件
       updateShopId(response.data.shopId); // 如果後端也返回 shopId，則更新
+      updateProfilePhoto(response.data.profilePhoto); // 如果後端返回頭像URL，則更新
     } catch (error) {
       console.error('獲取用戶失敗', error);
       clearUserData();
@@ -220,8 +260,8 @@ export const useUserStore = defineStore("user", () => {
   }
 
   /**
-       * Store 初始化時從儲存空間載入資料
-       */
+   * Store 初始化時從儲存空間載入資料
+   */
   function loadUserFromStorage() {
     console.log("--- [UserStore] 從儲存空間載入使用者資料 ---");
     // 從 localStorage 載入核心身份
@@ -229,7 +269,8 @@ export const useUserStore = defineStore("user", () => {
     const localUsername = localStorage.getItem('username');
     const localRoles = localStorage.getItem('roles');
     const localShopId = localStorage.getItem('shopId');
-    console.log(`[UserStore] 從 localStorage 讀取: userId=${localUserId}, username=${localUsername}, roles=${localRoles}, shopId=${localShopId}`);
+    const localProfilePhoto = localStorage.getItem('profilePhoto');
+    console.log(`[UserStore] 從 localStorage 讀取: userId=${localUserId}, username=${localUsername}, roles=${localRoles}, shopId=${localShopId}, profilePhoto=${localProfilePhoto}`);
 
     userId.value = localUserId ? Number(localUserId) : null;
     username.value = localUsername || '';
@@ -240,6 +281,7 @@ export const useUserStore = defineStore("user", () => {
       roles.value = [];
     }
     shopId.value = localShopId ? Number(localShopId) : null;
+    profilePhoto.value = localProfilePhoto || '';
 
     // 從 sessionStorage 載入 Token
     const sessionToken = sessionStorage.getItem('authToken');
@@ -255,7 +297,14 @@ export const useUserStore = defineStore("user", () => {
       console.log("[UserStore] 未找到初始 Token，Axios 標頭已清除。");
     }
 
-    console.log("📌 [UserStore] 初始化狀態完成:", { userId: userId.value, username: username.value, token: !!token.value, roles: roles.value, shopId: shopId.value });
+    console.log("📌 [UserStore] 初始化狀態完成:", {
+      userId: userId.value,
+      username: username.value,
+      token: !!token.value,
+      roles: roles.value,
+      shopId: shopId.value,
+      profilePhoto: profilePhoto.value
+    });
   }
 
   loadUserData();
@@ -266,6 +315,8 @@ export const useUserStore = defineStore("user", () => {
     token,
     roles,
     shopId, // 暴露賣場ID
+    profilePhoto, // 暴露頭像URL
+    getProfilePhoto, // 暴露獲取頭像方法
     isSeller,
     isAdmin,
     isUser,
@@ -275,6 +326,7 @@ export const useUserStore = defineStore("user", () => {
     saveUserData,
     reloadUserData,
     updateShopId, // 暴露更新賣場ID的方法
+    updateProfilePhoto, // 暴露更新頭像的方法
     fetchCurrentUser, // 🔴 暴露 fetchCurrentUser 函式
     currentUser, // 🔴 暴露 currentUser ref
     logout,
