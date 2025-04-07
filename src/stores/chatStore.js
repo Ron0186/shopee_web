@@ -408,12 +408,21 @@ export const useChatStore = defineStore('chat', () => {
 
     const sendMessage = (content, tempId) => {
         if (!socketManager.value.stompClient?.connected) return;
+        if (!activeChatRoom.value?.chatRoomId) return;
+        const currentSenderId = userId.value; // *** 從 userStore 獲取當前 userId ***
+
+        if (!currentSenderId) {
+            console.error("[ChatStore sendMessage] 無法發送：缺少 User ID。");
+            return;
+        }
+
+        console.log(`[ChatStore sendMessage] 使用 UserStore ID 發送: ${currentSenderId}`);
         socketManager.value.stompClient.send(
             `/app/chat/${activeChatRoom.value.chatRoomId}/send`,
             {},
             JSON.stringify({
                 content: content,
-                senderId: currentUser.value.userId,
+                senderId: String(currentSenderId),
                 tempId: tempId
             })
         );
