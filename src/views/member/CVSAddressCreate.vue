@@ -44,7 +44,8 @@
         <p v-if="phoneError" class="error">{{ phoneError }}</p>
       </div>
 
-      <button type="submit" :disabled="!selectedStore">儲存</button>
+      <button type="submit" :disabled="!selectedStore" class="func">儲存</button>
+      <button type="button" @click="cancel" class="func">取消</button> <!-- ← 新增的按鈕 -->
     </form>
 
     <p v-if="message" class="message">{{ message }}</p>
@@ -57,6 +58,9 @@ import axios from 'axios'
 import { jwtDecode } from 'jwt-decode'
 import qs from 'qs'
 import { parseStoreAddress } from '@/assets/parseStoreAddress.js'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const token = localStorage.getItem('token')
 const userId = jwtDecode(token).userId
@@ -67,6 +71,12 @@ const form = ref({
 })
 const phoneError = ref('')
 const message = ref('')
+
+const storeNameMap = {
+  FAMI: '全家',
+  UNIMART: '7-11',
+  HILIFE: '萊爾富'
+}
 
 // 門市選擇區域邏輯
 const cvsType = ref('FAMI')
@@ -114,6 +124,8 @@ async function createCVSAddress() {
   if (phoneError.value) return
 
   const parsed = parseStoreAddress(selectedStore.value.StoreName, selectedStore.value.StoreAddr)
+  const fullStreetEtc = `${storeNameMap[cvsType.value]}-${parsed.city}${parsed.district}${parsed.streetEtc}`
+
   const payload = {
     userId,
     addressTypeId: 2,
@@ -121,26 +133,34 @@ async function createCVSAddress() {
     city: parsed.city,
     district: parsed.district,
     zipCode: parsed.zipCode,
-    streetEtc: parsed.streetEtc,
+    streetEtc: fullStreetEtc,
     recipientName: form.value.recipientName,
     recipientPhone: form.value.recipientPhone
   }
 
+  console.log('🚀 傳送的 payload:', JSON.stringify(payload, null, 2))
   try {
-    await axios.post('http://localhost:8081/api/user/address/cvs', payload, {
+    await axios.post(`http://localhost:8081/api/user/address/${userId}/create-cvs`, payload, {
       headers: { Authorization: `Bearer ${token}` }
     })
-    message.value = '新增成功！'
-  } catch (err) {
-    console.error(err)
-    message.value = '新增失敗，請稍後再試'
+    message.value = '成功新增地址！'
+    setTimeout(() => {
+      router.push('/address')
+    }, 1000)
+  } catch (error) {
+    console.error('新增地址失敗', error)
+    message.value = '失敗，請稍後再試！'
   }
+}
+
+function cancel() {
+  router.push('/address')
 }
 </script>
 
 <style scoped>
 .container {
-  max-width: 420px;
+  max-width: 620px;
   margin: auto;
   padding: 24px;
   background: #fff;
@@ -170,5 +190,29 @@ button {
   text-align: center;
   color: green;
   margin-top: 12px;
+}
+.func {
+    display: inline-block;
+    padding: 15px 25px;
+    font-size: 24px;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    outline: none;
+    color: #fff;
+    background-color: #04AA6D;
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 9px #999;
+}
+
+.func:hover {
+    background-color: #3e8e41;
+}
+
+.func:active {
+    background-color: #3e8e41;
+    box-shadow: 0 5px #666;
+    transform: translateY(4px);
 }
 </style>

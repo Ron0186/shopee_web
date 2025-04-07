@@ -2,16 +2,15 @@
 import { taiwanAddress } from './taiwanAddress'
 
 export function parseStoreAddress(storeName, storeAddr) {
-    // 🧩 1. 從地址中解析 city / district / street
     const cityMatch = storeAddr.match(/^(.{2,3}[市縣])/)
     const city = cityMatch ? cityMatch[1] : ''
 
     const districtMatch = storeAddr.match(/^[^市縣]+[市縣](.{1,3}[區鎮市鄉])/)
     const district = districtMatch ? districtMatch[1] : ''
 
-    const streetEtc = storeAddr.replace(city + district, '') + ' - ' + storeName
+    const rawStreet = storeAddr.replace(city + district, '')
+    const streetEtc = `${city}${district}${rawStreet} - ${storeName}`
 
-    // 🧩 2. 取得郵遞區號
     const zipCode =
         taiwanAddress[city] && taiwanAddress[city][district]
             ? taiwanAddress[city][district]
@@ -24,3 +23,4 @@ export function parseStoreAddress(storeName, storeAddr) {
         streetEtc,
     }
 }
+
