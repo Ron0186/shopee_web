@@ -148,11 +148,11 @@ const router = createRouter({
         //   name: "memberOrders",
         //   component: () => import("@/views/member/MemberOrders.vue"),
         // },
-        // {
-        //   path: "/memberCoupons",
-        //   name: "memberCoupons",
-        //   component: () => import("@/views/member/MemberCoupons.vue"),
-        // },
+        {
+          path: "/memberCoupons",
+          name: "memberCoupons",
+          component: () => import("@/views/member/MemberCoupons.vue"),
+        },
         {
           path: "/updateHomeAddress/:addressId",
           name: "UpdateHomeAddress",
