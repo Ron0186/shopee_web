@@ -139,31 +139,35 @@ const handleClickOutside = (event) => {
 };
 
 async function logout() {
-  // 清除 pinia userStore
-  userStore.clearUserData();
   
-  await Swal.fire({
+  const response = await Swal.fire({
     title: "登出成功",
     icon: "success",
   });
+  if(response.isConfirmed){  
+    // 清除 pinia userStore
+    userStore.clearUserData();
   // 跳轉到登入頁
   router.push({ name: "AdminLogin" });
+  }
 }
 
 // 登出並跳轉到前台登入頁的函數
 async function logoutToFrontend() {
-  // 清除 pinia userStore
-  userStore.clearUserData();
+
   
-  await Swal.fire({
+  const response = await Swal.fire({
     title: "已登出後台",
     text: "正在前往前台登入頁面",
     icon: "success",
     confirmButtonText: "OK",
   });
-  
+  if(response.isConfirmed){  
+    // 清除 pinia userStore
+    userStore.clearUserData();
   // 跳轉到前台登入頁
   window.location.href = "/user/login";
+}
 }
 </script>
 
