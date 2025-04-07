@@ -10,44 +10,57 @@
 
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
-      <router-link to="/user/login" v-if="!userStore.username">🔑
-        登入</router-link>
-      <router-link to="/user/register" v-if="!userStore.username">📝
-        註冊</router-link>
-
+      <router-link to="/user/login" v-if="!userStore.username"
+        >🔑 登入</router-link
+      >
+      <router-link to="/user/register" v-if="!userStore.username"
+        >📝 註冊</router-link
+      >
 
       <!-- 新增賣家中心按鈕 -->
-      <router-link :to="'/store/' + userStore.shopId" v-if="
-        userStore.token &&
-        userStore.isSeller &&
-        userStore.shopId &&
-        userStore.shopId !== 'undefined'
-      ">
+      <router-link
+        :to="'/store/' + userStore.shopId"
+        v-if="
+          userStore.token &&
+          userStore.isSeller &&
+          userStore.shopId &&
+          userStore.shopId !== 'undefined'
+        "
+      >
         🏪 賣家中心
       </router-link>
 
       <!-- ✅ 訂單管理 + 通知角標 -->
-      <router-link v-if="userStore.username" :to="userStore.isSeller ? '/seller/orders' : '/user/orders'"
-        class="position-relative">
+      <router-link
+        v-if="userStore.username"
+        :to="userStore.isSeller ? '/seller/orders' : '/user/orders'"
+        class="position-relative"
+      >
         📦 訂單管理
         <!-- 賣家：待處理訂單通知 -->
-        <span v-if="userStore.isSeller && pendingCount > 0"
-          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
+        <span
+          v-if="userStore.isSeller && pendingCount > 0"
+          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle"
+        >
           {{ pendingCount }}
         </span>
 
         <!-- 買家：配送中通知 -->
-        <span v-if="userStore.isUser && shippedCount > 0"
-          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle">
+        <span
+          v-if="userStore.isUser && shippedCount > 0"
+          class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle"
+        >
           {{ shippedCount }}
         </span>
       </router-link>
 
       <router-link to="/submitReview">📝 評價商品</router-link>
-      <router-link v-if="userStore.isSeller" to="/seller-setting">⚙️
-        賣家設定</router-link>
-      <router-link v-if="userStore.isSeller" to="/revenue">⚙️
-        營收表現</router-link>
+      <router-link v-if="userStore.isSeller" to="/seller-setting"
+        >⚙️ 賣家設定</router-link
+      >
+      <router-link v-if="userStore.isSeller" to="/revenue"
+        >📊 營收表現</router-link
+      >
       <router-link to="/cart">🛒 購物車</router-link>
 
       <!-- 使用者名稱下拉選單 -->
@@ -56,16 +69,20 @@
           {{ userStore.username }} <span class="dropdown-icon">▼</span>
         </button>
         <div class="user-dropdown-content" v-if="userMenuOpen">
-          <router-link to="/memberCenter" @click="userMenuOpen = false">👤 會員中心</router-link>
-          <router-link to="/shop/apply" v-if="userStore.token && !userStore.roles.includes('SELLER')"
-            @click="userMenuOpen = false">📝
-            申請成為賣家</router-link>
+          <router-link to="/memberCenter" @click="userMenuOpen = false"
+            >👤 會員中心</router-link
+          >
+          <router-link
+            to="/shop/apply"
+            v-if="userStore.token && !userStore.roles.includes('SELLER')"
+            @click="userMenuOpen = false"
+            >📝 申請成為賣家</router-link
+          >
           <div @click="logout" class="dropdown-item">登出</div>
         </div>
       </div>
 
-      <span @click="logoutToAdmin"
-        class="logout-link admin-logout">
+      <span @click="logoutToAdmin" class="logout-link admin-logout">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
       </span>
     </div>
@@ -80,50 +97,70 @@
         <button @click="toggleCategory">🛍 商城分類 ▼</button>
         <ul v-if="categoryOpen">
           <li>
-            <router-link to="/shop?category=clothing" @click="toggleDrawer">👕
-              衣服</router-link>
+            <router-link to="/shop?category=clothing" @click="toggleDrawer"
+              >👕 衣服</router-link
+            >
           </li>
           <li>
-            <router-link to="/shop?category=electronics" @click="toggleDrawer">📱 電子產品</router-link>
+            <router-link to="/shop?category=electronics" @click="toggleDrawer"
+              >📱 電子產品</router-link
+            >
           </li>
           <li>
-            <router-link to="/shop?category=home" @click="toggleDrawer">🏠
-              家用品</router-link>
+            <router-link to="/shop?category=home" @click="toggleDrawer"
+              >🏠 家用品</router-link
+            >
           </li>
           <li>
-            <router-link to="/shop?category=others" @click="toggleDrawer">🔹
-              其他</router-link>
+            <router-link to="/shop?category=others" @click="toggleDrawer"
+              >🔹 其他</router-link
+            >
           </li>
         </ul>
       </li>
       <li>
-        <router-link to="/discounts" @click="toggleDrawer">💰 優惠專區</router-link>
+        <router-link to="/discounts" @click="toggleDrawer"
+          >💰 優惠專區</router-link
+        >
       </li>
       <li>
-        <router-link to="/notifications" @click="toggleDrawer">🔔
-          通知</router-link>
+        <router-link to="/notifications" @click="toggleDrawer"
+          >🔔 通知</router-link
+        >
       </li>
       <li>
-        <router-link to="/helpCenter" @click="toggleDrawer">📞 客服 &
-          幫助中心</router-link>
+        <router-link to="/helpCenter" @click="toggleDrawer"
+          >📞 客服 & 幫助中心</router-link
+        >
       </li>
       <li>
-        <router-link to="/address" @click="toggleDrawer">📍 地址管理</router-link>
+        <router-link to="/address" @click="toggleDrawer"
+          >📍 地址管理</router-link
+        >
       </li>
       <li>
-        <router-link to="/payment-methods" @click="toggleDrawer">💳
-          付款方式</router-link>
+        <router-link to="/payment-methods" @click="toggleDrawer"
+          >💳 付款方式</router-link
+        >
       </li>
       <li>
-        <router-link to="/privacy" @click="toggleDrawer">📜 隱私政策 &
-          使用者條款</router-link>
+        <router-link to="/privacy" @click="toggleDrawer"
+          >📜 隱私政策 & 使用者條款</router-link
+        >
       </li>
       <li>
-        <router-link v-if="userStore.isSeller" to="/seller/coupon/apply" @click="toggleDrawer">🎟️
-          優惠券申請</router-link>
+        <router-link
+          v-if="userStore.isSeller"
+          to="/seller/coupon/apply"
+          @click="toggleDrawer"
+          >🎟️ 優惠券申請</router-link
+        >
       </li>
       <li>
-        <router-link :to="{ name: 'ShopListPage' }" class="btn btn-outline-primary">
+        <router-link
+          :to="{ name: 'ShopListPage' }"
+          class="btn btn-outline-primary"
+        >
           <i class="bi bi-shop-window"></i> 查看商店列表
         </router-link>
       </li>
@@ -157,15 +194,19 @@ const toggleUserMenu = () => {
 
 // 點擊其他地方關閉使用者選單
 const handleClickOutside = (event) => {
-  const userDropdown = document.querySelector('.user-dropdown');
-  if (userDropdown && !userDropdown.contains(event.target) && userMenuOpen.value) {
+  const userDropdown = document.querySelector(".user-dropdown");
+  if (
+    userDropdown &&
+    !userDropdown.contains(event.target) &&
+    userMenuOpen.value
+  ) {
     userMenuOpen.value = false;
   }
 };
 
 // 監聽全局點擊事件
 onMounted(() => {
-  document.addEventListener('click', handleClickOutside);
+  document.addEventListener("click", handleClickOutside);
   if (userStore.token) {
     fetchNotificationCount(); // 回傳通知列
   }
@@ -173,7 +214,7 @@ onMounted(() => {
 
 // 清理事件監聽器
 onUnmounted(() => {
-  document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener("click", handleClickOutside);
 });
 
 const pendingCount = ref(0); // 賣家通知數
@@ -254,7 +295,7 @@ const handleNotificationClick = (chatRoomId) => {
   box-sizing: border-box;
 }
 
-.title>a {
+.title > a {
   color: #000;
   text-decoration: none;
   font-weight: 600;
