@@ -1,9 +1,7 @@
 <template>
   <div class="shop-container">
-    <!-- 商店資訊 -->
     <SellerStoreInfo :shop="shop" :isOwner="isOwner" />
 
-    <!-- 賣家專屬「我的商品」按鈕 -->
     <div v-if="isOwner" class="my-products-section">
   <div class="buttons-container">
     <button class="btn-my-products" @click="goToMyProducts">
@@ -136,7 +134,7 @@
 <script setup>
 import SellerStoreInfo from "@/components/SellerStore/SellerStoreInfo.vue";
 import ProductDetail from "@/components/product.components/ProductDetail.vue";
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, watch, computed, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
@@ -146,8 +144,6 @@ import ShopCampaigns from "@/components/campaign/ShopCampaigns.vue";
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
-
-// 取得用戶資訊
 const token = userStore.token;
 
 // 狀態變數
@@ -167,20 +163,17 @@ const totalPages = ref(0);
 // 商品詳情彈窗相關
 const showProductDetail = ref(false);
 const selectedProductId = ref(null);
+// ⭐ 新增：用來存每個商品的星等和留言數
+const reviewSummaries = reactive({});
 
-// 根據搜尋條件過濾商品
 const filteredProducts = computed(() => {
   if (!searchQuery.value) return products.value;
-
   const query = searchQuery.value.toLowerCase();
-  return products.value.filter(
-    (product) =>
-      product.productName.toLowerCase().includes(query) ||
-      (product.description && product.description.toLowerCase().includes(query))
+  return products.value.filter((product) =>
+    product.productName.toLowerCase().includes(query)
   );
 });
 
-// 取得商店資訊
 const fetchShopData = async () => {
   const shopId = route.params.shopId;
   try {
@@ -196,30 +189,16 @@ const fetchShopData = async () => {
       errorMessage.value = response.data.message || "商店資訊獲取失敗";
     }
   } catch (error) {
-    if (error.response && error.response.status === 404) {
-      Swal.fire({
-        title: "錯誤",
-        text: "此商店不存在!",
-        icon: "error",
-        confirmButtonText: "確定",
-      }).then(() => {
-        if (window.history.length > 1) {
-          router.back();
-        } else {
-          router.push("/shop");
-        }
-      });
-    } else {
-      errorMessage.value = "無法獲取商店資訊，請稍後再試";
-    }
+    console.error("商店資料載入失敗", error);
   }
 };
 
-// 檢查是否為商店擁有者
 const checkOwner = async () => {
   const shopId = route.params.shopId;
   try {
-    const response = await axios.get(`/api/shop/${shopId}/is-owner`);
+    const response = await axios.get(`/api/shop/${shopId}/is-owner`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     isOwner.value = response.data.isOwner;
 
     // 如果是店主，存儲 shopId
@@ -227,16 +206,24 @@ const checkOwner = async () => {
       userStore.updateShopId(shopId);
     }
   } catch (error) {
-    console.error("檢查擁有者錯誤:", error);
-    isOwner.value = false;
+    console.error("檢查商店擁有者錯誤", error);
+  }
+};
+
+// ⭐ 新增：根據 productId 抓 review summary
+const fetchReviewSummary = async (productId) => {
+  try {
+    const res = await axios.get(`/api/review/summary/product/${productId}`);
+    reviewSummaries[productId] = res.data;
+  } catch (error) {
+    console.error(`取得商品 ${productId} 評價失敗`, error);
+    reviewSummaries[productId] = { averageRating: 0, reviewCount: 0 };
   }
 };
 
 // 獲取商店的所有商品 - 使用新的 API 端點
 const fetchProducts = async () => {
   const shopId = route.params.shopId;
-  loading.value = true;
-
   try {
     const res = await axios.get(`/api/products/public/shop/${shopId}`, {
       params: {
@@ -269,6 +256,11 @@ const fetchProducts = async () => {
       products.value = [];
       totalPages.value = 0;
     }
+    // products.value = response.data.content || []; 先保留
+
+// ⭐ 每筆商品抓一次評價統計
+// for (const product of products.value) {
+  // fetchReviewSummary(product.productId);
   } catch (error) {
     console.error("❌ 取得商品失敗：", error);
     products.value = [];
@@ -293,10 +285,10 @@ const searchProduct = () => {
 
 // 導航到「我的商品」頁面，並攜帶 shopId 作為路由參數
 const goToMyProducts = () => {
-  router.push(
-    `/seller/shops/${shop.value.shopId || route.params.shopId}/products`
-  );
+  router.push(`/seller/shops/${shop.value.shopId}/products`);
 };
+
+
 
 const goToMyCampaign = () => {
   router.push(
@@ -304,7 +296,6 @@ const goToMyCampaign = () => {
   );
 };
 
-// 查看商品詳情
 const viewProductDetail = (productId) => {
   // router.push(`/products/${productId}`); ///////////
   // 使用彈窗顯示商品詳情
@@ -469,7 +460,6 @@ const handleBuyNow = async (data) => {
   }
 };
 
-// 格式化價格
 const formatPrice = (price) => {
   if (!price && price !== 0) return "未定價";
   return typeof price === "number" ? price.toLocaleString("zh-TW") : price;
@@ -537,7 +527,6 @@ const isProductActive = (product) => {
   );
 };
 
-// 組件掛載時請求商店資訊 & 檢查擁有者 & 獲取商品列表
 onMounted(async () => {
   await fetchShopData();
   await checkOwner();
@@ -758,6 +747,7 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
 }
+
 
 .rating-icon {
   color: #ffc107;
