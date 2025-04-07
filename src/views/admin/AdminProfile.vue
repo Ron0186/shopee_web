@@ -820,7 +820,7 @@ async function updateProfile() {
           axios.defaults.headers.common["Authorization"] = '';
           
           // 導航到登入頁面
-          router.push({ name: 'Login' });
+          router.push("/admin/login");
         }
       });
     } else {

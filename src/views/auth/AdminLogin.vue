@@ -229,19 +229,36 @@ async function login() {
     });
 
     if (response.data.success) {
+      // 解析JWT並設置Authorization頭部
+      const decodedToken = jwtDecode(response.data.token);
+      axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
+      
+      // 先保存基本用戶資訊
+      userStore.saveUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
+      
+      // 獲取管理員的詳細資訊，包括頭像URL
+      try {
+        const profileResponse = await axios.get('/api/admin/profile');
+        if (profileResponse.data && profileResponse.data.profilePhotoUrl) {
+          // 更新頭像信息
+          userStore.updateProfilePhoto(profileResponse.data.profilePhotoUrl);
+          
+          // 同步更新到localStorage
+          localStorage.setItem('profilePhoto', profileResponse.data.profilePhotoUrl);
+          
+          console.log("成功獲取管理員頭像:", profileResponse.data.profilePhotoUrl);
+        }
+      } catch (profileError) {
+        console.error("獲取管理員資料失敗:", profileError);
+        // 即使獲取頭像失敗，登入流程仍然繼續
+      }
+
       await Swal.fire({
         title: response.data.message,
         icon: "success",
       });
 
-      const decodedToken = jwtDecode(response.data.token);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
-      console.log(decodedToken.sub);
-      console.log(decodedToken.userId);
-      console.log(response.data.token);
-      console.log(decodedToken.roles);
-      userStore.saveUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
-
+      // 重定向到儀表板
       router.push({ name: "Dashboard" });
     }
   } catch (error) {
@@ -257,7 +274,6 @@ async function login() {
     }
   }
 }
-
 // 快速登入功能
 function quickLogin(role) {
   switch(role) {
