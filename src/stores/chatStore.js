@@ -270,6 +270,7 @@ export const useChatStore = defineStore('chat', () => {
             await new Promise((resolve, reject) => {
                 // ** 在 connect 內部再次確認 token **
                 const latestAuthToken = sessionStorage.getItem('authToken');
+                console.log(">>> connectWebSocket: Calling stompClient.connect with headers:", latestAuthToken); // 新增
                 if (!latestAuthToken) {
                     console.error("[ChatStore connect] Error: Auth token missing right before connect.");
                     reject(new Error("Auth token missing"));
