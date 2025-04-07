@@ -1,90 +1,123 @@
 <template>
-  <div>
-    <button @click="selectStore">選擇超商門市</button>
-    <div v-if="store">
-      你選擇了：{{ store.name }}，地址：{{ store.address }}
-    </div>
-  </div>
-
-  <div class="store-list">
+  <div class="store-picker">
     <label for="cvsType">選擇超商類型：</label>
     <select id="cvsType" v-model="cvsType">
-      <option value="FAMI">全家 (FAMI)</option>
-      <option value="UNIMART">7-11 (UNIMART)</option>
-      <option value="HILIFE">萊爾富 (HILIFE)</option>
+      <option value="FAMI">全家</option>
+      <option value="UNIMART">7-11</option>
+      <option value="HILIFE">萊爾富</option>
     </select>
 
     <button @click="getStoreList">取得門市清單</button>
 
-    <div v-if="storeList">
-      <h3>取得結果：</h3>
-      <pre>{{ storeList }}</pre>
+    <div class="filters" v-if="storeList.length">
+      <label>
+        城市：<input v-model="cityFilter" placeholder="例如：高雄市" />
+      </label>
+      <label>
+        區名：<input v-model="districtFilter" placeholder="例如：鼓山區" />
+      </label>
+      <label>
+        路名/街名：<input v-model="streetFilter" placeholder="例如：美術館路" />
+      </label>
+    </div>
+
+    <div v-if="filteredStores.length">
+      <h3>門市選擇：</h3>
+      <select v-model="selectedStoreId">
+        <option v-for="store in filteredStores" :key="store.StoreId" :value="store.StoreId">
+          {{ store.StoreName }} - {{ store.StoreAddr }}
+        </option>
+      </select>
+    </div>
+
+    <div v-if="selectedStore">
+      <h4>你選擇了：</h4>
+      <p>{{ selectedStore.StoreName }} - {{ selectedStore.StoreAddr }}</p>
+      <button @click="confirmStore">確認門市</button>
     </div>
   </div>
 </template>
 
 <script setup>
-
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import axios from 'axios'
+import qs from 'qs'
+import { parseStoreAddress } from '@/assets/parseStoreAddress.js'
 
-// 門市資料
-const store = ref(null)
-let pollInterval = null
+const emit = defineEmits(['selected'])
 
-// 門市清單查詢
 const cvsType = ref('FAMI')
-const storeList = ref('')
+const storeList = ref([])
 
-function selectStore() {
-  window.open('http://localhost:8081/api/ecpay/cvs-map', '_blank')
-  pollInterval = setInterval(fetchStoreInfo, 1000)
-}
+const cityFilter = ref('')
+const districtFilter = ref('')
+const streetFilter = ref('')
 
-async function fetchStoreInfo() {
-  try {
-    const res = await axios.get('http://localhost:8081/api/ecpay/selected-store')
-    if (res.data && res.data.CVSStoreName && res.data.CVSAddress) {
-      store.value = {
-        name: res.data.CVSStoreName,
-        address: res.data.CVSAddress,
-      }
-      clearInterval(pollInterval)
-    }
-  } catch (err) {
-    console.error('輪詢門市資料失敗:', err)
-  }
-}
+const selectedStoreId = ref(null)
+const selectedStore = computed(() =>
+  storeList.value.find(store => store.StoreId === selectedStoreId.value)
+)
 
 async function getStoreList() {
   try {
     const response = await axios.post(
       'http://localhost:8081/api/ecpay/store-list',
-      null,
-      {
-        params: {
-          cvsType: cvsType.value,
-        },
-      }
+      qs.stringify({ cvsType: cvsType.value }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
     )
-    storeList.value = response.data
+    const allStores = response.data.StoreList.flatMap(item => item.StoreInfo)
+    storeList.value = allStores
+    selectedStoreId.value = null
   } catch (error) {
     console.error('取得門市清單失敗:', error)
-    storeList.value = '取得失敗：' + error.message
   }
 }
 
-onUnmounted(() => {
-  if (pollInterval) clearInterval(pollInterval)
+const filteredStores = computed(() => {
+  return storeList.value.filter(store => {
+    const addr = store.StoreAddr || ''
+    return (
+      (!cityFilter.value || addr.includes(cityFilter.value)) &&
+      (!districtFilter.value || addr.includes(districtFilter.value)) &&
+      (!streetFilter.value || addr.includes(streetFilter.value))
+    )
+  })
 })
 
+function confirmStore() {
+  if (!selectedStore.value) return
+  const parsed = parseStoreAddress(selectedStore.value.StoreName, selectedStore.value.StoreAddr)
+  emit('selected', {
+    name: selectedStore.value.StoreName,
+    address: selectedStore.value.StoreAddr,
+    ...parsed,
+    type: cvsType.value,
+  })
+}
 </script>
 
 <style scoped>
+.store-picker {
+  padding: 16px;
+}
+label {
+  display: block;
+  margin: 10px 0;
+}
+input {
+  padding: 6px;
+  margin-left: 6px;
+  width: 200px;
+}
+select {
+  padding: 6px;
+  width: 100%;
+}
 button {
+  margin-top: 10px;
   padding: 8px 12px;
   border-radius: 6px;
-  background: #42b983;
+  background-color: #42b983;
   color: white;
   border: none;
   cursor: pointer;

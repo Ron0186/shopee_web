@@ -25,6 +25,7 @@
     "lodash": "^4.17.21",
     "pinia": "^3.0.1",
     "pinia-plugin-persistedstate": "^4.2.0",
+    "qs": "^6.14.0",
     "relative-time": "^1.0.0",
     "sockjs-client": "^1.6.1",
     "stompjs": "^2.3.3",
