@@ -137,13 +137,13 @@
     </td>
     <td>
       <span 
-        v-for="(role, index) in user.roles" 
-        :key="index" 
-        class="badge me-1 mb-1"
-        :class="getRoleBadgeClass(role)"
-      >
-        {{ role }}
-      </span>
+  v-for="(role, index) in user.roles" 
+  :key="index" 
+  class="badge me-1 mb-1"
+  :class="getRoleBadgeClass(role)"
+>
+  {{ getRoleDisplayName(role) }}
+</span>
     </td>
     <td class="text-center">
       <div class="btn-group">
@@ -548,6 +548,21 @@ const getStatusBadgeClass = (status) => {
       return 'badge bg-danger';
     default:
       return 'badge bg-secondary';
+  }
+};
+
+const getRoleDisplayName = (role) => {
+  switch (role) {
+    case 'USER':
+      return '買家';
+    case 'SELLER':
+      return '賣家';
+    case 'ADMIN':
+      return '管理員';
+    case 'SUPER_ADMIN':
+      return '超級管理員';
+    default:
+      return role;
   }
 };
 

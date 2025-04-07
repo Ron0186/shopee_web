@@ -3,16 +3,15 @@
     <SellerStoreInfo :shop="shop" :isOwner="isOwner" />
 
     <div v-if="isOwner" class="my-products-section">
-      <button class="btn-my-products" @click="goToMyProducts">
-        <span class="icon">🛍️</span> 我的商品
-      </button>
-    </div>
-
-    <div v-if="isOwner" class="my-products-section">
-      <button class="btn btn-my-products" @click="goToMyCampaign">
-        我的行銷活動
-      </button>
-    </div>
+  <div class="buttons-container">
+    <button class="btn-my-products" @click="goToMyProducts">
+      <span class="icon">🛍️</span> 我的商品
+    </button>
+    <button class="btn-my-products" @click="goToMyCampaign">
+      <span class="icon">📣</span> 我的行銷活動
+    </button>
+  </div>
+</div>
  <!-- 非店主顯示活動列表 -->
  <ShopCampaigns v-if="!isOwner" :shopId="shop.shopId || route.params.shopId" />
     <!-- 分類選單 -->
@@ -1314,5 +1313,19 @@ onMounted(async () => {
 
 .product-card {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03), 0 2px 3px rgba(0, 0, 0, 0.01);
+}
+
+.buttons-container {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .buttons-container {
+    flex-direction: column;
+    gap: 15px;
+  }
 }
 </style>

@@ -1,16 +1,44 @@
 <template>
   <Teleport to="body">
-    <div v-if="isOpen" class="modal fade show d-block" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content border-0 shadow">
-          <div class="modal-header bg-light border-bottom">
-            <h5 class="modal-title">
-              <i class="bi bi-person-plus-fill me-2 text-success"></i>新增管理員
-            </h5>
-            <button type="button" class="btn-close" @click="close" aria-label="關閉"></button>
+  <!-- 更新 modal-dialog 樣式為更寬的版本 -->
+<div v-if="isOpen" class="modal fade show d-block" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-light border-bottom">
+        <h5 class="modal-title">
+          <i class="bi bi-person-plus-fill me-2 text-success"></i>新增管理員
+        </h5>
+        <button type="button" class="btn-close" @click="close" aria-label="關閉"></button>
+      </div>
+      <div class="modal-body p-4">
+        <div class="d-flex justify-content-between mb-4">
+          <h6 class="fw-bold">
+            <i class="bi bi-person-plus-fill me-1 text-success"></i>快速輸入
+          </h6>
+          <div class="btn-group btn-group-sm">
+            <button 
+              type="button" 
+              class="btn btn-outline-success" 
+              @click="fillProductManager">
+              <i class="bi bi-box-seam me-1"></i>填入我是商品管理員
+            </button>
+            <button 
+              type="button" 
+              class="btn btn-outline-warning" 
+              @click="fillAccountManager">
+              <i class="bi bi-person-badge me-1"></i>填入我是帳號管理員
+            </button>
           </div>
-          <div class="modal-body p-4">
-            <form @submit.prevent="addAdmin">
+        </div>
+        
+        <form @submit.prevent="addAdmin">
+          <div class="row">
+            <!-- 左側：基本資訊 -->
+            <div class="col-md-7 pe-md-4 border-end">
+              <h6 class="fw-bold mb-3 text-primary">
+                <i class="bi bi-info-circle me-1"></i>基本資訊
+              </h6>
+              
               <div class="mb-3">
                 <label class="form-label fw-bold">名稱</label>
                 <div class="input-group">
@@ -52,7 +80,7 @@
                     </button>
                   </div>
                   
-                  <!-- 浮動式密碼提示窗 (Popover) - 在右側顯示 -->
+                  <!-- 浮動式密碼提示窗 (Popover) -->
                   <div v-if="showPasswordTips && newAdmin.password" class="password-popover">
                     <div class="password-tips-popover bg-white p-3 rounded shadow-sm border">
                       <h6 class="fw-bold mb-2 small">
@@ -158,74 +186,127 @@
                   <i class="bi bi-exclamation-circle me-1"></i>電話號碼須為10位數字
                 </div>
               </div>
+            </div>
+            
+            <!-- 右側：角色選擇 -->
+            <div class="col-md-5 ps-md-4">
+              <h6 class="fw-bold mb-3 text-primary">
+                <i class="bi bi-person-gear me-1"></i>角色權限
+              </h6>
               
-              <div class="mb-3">
-                <label class="form-label fw-bold">角色</label>
-                <div class="alert alert-info small mb-3">
-                  <i class="bi bi-info-circle me-2"></i>請注意：「ADMIN」角色是必選項，不可取消。
+              <div class="alert alert-info small mb-3">
+                <i class="bi bi-info-circle me-2"></i>請注意：「基礎管理員」角色是必選項，不可取消。
+              </div>
+              
+              <div class="role-selector border rounded p-3 bg-light">
+                <!-- ADMIN 角色 - 預設選中且禁用 -->
+                <div class="role-item d-flex align-items-center mb-3 p-2 bg-white rounded">
+                  <div class="form-check flex-grow-1">
+                    <input 
+                      type="checkbox" 
+                      class="form-check-input" 
+                      id="role-ADMIN" 
+                      value="ADMIN" 
+                      v-model="newAdmin.roles"
+                      disabled
+                    />
+                    <label class="form-check-label me-2" for="role-ADMIN">
+                      <i class="bi bi-person-fill-lock me-2 text-primary"></i><strong>基礎管理員</strong>
+                    </label>
+                  </div>
+                  <span class="badge bg-primary text-white">必選</span>
                 </div>
                 
-                <div class="role-selector border rounded p-3 bg-light">
-                  <!-- ADMIN 角色 - 預設選中且禁用 -->
-                  <div class="role-item d-flex align-items-center mb-3 p-2 bg-white rounded">
-                    <div class="form-check flex-grow-1">
-                      <input 
-                        type="checkbox" 
-                        class="form-check-input" 
-                        id="role-ADMIN" 
-                        value="ADMIN" 
-                        v-model="newAdmin.roles"
-                        disabled
-                      />
-                      <label class="form-check-label me-2" for="role-ADMIN">
-                        <i class="bi bi-person-fill-lock me-2 text-primary"></i><strong>ADMIN</strong>
-                      </label>
-                    </div>
-                    <span class="badge bg-primary text-white">基礎管理員權限 (必選)</span>
+                <!-- PRODUCT_MANAGER 角色 - 可選 -->
+                <div class="role-item d-flex align-items-center mb-3 p-2 rounded" 
+                  :class="{ 'bg-white-hover': !isProductManager, 'bg-white': isProductManager }">
+                  <div class="form-check flex-grow-1">
+                    <input 
+                      type="checkbox" 
+                      class="form-check-input" 
+                      id="role-PRODUCT_MANAGER" 
+                      value="PRODUCT_MANAGER" 
+                      v-model="newAdmin.roles"
+                    />
+                    <label class="form-check-label me-2" for="role-PRODUCT_MANAGER">
+                      <i class="bi bi-box-seam me-2 text-success"></i><strong>商品管理員</strong>
+                    </label>
                   </div>
-                  
-                  <!-- SUPER_ADMIN 角色 - 可選 -->
-                  <div class="role-item d-flex align-items-center mb-3 p-2 rounded" 
-                    :class="{ 'bg-white-hover': !isSuperAdmin, 'bg-white': isSuperAdmin }">
-                    <div class="form-check flex-grow-1">
-                      <input 
-                        type="checkbox" 
-                        class="form-check-input" 
-                        id="role-SUPER_ADMIN" 
-                        value="SUPER_ADMIN" 
-                        v-model="newAdmin.roles"
-                      />
-                      <label class="form-check-label me-2" for="role-SUPER_ADMIN">
-                        <i class="bi bi-shield-lock me-2 text-danger"></i><strong>SUPER_ADMIN</strong>
-                      </label>
-                    </div>
-                    <span class="badge bg-danger text-white">超級管理員權限</span>
+                  <span class="badge bg-success text-white">選填</span>
+                </div>
+                
+                <!-- ACCOUNT_MANAGER 角色 - 可選 -->
+                <div class="role-item d-flex align-items-center mb-3 p-2 rounded" 
+                  :class="{ 'bg-white-hover': !isAccountManager, 'bg-white': isAccountManager }">
+                  <div class="form-check flex-grow-1">
+                    <input 
+                      type="checkbox" 
+                      class="form-check-input" 
+                      id="role-ACCOUNT_MANAGER" 
+                      value="ACCOUNT_MANAGER" 
+                      v-model="newAdmin.roles"
+                    />
+                    <label class="form-check-label me-2" for="role-ACCOUNT_MANAGER">
+                      <i class="bi bi-person-badge me-2 text-warning"></i><strong>帳號管理員</strong>
+                    </label>
                   </div>
+                  <span class="badge bg-warning text-dark">選填</span>
+                </div>
+                
+                <!-- SUPER_ADMIN 角色 - 可選 -->
+                <div class="role-item d-flex align-items-center mb-3 p-2 rounded" 
+                  :class="{ 'bg-white-hover': !isSuperAdmin, 'bg-white': isSuperAdmin }">
+                  <div class="form-check flex-grow-1">
+                    <input 
+                      type="checkbox" 
+                      class="form-check-input" 
+                      id="role-SUPER_ADMIN" 
+                      value="SUPER_ADMIN" 
+                      v-model="newAdmin.roles"
+                    />
+                    <label class="form-check-label me-2" for="role-SUPER_ADMIN">
+                      <i class="bi bi-shield-lock me-2 text-danger"></i><strong>超級管理員</strong>
+                    </label>
+                  </div>
+                  <span class="badge bg-danger text-white">選填</span>
                 </div>
               </div>
               
-              <div class="d-flex justify-content-end gap-2 mt-4">
-                <button type="button" class="btn btn-light px-4" @click="close">
-                  <i class="bi bi-x me-1"></i>取消
-                </button>
-                <button 
-                  type="submit" 
-                  class="btn btn-success px-4"
-                  :disabled="isSubmitting || 
-                    (newAdmin.email && !isValidEmail) || 
-                    (newAdmin.phone && !isValidPhone) || 
-                    !passwordsMatch"
-                >
-                  <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                  <i v-else class="bi bi-plus me-1"></i>新增
-                </button>
+              <!-- 角色權限說明 -->
+              <div class="role-description mt-4">
+                <h6 class="fw-bold small text-muted mb-2">角色權限說明：</h6>
+                <ul class="small text-muted mb-0 ps-3">
+                  <li>基礎管理員：基本後台查看權限</li>
+                  <li>商品管理員：可管理商品和商品分類</li>
+                  <li>帳號管理員：可管理用戶帳號和權限</li>
+                  <li>超級管理員：擁有所有系統權限</li>
+                </ul>
               </div>
-            </form>
+            </div>
           </div>
-        </div>
+          
+          <div class="d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+            <button type="button" class="btn btn-light px-4" @click="close">
+              <i class="bi bi-x me-1"></i>取消
+            </button>
+            <button 
+              type="submit" 
+              class="btn btn-success px-4"
+              :disabled="isSubmitting || 
+                (newAdmin.email && !isValidEmail) || 
+                (newAdmin.phone && !isValidPhone) || 
+                !passwordsMatch"
+            >
+              <span v-if="isSubmitting" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+              <i v-else class="bi bi-plus me-1"></i>新增
+            </button>
+          </div>
+        </form>
       </div>
     </div>
-    <div v-if="isOpen" class="modal-backdrop fade show"></div>
+  </div>
+</div>
+<div v-if="isOpen" class="modal-backdrop fade show"></div>
   </Teleport>
 </template>
 
@@ -246,6 +327,38 @@ const props = defineProps({
   }
 });
 
+// 快速輸入商品管理員資料
+const fillProductManager = () => {
+  newAdmin.value = {
+    userName: '我是商品管理員',
+    email: 'merchant@gmail.com',
+    phone: '0988555451',
+    password: 'admin123',
+    roles: ['ADMIN', 'PRODUCT_MANAGER'] // 包含基礎管理員和商品管理員角色
+  };
+  confirmPassword.value = 'admin123';
+  
+  // 驗證表單
+  validateEmail();
+  validatePhoneNumber();
+};
+
+// 快速輸入帳號管理員資料
+const fillAccountManager = () => {
+  newAdmin.value = {
+    userName: '我是帳號管理員',
+    email: 'account@gmail.com',
+    phone: '0988444125',
+    password: 'admin123',
+    roles: ['ADMIN', 'ACCOUNT_MANAGER'] // 包含基礎管理員和帳號管理員角色
+  };
+  confirmPassword.value = 'admin123';
+  
+  // 驗證表單
+  validateEmail();
+  validatePhoneNumber();
+};
+
 const emit = defineEmits(['close', 'refresh']);
 
 const newAdmin = ref({
@@ -255,6 +368,29 @@ const newAdmin = ref({
   password: '',
   roles: ['ADMIN'] // 預設選中 ADMIN 角色
 });
+
+// 計算是否選中了產品管理員角色
+const isProductManager = computed(() => {
+  return newAdmin.value.roles.includes('PRODUCT_MANAGER');
+});
+
+// 計算是否選中了帳號管理員角色
+const isAccountManager = computed(() => {
+  return newAdmin.value.roles.includes('ACCOUNT_MANAGER');
+});
+
+// 角色顯示名稱對照表
+const roleDisplayNames = {
+  'ADMIN': '基礎管理員',
+  'PRODUCT_MANAGER': '商品管理員',
+  'ACCOUNT_MANAGER': '帳號管理員',
+  'SUPER_ADMIN': '超級管理員'
+};
+
+// 獲取角色的中文顯示名稱
+const getRoleDisplayName = (role) => {
+  return roleDisplayNames[role] || role;
+};
 
 const confirmPassword = ref('');
 const showPassword = ref(false);
@@ -452,10 +588,6 @@ const close = () => {
   z-index: 1040;
 }
 
-.modal-dialog {
-  max-width: 500px;
-}
-
 .input-group-text {
   border-right: 0;
 }
@@ -470,7 +602,7 @@ const close = () => {
 }
 
 .role-selector {
-  max-height: 200px;
+  max-height: 300px;
   overflow-y: auto;
 }
 
@@ -484,10 +616,20 @@ const close = () => {
 
 .password-popover {
   position: absolute;
-  left: 102%;
   top: 0;
+  left: 102%;
   z-index: 1050;
   width: 250px;
+}
+
+@media (max-width: 992px) {
+  .password-popover {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 280px;
+  }
 }
 
 .password-tips-popover {
@@ -514,6 +656,13 @@ const close = () => {
   border-color: transparent white transparent transparent;
 }
 
+@media (max-width: 992px) {
+  .password-tips-popover::before,
+  .password-tips-popover::after {
+    display: none;
+  }
+}
+
 .password-tips-popover li {
   margin-bottom: 3px;
   line-height: 1.2;
@@ -538,5 +687,19 @@ const close = () => {
 
 .form-check-label {
   cursor: pointer;
+}
+
+/* Responsive adjustments */
+@media (max-width: 767.98px) {
+  .col-md-7.border-end {
+    border-right: none !important;
+    border-bottom: 1px solid #dee2e6;
+    padding-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .col-md-5 {
+    padding-left: 1rem !important;
+  }
 }
 </style>
