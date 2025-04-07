@@ -48,20 +48,21 @@
         <!-- <p class="text-muted small mb-3">{{ product.productId }}</p> -->
 
         <!-- 評分 -->
-        <div class="mb-3 d-flex align-items-center">
-          <div class="me-2">
-            <i
-              v-for="n in 5"
-              :key="n"
-              class="bi"
-              :class="n <= product.rating ? 'bi-star-fill' : 'bi-star'"
-              style="color: #ffd700"
-            ></i>
-          </div>
-          <a href="#reviews" class="text-decoration-none"
-            >{{ product.reviewCount || 0 }} 評價</a
-          >
-        </div>
+<div class="mb-3 d-flex align-items-center">
+  <div class="me-2">
+    <i
+      v-for="n in 5"
+      :key="n"
+      class="bi"
+      :class="n <= Math.round(product.rating || 0) ? 'bi-star-fill' : 'bi-star'"
+      style="color: #ffd700"
+    ></i>
+  </div>
+  <a href="#reviews" class="text-decoration-none">
+    {{ product.reviewCount ?? 0 }} 評價
+  </a>
+</div>
+
 
         <!-- 價格 -->
         <div class="mb-4">
@@ -77,7 +78,6 @@
             <del>原價：NT${{ product.originalPrice }}</del>
           </p>
         </div>
-
         <!-- 動態生成每種規格的選擇器 -->
         <div v-for="(values, specName) in specs" :key="specName" class="mb-3">
           <p class="mb-2">
@@ -214,6 +214,22 @@
       </div>
     </div>
 
+    <!-- 評價數星星數 -->
+    <div class="mb-3 d-flex align-items-center">
+    <div class="me-2">
+      <i
+        v-for="n in 5"
+        :key="n"
+        class="bi"
+        :class="n <= Math.round(product.rating) ? 'bi-star-fill' : 'bi-star'"
+        style="color: #ffd700"
+      ></i>
+    </div>
+    <a href="#reviews" class="text-decoration-none">
+      {{ product.reviewCount || 0 }} 評價
+    </a>
+  </div>
+
     <!-- 商品詳情內容 -->
     <div class="row mt-5">
       <div class="col-12">
@@ -262,12 +278,72 @@
               <p>{{ product.description }}</p>
             </div>
           </div>
-          <div class="tab-pane fade" id="reviews" role="tabpanel">
-            <div class="p-3">
-              <h4>顧客評價</h4>
-              <p>暫無評價</p>
-            </div>
+          <!-- 顧客評價區塊 -->
+<div class="tab-pane fade" id="reviews" role="tabpanel">
+  <div class="p-3">
+    <h4>顧客評價</h4>
+
+    <!-- 無留言時提示 -->
+    <div v-if="reviews.length === 0">暫無評價</div>
+
+    <!-- 顧客留言 + 賣家回覆 -->
+    <div v-else>
+      <div
+        v-for="review in reviews"
+        :key="review.reviewId"
+        class="border rounded p-3 mb-4 bg-light-subtle"
+      >
+        <!-- 顧客基本資訊 -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <strong>{{ review.userName }}</strong>
+            <span class="ms-2 text-warning">⭐ {{ review.rating }}</span>
           </div>
+          <small class="text-muted">
+            <i class="bi bi-clock"></i> {{ formatDate(review.createdAt) }}
+          </small>
+        </div>
+
+        <!-- 顧客留言內容 -->
+        <div class="mb-2">{{ review.content }}</div>
+
+        <!-- ✅ 若賣家已回覆，顯示回覆內容 -->
+        <div
+          v-if="review.replyContent"
+          class="border-start border-3 border-primary bg-white p-3 mb-2"
+        >
+          <div class="fw-bold text-primary mb-1">賣家回覆：</div>
+          <div class="mb-1">{{ review.replyContent }}</div>
+          <small class="text-muted">
+            <i class="bi bi-clock"></i> {{ formatDate(review.replyTime) }}
+          </small>
+        </div>
+
+        <!-- ✅ 若賣家尚未回覆，顯示輸入框（需是賣家身分） -->
+        <div
+          v-if="isSeller && !review.replyContent"
+          class="bg-light border rounded mt-3 p-3"
+        >
+          <div class="fw-bold text-primary mb-2">🔁 回覆買家</div>
+          <textarea
+            v-model="replyInputs[review.reviewId]"
+            class="form-control mb-2"
+            rows="3"
+            placeholder="輸入回覆內容..."
+          ></textarea>
+          <button
+            class="btn btn-outline-success btn-sm"
+            @click="submitReply(review.reviewId)"
+            :disabled="!replyInputs[review.reviewId]"
+          >
+            ✅ 送出回覆
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
           <div class="tab-pane fade" id="shipping" role="tabpanel">
             <div class="p-3">
               <h4>配送資訊</h4>
@@ -377,7 +453,6 @@
         </div>
       </div>
     </div>
-  </div>
 </template>
 
 <script setup>
@@ -404,8 +479,8 @@ const product = ref({
   price: 0,
   originalPrice: 0,
   stock: 100,
-  rating: 4.5,
-  reviewCount: 12,
+  rating: 0,
+  reviewCount: 0,
 });
 
 // 商品圖片
@@ -568,6 +643,53 @@ const canAddToCart = computed(() => {
   );
   return allSpecsSelected && quantity.value > 0;
 });
+
+// 顧客評價顯示
+const reviews = ref([])
+
+const fetchReviews = async () => {
+  try {
+    const res = await axios.get(`/api/review/product/${productId}`)
+    reviews.value = res.data || []
+  } catch (error) {
+    console.warn("❌ 載入留言失敗", error)
+  }
+};
+
+// 回覆留言的輸入綁定
+const replyInputs = ref({})
+
+// 判斷是否為賣家
+const isSeller = computed(() => userStore.roles.includes("SELLER"))
+
+// 送出賣家回覆
+const submitReply = async (reviewId) => {
+  const replyContent = replyInputs.value[reviewId]
+  if (!replyContent) return
+
+  try {
+    await axios.put(`/api/review/${reviewId}/reply`, { replyContent })
+    Swal.fire("回覆成功", "", "success")
+    replyInputs.value[reviewId] = "" // 清空輸入框
+    fetchReviews() // 重新載入留言
+  } catch (error) {
+    console.error("❌ 回覆失敗", error)
+    Swal.fire("回覆失敗", "請稍後再試", "error")
+  }
+};
+
+//時間顯示
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return d.toLocaleString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+};
 
 // 監聽 Modal 顯示
 watch(showSizeGuide, (newValue) => {
@@ -739,42 +861,45 @@ const fetchProductDetail = async () => {
   try {
     console.log("獲取商品詳情, 商品ID:", productId);
 
-    // 使用新的API路徑獲取完整商品詳情
     const response = await axios.get(
       `/api/products/${productId}/active-detail`
     );
 
     if (response.status === 200 && response.data) {
-      console.log("商品詳情原始回應:", response.data);
+      const productData = response.data.product;
+      console.log("商品詳情原始回應:", productData);
+      console.log("⭐ 星數:", productData.rating);
+      console.log("📝 評論數:", productData.reviewCount);
 
-      // 設置商品基本信息
-      product.value = response.data.product;
+      product.value = {
+        ...product.value,
+        ...productData,
+        rating: productData.rating || 0,
+        reviewCount: productData.reviewCount || 0,
+      };
 
-      // 設置SKU資料
       skus.value = response.data.skus || [];
 
-      // 處理圖片資源
       if (
-        response.data.product.productImages &&
-        Array.isArray(response.data.product.productImages) &&
-        response.data.product.productImages.length > 0
+        productData.productImages &&
+        Array.isArray(productData.productImages) &&
+        productData.productImages.length > 0
       ) {
-        productImages.value = response.data.product.productImages.map((img) =>
+        productImages.value = productData.productImages.map((img) =>
           typeof img === "string" ? { imagePath: img } : img
         );
         console.log("商品圖片數據:", productImages.value);
       } else if (
-        response.data.product.primaryImageUrl ||
-        response.data.product.image
+        productData.primaryImageUrl ||
+        productData.image
       ) {
         console.log("使用主圖/圖片字段:", {
-          primaryImageUrl: response.data.product.primaryImageUrl,
-          image: response.data.product.image,
+          primaryImageUrl: productData.primaryImageUrl,
+          image: productData.image,
         });
       }
     }
 
-    // 處理規格信息
     processSpecifications(response.data.specifications);
   } catch (error) {
     console.error("獲取商品詳情失敗:", error);
@@ -889,6 +1014,7 @@ const stockStatus = ref("庫存充足");
 // 在元件掛載時獲取商品資訊
 onMounted(async () => {
   await fetchProductDetail();
+  await fetchReviews();
 
   // 初始化 Bootstrap 模態框
   const bootstrap = window.bootstrap;

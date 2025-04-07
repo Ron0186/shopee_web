@@ -6,6 +6,7 @@
       class="card mb-4 p-3"
     >
       <h5>{{ product.productName }}</h5>
+      <small class="text-muted">完成時間：{{ formatDate(product.updatedAt) }}</small>
       <div>
         <label>評分：</label>
         <select v-model="reviewInputs[product.orderItemId].rating">
@@ -86,6 +87,19 @@ const submitReview = async (orderItemId) => {
 onMounted(() => {
   fetchProductsToReview();
 });
+
+const formatDate = (datetime) => {
+  if (!datetime) return "-";
+  const date = new Date(datetime);
+  return date.toLocaleString("zh-TW", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit"
+  });
+};
 </script>
 
 <style scoped>

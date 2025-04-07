@@ -111,6 +111,7 @@ const fetchProduct = async () => {
 }
 
 const fetchReviews = async () => {
+  console.log("✅ 正在從 ProductDetail.vue 發出評論請求：", `/api/review/product/${productId}`) //測試功能
   try {
     const res = await axios.get(`/api/review/product/${productId}`)
     reviews.value = res.data || []
