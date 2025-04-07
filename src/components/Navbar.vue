@@ -50,13 +50,21 @@
         營收表現</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
 
-      <!-- 使用者名稱下拉選單 -->
+      <!-- 使用者名稱下拉選單 (新增頭像) -->
       <div v-if="userStore.username" class="user-dropdown">
         <button class="username-btn" @click="toggleUserMenu">
+          <img 
+            :src="userStore.getProfilePhoto" 
+            class="user-avatar" 
+            alt="用戶頭像"
+          />
           {{ userStore.username }} <span class="dropdown-icon">▼</span>
         </button>
         <div class="user-dropdown-content" v-if="userMenuOpen">
-          <router-link to="/memberCenter" @click="userMenuOpen = false">👤 會員中心</router-link>
+          <router-link to="/memberCenter" @click="userMenuOpen = false">
+            <img :src="userStore.getProfilePhoto" class="menu-avatar" alt="用戶頭像" />
+             會員中心
+          </router-link>
           <router-link to="/shop/apply" v-if="userStore.token && !userStore.roles.includes('SELLER')"
             @click="userMenuOpen = false">📝
             申請成為賣家</router-link>
@@ -64,8 +72,7 @@
         </div>
       </div>
 
-      <span @click="logoutToAdmin"
-        class="logout-link admin-logout">
+      <span @click="logoutToAdmin" class="logout-link admin-logout">
         <a class="fa-solid fa-arrow-right-from-bracket"></a> 🔐 前往後台
       </span>
     </div>
@@ -75,6 +82,10 @@
   <div class="sidebar" :class="{ open: drawerOpen }">
     <button class="close-btn" @click="toggleDrawer">✖</button>
     <ul>
+      <li v-if="userStore.username" class="sidebar-user-info">
+        <img :src="userStore.getProfilePhoto" class="sidebar-avatar" alt="用戶頭像" />
+        <span>{{ userStore.username }}</span>
+      </li>
       <li><router-link to="/" @click="toggleDrawer">🏠 首頁</router-link></li>
       <li class="dropdown">
         <button @click="toggleCategory">🛍 商城分類 ▼</button>
@@ -203,7 +214,8 @@ const fetchNotificationCount = async () => {
 // ✅ 登出功能
 async function logout() {
   axios.defaults.headers.common["Authorization"] = ``;
-  userStore.clearUserData();
+  // userStore.clearUserData();
+  userStore.logout();
   userMenuOpen.value = false; // 關閉下拉選單
   const response = await Swal.fire({
     title: "您已成功登出",
@@ -241,7 +253,7 @@ const handleNotificationClick = (chatRoomId) => {
 <style scoped>
 /* 📌 Navbar 樣式 */
 .navbar {
-  width: 100vw;
+  width: 100%;
   max-width: 100%;
   height: 60px;
   display: flex;
@@ -430,5 +442,62 @@ const handleNotificationClick = (chatRoomId) => {
   padding: 2px 6px;
   margin-left: 4px;
   font-size: 12px;
+}
+.user-avatar {
+  width: 40px;            /* 從32px增加到40px */
+  height: 40px;           /* 從32px增加到40px */
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 8px;      /* 從6px增加到8px，增加間距 */
+  border: 2px solid #ff9b20;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* 添加輕微陰影效果 */
+}
+
+.menu-avatar {
+  width: 30px;            /* 從24px增加到30px */
+  height: 30px;           /* 從24px增加到30px */
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+/* 調整側邊欄用戶信息區塊 */
+.sidebar-user-info {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;       /* 從10px增加到12px */
+  margin-bottom: 15px;   /* 從10px增加到15px */
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.sidebar-avatar {
+  width: 48px;            /* 從40px增加到48px */
+  height: 48px;           /* 從40px增加到48px */
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 12px;     /* 從10px增加到12px */
+  border: 2px solid #ff9b20;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2); /* 添加輕微陰影效果 */
+}
+
+/* 調整用戶名稱按鈕，以適應更大的頭像 */
+.username-btn {
+  background-color: #f7e9d2;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;     /* 從5px 10px調整為6px 12px */
+  color: #000000;
+  font-weight: bold;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;              /* 從5px增加到6px */
+}
+
+/* 優化下拉選單中的選項，添加圖示對齊 */
+.user-dropdown-content a {
+  display: flex;
+  align-items: center;
 }
 </style>
