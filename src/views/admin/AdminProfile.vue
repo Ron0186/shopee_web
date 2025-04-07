@@ -12,6 +12,13 @@
           <h2>基本資訊</h2>
         </div>
         <div class="card-body">
+          <!-- 添加頭像上傳區域 -->
+          <ProfilePhotoUpload
+            :current-photo-url="profileData.profilePhotoUrl"
+            @photo-uploaded="handlePhotoUploaded"
+            @photo-removed="handlePhotoRemoved"
+          />
+
           <form @submit.prevent="updateProfile">
             <div class="form-group">
               <label for="username">使用者名稱</label>
@@ -60,22 +67,24 @@
                 {{ validationErrors.phone }}
               </div>
             </div>
-<!-- 新增在基本資訊卡片的適當位置 -->
-<div class="form-group">
-  <label>管理員角色</label>
-  <div class="role-badges">
-    <div v-if="userRoles.length === 0" class="text-muted">尚未設定角色</div>
-    <span 
-      v-for="(role, index) in userRoles" 
-      :key="index" 
-      class="role-badge"
-      :class="getRoleBadgeClass(role)"
-    >
-      <i :class="getRoleIconClass(role)"></i>
-      {{ getRoleDisplayName(role) }}
-    </span>
-  </div>
-</div>
+
+            <!-- 角色徽章展示 -->
+            <div class="form-group">
+              <label>管理員角色</label>
+              <div class="role-badges">
+                <div v-if="userRoles.length === 0" class="text-muted">尚未設定角色</div>
+                <span 
+                  v-for="(role, index) in userRoles" 
+                  :key="index" 
+                  class="role-badge"
+                  :class="getRoleBadgeClass(role)"
+                >
+                  <i :class="getRoleIconClass(role)"></i>
+                  {{ getRoleDisplayName(role) }}
+                </span>
+              </div>
+            </div>
+
             <div class="form-actions">
               <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
                 <i class="bi bi-save"></i> 儲存變更
@@ -225,13 +234,90 @@ import { useUserStore } from '@/stores/user';
 import Swal from 'sweetalert2';
 import axios from '@/plugins/axios';
 import { useRouter } from 'vue-router';
+import ProfilePhotoUpload from '@/components/admin/Profile.components/ProfilePhotoUpload.vue'; // 引入頭像上傳組件
 
-const router = useRouter;
+const router = useRouter();
 const userStore = useUserStore();
 const isSubmitting = ref(false);
 const validationErrors = reactive({});
 // 角色顯示相關
 const userRoles = ref([]);
+
+// 個人資料表單數據
+const profileData = reactive({
+  userId: '',
+  userName: '',
+  email: '',
+  phone: '',
+  profilePhotoUrl: '' // 添加頭像URL字段
+});
+
+// 密碼表單數據
+const passwordData = reactive({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: ''
+});
+
+// 密碼可見性
+const showCurrentPassword = ref(false);
+const showNewPassword = ref(false);
+const showConfirmPassword = ref(false);
+
+// 處理頭像上傳成功
+function handlePhotoUploaded(photoUrl) {
+  // 更新本地數據
+  profileData.profilePhotoUrl = photoUrl;
+  
+  // 直接更新到服務器
+  updateProfilePhoto(photoUrl);
+}
+
+// 處理頭像移除
+function handlePhotoRemoved() {
+  profileData.profilePhotoUrl = '';
+  
+  // 更新到服務器（設置為空字符串）
+  updateProfilePhoto('');
+}
+
+// 更新頭像到服務器
+async function updateProfilePhoto(photoUrl) {
+  try {
+    isSubmitting.value = true;
+    
+    const response = await axios.put('/api/admin/profile/photo', {
+      profilePhotoUrl: photoUrl
+    });
+    
+    if (response.data.success) {
+      // 使用正確的方法更新 userStore 中的頭像
+      userStore.updateProfilePhoto(photoUrl);
+      
+      // 更新 localStorage
+      localStorage.setItem('profilePhoto', photoUrl);
+      
+      // 顯示成功訊息
+      Swal.fire({
+        icon: 'success',
+        title: '頭像更新成功',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000
+      });
+    }
+  } catch (error) {
+    console.error('更新頭像失敗:', error);
+    Swal.fire({
+      icon: 'error',
+      title: '頭像更新失敗',
+      text: error.response?.data?.message || '無法更新頭像，請稍後再試'
+    });
+  } finally {
+    isSubmitting.value = false;
+  }
+}
 
 // 獲取角色徽章樣式
 function getRoleBadgeClass(role) {
@@ -281,26 +367,6 @@ function getRoleDisplayName(role) {
   }
 }
 
-// 個人資料表單數據
-const profileData = reactive({
-  userId: '',
-  userName: '',
-  email: '',
-  phone: ''
-});
-
-// 密碼表單數據
-const passwordData = reactive({
-  currentPassword: '',
-  newPassword: '',
-  confirmPassword: ''
-});
-
-// 密碼可見性
-const showCurrentPassword = ref(false);
-const showNewPassword = ref(false);
-const showConfirmPassword = ref(false);
-
 // 密碼 Popover 顯示狀態
 const showPasswordPopover = ref(false);
 const timeoutId = ref(null);
@@ -321,7 +387,6 @@ function getStrengthTextClass() {
   return 'text-success';
 }
 
-// 切換 Popover 顯示
 // 切換 Popover 顯示
 function togglePasswordPopover() {
   const popover = document.getElementById('password-popover');
@@ -583,7 +648,7 @@ function handleResize() {
   }
 }
 
-// 修改 onMounted 函數，添加獲取角色資訊
+// 修改 onMounted 函數，添加獲取角色資訊和頭像URL
 onMounted(async () => {
   // 添加窗口大小變化監聽
   window.addEventListener('resize', handleResize);
@@ -596,6 +661,7 @@ onMounted(async () => {
     profileData.userName = response.data.userName;
     profileData.email = response.data.email;
     profileData.phone = response.data.phone || '';
+    profileData.profilePhotoUrl = response.data.profilePhotoUrl || ''; // 添加頭像URL
     
     // 獲取角色資訊
     if (response.data.roles) {
@@ -622,18 +688,15 @@ onMounted(async () => {
     if (profileData.phone) {
       localStorage.setItem('phone', profileData.phone);
     }
+    if (profileData.profilePhotoUrl) {
+      localStorage.setItem('profilePhoto', profileData.profilePhotoUrl);
+    }
     
     // 更新 userStore (若有需要)
-    if (userStore.userData) {
-      userStore.updateUserData({
-        ...userStore.userData,
-        username: profileData.userName,
-        userId: profileData.userId,
-        email: profileData.email,
-        phone: profileData.phone,
-        roles: userRoles.value
-      });
-    }
+    userStore.username = profileData.userName;
+if (profileData.profilePhotoUrl) {
+  userStore.updateProfilePhoto(profileData.profilePhotoUrl);
+}
   } catch (error) {
     console.error('載入用戶資料失敗:', error);
     Swal.fire({
@@ -652,6 +715,16 @@ onMounted(async () => {
     tooltipTriggerList.map(function (tooltipTriggerEl) {
       return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+  }
+});
+
+onBeforeUnmount(() => {
+  // 移除事件監聽器
+  window.removeEventListener('resize', handleResize);
+  
+  // 清除所有可能的定時器
+  if (timeoutId.value) {
+    clearTimeout(timeoutId.value);
   }
 });
 
@@ -702,7 +775,8 @@ async function updateProfile() {
     const response = await axios.put('/api/admin/profile', {
       userName: profileData.userName,
       email: profileData.email,
-      phone: profileData.phone
+      phone: profileData.phone,
+      profilePhotoUrl: profileData.profilePhotoUrl // 添加頭像URL
     });
     
     if (response.data.success) {
@@ -714,15 +788,19 @@ async function updateProfile() {
       } else {
         localStorage.removeItem('phone');
       }
+      if (profileData.profilePhotoUrl) {
+        localStorage.setItem('profilePhoto', profileData.profilePhotoUrl);
+      } else {
+        localStorage.removeItem('profilePhoto');
+      }
       
-      // 更新 userStore (如果需要)
-      if (userStore.userData) {
-        userStore.updateUserData({
-          ...userStore.userData,
-          username: profileData.userName,
-          email: profileData.email,
-          phone: profileData.phone
-        });
+      // 更新 userStore (使用正確的方法)
+      // 更新用戶名
+      userStore.username = profileData.userName;
+      
+      // 更新頭像
+      if (profileData.profilePhotoUrl) {
+        userStore.updateProfilePhoto(profileData.profilePhotoUrl);
       }
       
       // 顯示更新成功並提示需要重新登入
