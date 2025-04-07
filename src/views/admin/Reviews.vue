@@ -94,11 +94,30 @@ const showModal = ref(false);
 
 // 📌 假設評論數據
 const fetchReviews = async () => {
-  reviews.value = [
-    { id: "RV001", product: "無線耳機", user: "小明", rating: 5, comment: "音質超棒，電池續航力很長！", status: "待審核", date: "2025-03-01" },
-    { id: "RV002", product: "智慧手錶", user: "小華", rating: 3, comment: "功能不錯，但有點難操作。", status: "已批准", date: "2025-03-02" },
-    { id: "RV003", product: "電競鍵盤", user: "大雄", rating: 1, comment: "用了一周就壞了，完全不推薦！", status: "已拒絕", date: "2025-03-03" }
-  ];
+  try {
+    const response = await fetch("http://localhost:8081/api/review/allreview"); // 換成你後端的實際網址
+    const data = await response.json();
+
+    reviews.value = data.map((r) => ({
+      id: r.reviewId,
+      product: r.productName,
+      user: r.user?.userName ?? "匿名",
+      rating: r.rating,
+      comment: r.reviewContent,
+      status: convertStatus(r.status),
+      date: r.createdAt?.substring(0, 10), // yyyy-MM-dd
+    }));
+  } catch (error) {
+    console.error("讀取評價失敗", error);
+  }
+};
+const convertStatus = (status) => {
+  switch (status) {
+    case "APPROVED": return "已批准";
+    case "PENDING": return "待審核";
+    case "REJECTED": return "已拒絕";
+    default: return status;
+  }
 };
 
 onMounted(() => {
@@ -125,16 +144,31 @@ const statusClass = (status) => ({
   "bg-danger text-white": status === "已拒絕",
 });
 
-// ✅ 操作方法
-const updateReviewStatus = (id, status) => {
-  const review = reviews.value.find((r) => r.id === id);
-  if (review) review.status = status;
+const updateReviewStatus = async (id, statusLabel) => {
+  const statusMap = { "已批准": "APPROVED", "已拒絕": "REJECTED" };
+  const status = statusMap[statusLabel];
+  try {
+    await fetch(`http://localhost:8081/api/review/${id}/status?status=${status}`, {
+      method: "PATCH",
+    });
+    const target = reviews.value.find((r) => r.id === id);
+    if (target) target.status = statusLabel;
+  } catch (err) {
+    console.error("更新失敗", err);
+  }
 };
 
-const deleteReview = (id) => {
-  reviews.value = reviews.value.filter((review) => review.id !== id);
-};
 
+const deleteReview = async (id) => {
+  try {
+    await fetch(`http://localhost:8081/api/review/${id}`, {
+      method: "DELETE",
+    });
+    reviews.value = reviews.value.filter((r) => r.id !== id);
+  } catch (err) {
+    console.error("刪除失敗", err);
+  }
+};
 const viewReview = (review) => {
   selectedReview.value = review;
   showModal.value = true;
