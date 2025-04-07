@@ -46,7 +46,7 @@
       <router-link to="/submitReview">📝 評價商品</router-link>
       <router-link v-if="userStore.isSeller" to="/seller-setting">⚙️
         賣家設定</router-link>
-      <router-link v-if="userStore.isSeller" to="/revenue">⚙️
+      <router-link v-if="userStore.isSeller" to="/revenue">📊
         營收表現</router-link>
       <router-link to="/cart">🛒 購物車</router-link>
 
