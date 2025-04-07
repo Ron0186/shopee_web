@@ -215,4 +215,19 @@ button {
     box-shadow: 0 5px #666;
     transform: translateY(4px);
 }
+
+.store-picker select {
+  width: 100%;               /* 和 input 同寬 */
+  padding: 6px;              /* 與 input 對齊 */
+  font-size: 16px;           /* 和 input 一樣字體大小 */
+  border: 1px solid #ccc;    /* 同樣的邊框樣式 */
+  border-radius: 4px;
+  margin: 6px 0 12px;
+}
+
+h3 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 8px 0;
+}
 </style>
