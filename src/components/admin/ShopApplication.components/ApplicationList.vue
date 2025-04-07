@@ -10,21 +10,70 @@
       </div>
       
       <div class="card-body">
-        <!-- 過濾選項 -->
-        <ApplicationControls 
-          :showPending="showPending" 
-          :showApproved="showApproved"
-          :showRejected="showRejected"
-          @updateView="updateView"
-          @requestCounts="provideCounts"
-          ref="appControls"
-        />
+        <!-- 標籤控制 -->
+        <div class="application-controls mb-4">
+          <div class="btn-group">
+            <button
+              class="btn px-4"
+              :class="[showApproved ? 'btn-success' : 'btn-outline-success']"
+              @click="updateView('approved')"
+            >
+              <i class="bi bi-check-circle me-1"></i>
+              已核准
+            </button>
+            <button
+              class="btn px-4"
+              :class="[showPending ? 'btn-primary' : 'btn-outline-primary']"
+              @click="updateView('pending')"
+            >
+              <i class="bi bi-hourglass-split me-1"></i>
+              待審核
+              <span v-if="pendingCount > 0" class="badge bg-danger ms-1">{{ pendingCount }}</span>
+            </button>
+            <button
+              class="btn px-4"
+              :class="[showRejected ? 'btn-danger' : 'btn-outline-danger']"
+              @click="updateView('rejected')"
+            >
+              <i class="bi bi-x-circle me-1"></i>
+              已拒絕
+            </button>
+          </div>
+        </div>
         
-        <!-- 搜尋功能 -->
-        <ApplicationSearch 
-          @search="handleSearch"
-          ref="searchComponent"
-        />
+        <!-- 簡化搜尋功能 -->
+        <div class="search-container mb-4">
+          <div class="row g-2 align-items-center">
+            <div class="col-md-6">
+              <div class="input-group">
+                <input
+                  type="text"
+                  class="form-control"
+                  placeholder="搜尋商店名稱、簡介..."
+                  v-model="searchQuery"
+                  @keyup.enter="search"
+                />
+                <button class="btn btn-primary" type="button" @click="search">
+                  <i class="bi bi-search me-1"></i> 搜尋
+                </button>
+              </div>
+            </div>
+            <div class="col-md-2">
+              <select class="form-select" v-model="sortDir" @change="search">
+                <option value="desc">由新到舊</option>
+                <option value="asc">由舊到新</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <select class="form-select" v-model="pageSize" @change="search">
+                <option value="5">每頁 5 筆</option>
+                <option value="10">每頁 10 筆</option>
+                <option value="20">每頁 20 筆</option>
+                <option value="50">每頁 50 筆</option>
+              </select>
+            </div>
+          </div>
+        </div>
         
         <!-- 表格容器 -->
         <div class="table-container position-relative mt-3">
@@ -41,27 +90,53 @@
             <table class="table table-hover border">
               <thead class="table-light">
                 <tr>
-                  <th scope="col" style="width: 80px;">申請 ID</th>
-                  <th scope="col" style="width: 80px;">用戶 ID</th>
-                  <th scope="col" style="width: 120px;">用戶名稱</th>
-                  <th scope="col" style="width: 150px;">商店名稱</th>
-                  <th scope="col" style="width: 120px;">商店分類</th>
-                  <th scope="col" style="width: 200px;">商店簡介</th>
-                  <th scope="col" style="width: 150px;">申請時間</th>
-                  <th scope="col" style="width: 120px;" class="text-center">操作</th>
+                  <th scope="col">申請 ID</th>
+                  <th scope="col">用戶 ID</th>
+                  <th scope="col">用戶名稱</th>
+                  <th scope="col">商店名稱</th>
+                  <th scope="col">商店分類</th>
+                  <th scope="col">商店簡介</th>
+                  <th scope="col">申請時間</th>
+                  <th scope="col" class="text-center">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <template v-if="applications.length > 0">
-                  <ApplicationItem 
-                    v-for="app in applications"
-                    :key="app.applicationId" 
-                    :app="app"
-                    :countManager="countManager" 
-                    @approve="approveApplication"
-                    @reject="rejectApplication"
-                    @update-counts="updateApplicationCounts"
-                  />
+                  <tr v-for="app in applications" :key="app.applicationId">
+                    <td>{{ app.applicationId }}</td>
+                    <td>{{ app.userId }}</td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="user-avatar me-2">
+                          {{ getInitials(app.userName) }}
+                        </div>
+                        {{ app.userName }}
+                      </div>
+                    </td>
+                    <td>
+                      <span class="shop-name">{{ app.shopName }}</span>
+                    </td>
+                    <td>
+                      <span class="badge bg-info text-white">{{ app.shopCategory }}</span>
+                    </td>
+                    <td>
+                      <div class="description-cell" @click="showFullDescription(app.description || app.shopDescription)">
+                        {{ truncateDescription(app.description || app.shopDescription) }}
+                      </div>
+                    </td>
+                    <td>{{ formatDate(app.applicationTime || app.createdAt) }}</td>
+                    <td class="text-center">
+                      <button
+                        class="btn btn-success btn-sm me-2"
+                        @click="approveApplication(app.applicationId)"
+                      >
+                        通過
+                      </button>
+                      <button class="btn btn-danger btn-sm" @click="rejectApplication(app.applicationId)">
+                        拒絕
+                      </button>
+                    </td>
+                  </tr>
                 </template>
                 <tr v-else>
                   <td colspan="8" class="text-center py-4">
@@ -80,24 +155,47 @@
             <table class="table table-hover border">
               <thead class="table-light">
                 <tr>
-                  <th scope="col" style="width: 60px;">申請 ID</th>
-                  <th scope="col" style="width: 60px;">用戶 ID</th>
-                  <th scope="col" style="width: 100px;">用戶名稱</th>
-                  <th scope="col" style="width: 130px;">商店名稱</th>
-                  <th scope="col" style="width: 100px;">商店分類</th>
-                  <th scope="col" style="width: 150px;">商店簡介</th>
-                  <th scope="col" style="width: 120px;">申請時間</th>
-                  <th scope="col" style="width: 80px;">審核人</th>
-                  <th scope="col" style="width: 120px;">審核時間</th>
+                  <th scope="col">申請 ID</th>
+                  <th scope="col">用戶 ID</th>
+                  <th scope="col">用戶名稱</th>
+                  <th scope="col">商店名稱</th>
+                  <th scope="col">商店分類</th>
+                  <th scope="col">商店簡介</th>
+                  <th scope="col">申請時間</th>
+                  <th scope="col">審核人</th>
+                  <th scope="col">審核時間</th>
                 </tr>
               </thead>
               <tbody>
                 <template v-if="applications.length > 0">
-                  <ApprovedApplicationItem 
-                    v-for="app in applications"
-                    :key="app.applicationId" 
-                    :app="app" 
-                  />
+                  <tr v-for="app in applications" :key="app.applicationId">
+                    <td>{{ app.applicationId }}</td>
+                    <td>{{ app.userId }}</td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="user-avatar me-2">
+                          {{ getInitials(app.userName) }}
+                        </div>
+                        {{ app.userName }}
+                      </div>
+                    </td>
+                    <td>
+                      <span class="shop-name">{{ app.shopName }}</span>
+                    </td>
+                    <td>
+                      <span class="badge bg-info text-white">{{ app.shopCategory }}</span>
+                    </td>
+                    <td>
+                      <div class="description-cell" @click="showFullDescription(app.description || app.shopDescription)">
+                        {{ truncateDescription(app.description || app.shopDescription) }}
+                      </div>
+                    </td>
+                    <td>{{ formatDate(app.applicationTime || app.createdAt) }}</td>
+                    <td>
+                      <span class="reviewer-badge">{{ app.reviewer }}</span>
+                    </td>
+                    <td>{{ formatDate(app.reviewedAt) }}</td>
+                  </tr>
                 </template>
                 <tr v-else>
                   <td colspan="9" class="text-center py-4">
@@ -116,29 +214,59 @@
             <table class="table table-hover border">
               <thead class="table-light">
                 <tr>
-                  <th scope="col" style="width: 60px;">申請 ID</th>
-                  <th scope="col" style="width: 60px;">用戶 ID</th>
-                  <th scope="col" style="width: 100px;">用戶名稱</th>
-                  <th scope="col" style="width: 130px;">商店名稱</th>
-                  <th scope="col" style="width: 100px;">商店分類</th>
-                  <th scope="col" style="width: 150px;">商店簡介</th>
-                  <th scope="col" style="width: 120px;">申請時間</th>
-                  <th scope="col" style="width: 80px;">審核人</th>
-                  <th scope="col" style="width: 150px;">拒絕原因</th>
-                  <th scope="col" style="width: 120px;">審核時間</th>
-                  <th scope="col" style="width: 80px;" class="text-center">操作</th>
+                  <th scope="col">申請 ID</th>
+                  <th scope="col">用戶 ID</th>
+                  <th scope="col">用戶名稱</th>
+                  <th scope="col">商店名稱</th>
+                  <th scope="col">商店分類</th>
+                  <th scope="col">商店簡介</th>
+                  <th scope="col">申請時間</th>
+                  <th scope="col">審核人</th>
+                  <th scope="col">拒絕原因</th>
+                  <th scope="col">審核時間</th>
+                  <th scope="col" class="text-center">操作</th>
                 </tr>
               </thead>
               <tbody>
                 <template v-if="applications.length > 0">
-                  <RejectedApplicationItem 
-                    v-for="app in applications"
-                    :key="app.applicationId" 
-                    :app="app"
-                    :countManager="countManager"
-                    @approve="approveApplication"
-                    @update-counts="updateApplicationCounts"
-                  />
+                  <tr v-for="app in applications" :key="app.applicationId">
+                    <td>{{ app.applicationId }}</td>
+                    <td>{{ app.userId }}</td>
+                    <td>
+                      <div class="d-flex align-items-center">
+                        <div class="user-avatar me-2">
+                          {{ getInitials(app.userName) }}
+                        </div>
+                        {{ app.userName }}
+                      </div>
+                    </td>
+                    <td>
+                      <span class="shop-name">{{ app.shopName }}</span>
+                    </td>
+                    <td>
+                      <span class="badge bg-info text-white">{{ app.shopCategory }}</span>
+                    </td>
+                    <td>
+                      <div class="description-cell" @click="showFullDescription(app.description || app.shopDescription)">
+                        {{ truncateDescription(app.description || app.shopDescription) }}
+                      </div>
+                    </td>
+                    <td>{{ formatDate(app.applicationTime || app.createdAt) }}</td>
+                    <td>
+                      <span class="reviewer-badge">{{ app.reviewer }}</span>
+                    </td>
+                    <td>
+                      <div class="comment-cell" @click="showFullComment(app.adminComment)">
+                        {{ truncateDescription(app.adminComment) }}
+                      </div>
+                    </td>
+                    <td>{{ formatDate(app.reviewedAt) }}</td>
+                    <td class="text-center">
+                      <button class="btn btn-outline-success btn-sm" @click="approveApplication(app.applicationId)" title="重新核准">
+                        <i class="bi bi-check-lg"></i>
+                      </button>
+                    </td>
+                  </tr>
                 </template>
                 <tr v-else>
                   <td colspan="11" class="text-center py-4">
@@ -153,14 +281,46 @@
           </div>
           
           <!-- 分頁控制 -->
-          <PaginationControls
-            v-if="totalItems > 0"
-            :current-page="currentPage"
-            :page-size="pageSize"
-            :total-items="totalItems"
-            :total-pages="totalPages"
-            @page-change="handlePageChange"
-          />
+          <div class="pagination-container d-flex justify-content-between align-items-center mt-3" v-if="totalItems > 0">
+            <div class="pagination-info">
+              顯示 {{ startItem }}-{{ endItem }} 筆，共 {{ totalItems }} 筆結果
+            </div>
+            
+            <nav aria-label="Page navigation">
+              <ul class="pagination pagination-sm mb-0">
+                <li class="page-item" :class="{ disabled: currentPage === 0 }">
+                  <a class="page-link" href="#" @click.prevent="handlePageChange(0)">
+                    <i class="bi bi-chevron-double-left"></i>
+                  </a>
+                </li>
+                <li class="page-item" :class="{ disabled: currentPage === 0 }">
+                  <a class="page-link" href="#" @click.prevent="handlePageChange(currentPage - 1)">
+                    <i class="bi bi-chevron-left"></i>
+                  </a>
+                </li>
+                
+                <template v-for="page in visiblePages" :key="page">
+                  <li v-if="page === '...'" class="page-item disabled">
+                    <span class="page-link">...</span>
+                  </li>
+                  <li v-else class="page-item" :class="{ active: page === currentPage }">
+                    <a class="page-link" href="#" @click.prevent="handlePageChange(page)">{{ page + 1 }}</a>
+                  </li>
+                </template>
+                
+                <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }">
+                  <a class="page-link" href="#" @click.prevent="handlePageChange(currentPage + 1)">
+                    <i class="bi bi-chevron-right"></i>
+                  </a>
+                </li>
+                <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 || totalPages === 0 }">
+                  <a class="page-link" href="#" @click.prevent="handlePageChange(totalPages - 1)">
+                    <i class="bi bi-chevron-double-right"></i>
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
         </div>
       </div>
     </div>
@@ -177,25 +337,11 @@
 <script>
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
-import ApplicationControls from "@/components/admin/ShopApplication.components/ApplicationControls.vue";
-import ApplicationItem from "@/components/admin/ShopApplication.components/ApplicationItem.vue";
-import RejectedApplicationItem from "@/components/admin/ShopApplication.components/RejectedApplicationItem.vue";
-import ApprovedApplicationItem from "@/components/admin/ShopApplication.components/ApprovedApplicationItem.vue";
-import ApplicationSearch from "@/components/admin/ShopApplication.components/ApplicationSearch.vue";
-import PaginationControls from "@/components/admin/ShopApplication.components/PaginationControls.vue";
 
 export default {
-  components: {
-    ApplicationControls,
-    ApplicationItem,
-    RejectedApplicationItem,
-    ApprovedApplicationItem,
-    ApplicationSearch,
-    PaginationControls
-  },
   data() {
     return {
-      applications: [], // 統一使用一個數組存儲當前顯示的申請
+      applications: [], // 儲存當前顯示的申請
       adminId: null,
       showPending: true,
       showApproved: false,
@@ -203,9 +349,15 @@ export default {
       isLoading: false,
       globalLoading: false,
       
+      // 搜尋相關
+      searchQuery: "",
+      sortBy: "createdAt",
+      sortDir: "desc",
+      pageSize: 10,
+      searchPerformed: false,
+      
       // 分頁相關
       currentPage: 0,
-      pageSize: 10,
       totalItems: 0,
       totalPages: 0,
       
@@ -213,18 +365,105 @@ export default {
       pendingCount: 0,
       approvedCount: 0,
       rejectedCount: 0,
-      
-      // 搜索相關
-      searchParams: null,
-      searchPerformed: false,
-      
-      // 計數管理對象
-      countManager: null
     };
   },
+  computed: {
+    startItem() {
+      return this.totalItems === 0 ? 0 : this.currentPage * this.pageSize + 1;
+    },
+    endItem() {
+      const end = (this.currentPage + 1) * this.pageSize;
+      return end > this.totalItems ? this.totalItems : end;
+    },
+    visiblePages() {
+      // 定義要顯示的頁碼數量（不包括首尾頁和省略號）
+      const maxVisiblePages = 5;
+      const pages = [];
+      
+      if (this.totalPages <= maxVisiblePages + 2) {
+        // 如果總頁數較少，全部顯示
+        for (let i = 0; i < this.totalPages; i++) {
+          pages.push(i);
+        }
+      } else {
+        // 始終顯示第一頁
+        pages.push(0);
+        
+        // 計算中間顯示的頁碼範圍
+        let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(this.totalPages - 2, startPage + maxVisiblePages - 1);
+        
+        // 調整開始頁，確保顯示足夠的頁碼
+        if (endPage - startPage < maxVisiblePages - 1) {
+          startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        // 添加省略號（如果需要）
+        if (startPage > 1) {
+          pages.push('...');
+        }
+        
+        // 添加中間頁碼
+        for (let i = startPage; i <= endPage; i++) {
+          pages.push(i);
+        }
+        
+        // 添加省略號（如果需要）
+        if (endPage < this.totalPages - 2) {
+          pages.push('...');
+        }
+        
+        // 始終顯示最後一頁
+        pages.push(this.totalPages - 1);
+      }
+      
+      return pages;
+    }
+  },
   methods: {
+    getAdminId() {
+      const adminIdStr = localStorage.getItem("userId");
+      if (!adminIdStr) {
+        console.warn("未找到 userId，請確認是否正確存入 localStorage");
+        return null;
+      }
+      const adminId = parseInt(adminIdStr, 10);
+      if (isNaN(adminId)) {
+        console.error("userId 轉換失敗:", adminIdStr);
+        return null;
+      }
+      return adminId;
+    },
+    
+    getInitials(name) {
+      if (!name) return '?';
+      return name.charAt(0).toUpperCase();
+    },
+    
+    truncateDescription(text) {
+      if (!text) return '無';
+      return text.length > 30 ? text.substring(0, 30) + '...' : text;
+    },
+    
+    formatDate(dateStr) {
+      if (!dateStr) return '';
+      
+      try {
+        const date = new Date(dateStr);
+        return new Intl.DateTimeFormat('zh-TW', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        }).format(date);
+      } catch (e) {
+        return dateStr;
+      }
+    },
+    
+    // 更新導航欄徽章計數
     updateNavBadgeCount() {
-      // 更新頂部導航欄的徽章
       const navBadgeElement = document.querySelector('.badge.bg-danger');
       if (navBadgeElement) {
         if (this.pendingCount > 0) {
@@ -243,122 +482,117 @@ export default {
       // 也可以使用事件通知其他元件
       this.$root.$emit('update-shop-badge', this.pendingCount);
     },
-    getAdminId() {
-      const adminIdStr = localStorage.getItem("userId");
-      if (!adminIdStr) {
-        console.warn("未找到 userId，請確認是否正確存入 localStorage");
-        return null;
-      }
-      const adminId = parseInt(adminIdStr, 10);
-      if (isNaN(adminId)) {
-        console.error("userId 轉換失敗:", adminIdStr);
-        return null;
-      }
-      return adminId;
+    
+    // 展示完整描述
+    showFullDescription(description) {
+      if (!description) return;
+      
+      Swal.fire({
+        title: '商店簡介',
+        html: `<div class="text-start p-3 bg-light rounded">${description || '無'}</div>`,
+        width: 600,
+        confirmButtonText: '關閉'
+      });
     },
-    async handleSearch(params) {
-      this.searchParams = params;
-      this.currentPage = params.page || 0;
-      this.pageSize = params.size || 10;
+    
+    // 展示完整拒絕原因
+    showFullComment(comment) {
+      if (!comment) return;
       
-      await this.fetchApplications();
-      this.searchPerformed = true;
+      Swal.fire({
+        title: '拒絕原因',
+        html: `<div class="text-start p-3 bg-light rounded">${comment || '無'}</div>`,
+        width: 600,
+        confirmButtonText: '關閉'
+      });
     },
-    async handlePageChange(page) {
-      this.currentPage = page;
-      await this.fetchApplications();
-    },
-    async fetchApplications() {
-  this.isLoading = true;
-  
-  try {
-    // 如果有搜索參數，使用搜索 API
-    if (this.searchParams) {
-      const params = {
-        ...this.searchParams,
-        page: this.currentPage,
-        size: this.pageSize
-      };
+    
+    // 更新顯示視圖
+    updateView(view) {
+      this.showPending = view === "pending";
+      this.showApproved = view === "approved";
+      this.showRejected = view === "rejected";
       
-      // 如果通過頁簽切換，更新 status 參數
-      if (this.showPending) params.status = "PENDING";
-      else if (this.showApproved) params.status = "APPROVED";
-      else if (this.showRejected) params.status = "REJECTED";
+      // 重置搜尋參數
+      this.searchQuery = "";
+      this.searchPerformed = false;
       
-      // 將 applicationTime 替換為 createdAt（如果存在）
-      if (params.sortBy === "applicationTime") {
-        params.sortBy = "createdAt";
-      }
-      
-      const response = await axios.get("/api/shop/application/search", { params });
-      
-      this.applications = response.data.content;
-      this.totalItems = response.data.totalItems;
-      this.totalPages = response.data.totalPages;
-      this.currentPage = response.data.currentPage;
-      
-      // 更新計數
-      if (response.data.counts) {
-        this.pendingCount = response.data.counts.pending || 0;
-        this.approvedCount = response.data.counts.approved || 0;
-        this.rejectedCount = response.data.counts.rejected || 0;
-        // 更新 ApplicationControls 組件的計數
-        this.updateCountsDisplayFromData();
-      }
-    } 
-    // 如果沒有搜索參數，使用原有 API
-    else {
-      let response;
-      if (this.showPending) {
-        response = await axios.get("/api/shop/application/pending");
-        this.applications = response.data;
-        this.pendingCount = response.data.length;
-      } else if (this.showApproved) {
-        response = await axios.get("/api/shop/application/approved");
-        this.applications = response.data;
-        this.approvedCount = response.data.length;
-      } else if (this.showRejected) {
-        response = await axios.get("/api/shop/application/rejected");
-        this.applications = response.data;
-        this.rejectedCount = response.data.length;
-      }
-      
-      this.totalItems = this.applications.length;
-      this.totalPages = 1;
+      // 重置分頁
       this.currentPage = 0;
       
-      // 更新 ApplicationControls 組件的計數
-      this.updateCountsDisplayFromData();
-    }
-  } catch (error) {
-    this.showError("載入申請失敗：" + (error.response?.data.message || error.message));
-    console.error("載入申請錯誤詳情:", error);
-    this.applications = [];
-    this.totalItems = 0;
-    this.totalPages = 0;
-  } finally {
-    setTimeout(() => {
-      this.isLoading = false;
-    }, 300);
-  }
-},
-    updateCountsFromResponse(data) {
-      // 假設 API 回傳包含各狀態的計數
-      if (data.counts) {
-        this.pendingCount = data.counts.pending || 0;
-        this.approvedCount = data.counts.approved || 0;
-        this.rejectedCount = data.counts.rejected || 0;
+      // 獲取新數據
+      this.fetchApplications();
+    },
+    
+    // 搜尋功能
+    search() {
+      this.currentPage = 0;
+      this.searchPerformed = true;
+      this.fetchApplications();
+    },
+    
+    // 分頁處理
+    handlePageChange(page) {
+      if (page < 0 || page >= this.totalPages) return;
+      if (page === this.currentPage) return;
+      
+      this.currentPage = page;
+      this.fetchApplications();
+    },
+    
+    // 獲取申請數據
+    async fetchApplications() {
+      this.isLoading = true;
+      
+      try {
+        let params = {
+          page: this.currentPage,
+          size: this.pageSize,
+          query: this.searchQuery.trim(),
+          sortBy: this.sortBy,
+          sortDir: this.sortDir
+        };
+        
+        // 根據當前視圖設置狀態
+        if (this.showPending) params.status = "PENDING";
+        else if (this.showApproved) params.status = "APPROVED";
+        else if (this.showRejected) params.status = "REJECTED";
+        
+        const response = await axios.get("/api/shop/application/search", { params });
+        
+        this.applications = response.data.content;
+        this.totalItems = response.data.totalItems;
+        this.totalPages = response.data.totalPages;
+        this.currentPage = response.data.currentPage;
+        
+        // 更新計數
+        if (response.data.counts) {
+          this.pendingCount = response.data.counts.pending || 0;
+          this.approvedCount = response.data.counts.approved || 0;
+          this.rejectedCount = response.data.counts.rejected || 0;
+          this.updateNavBadgeCount();
+        }
+      } catch (error) {
+        this.showError("載入申請失敗：" + (error.response?.data.message || error.message));
+        console.error("載入申請錯誤詳情:", error);
+        this.applications = [];
+        this.totalItems = 0;
+        this.totalPages = 0;
+      } finally {
+        setTimeout(() => {
+          this.isLoading = false;
+        }, 300);
       }
     },
+    
+    // 核准申請
     async approveApplication(applicationId) {
       if (this.adminId === null) {
         this.showError("未找到管理員 ID，請重新登入");
-        return Promise.reject("未找到管理員 ID");
+        return;
       }
 
-      const {
-        isConfirmed
-      } = await Swal.fire({
+      const { isConfirmed } = await Swal.fire({
         title: "確認通過？",
         text: "此操作將核准此商店申請，確認繼續？",
         icon: "question",
@@ -369,9 +603,7 @@ export default {
         cancelButtonText: "取消",
       });
 
-      if (!isConfirmed) {
-        return Promise.reject("使用者取消操作");
-      }
+      if (!isConfirmed) return;
 
       this.globalLoading = true;
       try {
@@ -381,32 +613,35 @@ export default {
         
         this.showSuccess("核准成功", response.data.message || "申請已成功核准!");
         
-        // 重新加載當前頁面數據
-        await this.fetchApplications();
-        
-        // 如果是從已拒絕列表批准的，更新計數
-        if (this.showRejected) {
-          this.pendingCount++;
+        // 更新計數
+        if (this.showPending) {
+          this.pendingCount--;
+          this.approvedCount++;
+        } else if (this.showRejected) {
           this.rejectedCount--;
+          this.approvedCount++;
         }
         
-        return Promise.resolve(true);
+        // 更新導航欄徽章
+        this.updateNavBadgeCount();
+        
+        // 重新加載當前頁面數據
+        await this.fetchApplications();
       } catch (error) {
         this.showError("操作失敗：" + (error.response?.data.message || error.message));
-        return Promise.reject(error);
       } finally {
         this.globalLoading = false;
       }
     },
+    
+    // 拒絕申請
     async rejectApplication(applicationId) {
       if (this.adminId === null) {
         this.showError("未找到管理員 ID，請重新登入");
-        return Promise.reject("未找到管理員 ID");
+        return;
       }
 
-      const {
-        value: text
-      } = await Swal.fire({
+      const { value: text } = await Swal.fire({
         title: '拒絕申請',
         input: "textarea",
         inputLabel: "拒絕原因",
@@ -423,9 +658,7 @@ export default {
         }
       });
 
-      if (!text) {
-        return Promise.reject("未輸入拒絕原因");
-      }
+      if (!text) return;
 
       const { isConfirmed } = await Swal.fire({
         title: '確認拒絕？',
@@ -442,9 +675,7 @@ export default {
         cancelButtonText: '返回修改'
       });
 
-      if (!isConfirmed) {
-        return Promise.reject("使用者取消操作");
-      }
+      if (!isConfirmed) return;
 
       this.globalLoading = true;
       try {
@@ -454,60 +685,25 @@ export default {
         
         this.showSuccess("已拒絕", response.data.message || "申請已被拒絕");
         
+        // 更新計數
+        if (this.showPending) {
+          this.pendingCount--;
+          this.rejectedCount++;
+        }
+        
+        // 更新導航欄徽章
+        this.updateNavBadgeCount();
+        
         // 重新加載當前頁面數據
         await this.fetchApplications();
-        
-        return Promise.resolve(true);
       } catch (error) {
         this.showError("操作失敗：" + (error.response?.data.message || error.message));
-        return Promise.reject(error);
       } finally {
         this.globalLoading = false;
       }
     },
-    updateCountsFromData() {
-      // 計算計數（適用於搜索頁面載入後）
-      this.pendingCount = this.showPending ? this.applications.length : this.pendingCount;
-      this.approvedCount = this.showApproved ? this.applications.length : this.approvedCount;
-      this.rejectedCount = this.showRejected ? this.applications.length : this.rejectedCount;
-    },
-    updateCountsDisplayFromData() {
-      // 更新顯示的計數
-      if (this.$refs.appControls) {
-        this.$refs.appControls.updateCounts({
-          pending: this.pendingCount,
-          approved: this.approvedCount,
-          rejected: this.rejectedCount
-        });
-      }
-    },
-    provideCounts() {
-      // 提供計數給子組件
-      this.updateCountsDisplayFromData();
-    },
-    updateApplicationCounts(countData) {
-      // 將計數更新轉發給 ApplicationControls 組件
-      if (this.$refs.appControls) {
-        this.$refs.appControls.updateCounts(countData);
-      }
-      
-      // 同時更新本地計數
-      if (countData.type === 'pending') {
-        this.pendingCount += countData.amount;
-      } else if (countData.type === 'approved') {
-        this.approvedCount += countData.amount;
-      } else if (countData.type === 'rejected') {
-        this.rejectedCount += countData.amount;
-      }
-      
-      // 確保計數不為負
-      this.pendingCount = Math.max(0, this.pendingCount);
-      this.approvedCount = Math.max(0, this.approvedCount);
-      this.rejectedCount = Math.max(0, this.rejectedCount);
-      
-      // 更新導航欄徽章
-      this.updateNavBadgeCount();
-    },
+    
+    // 錯誤提示
     showError(message) {
       Swal.fire({
         icon: "error",
@@ -516,6 +712,8 @@ export default {
         confirmButtonText: "確定"
       });
     },
+    
+    // 成功提示
     showSuccess(title, message) {
       Swal.fire({
         icon: "success",
@@ -525,34 +723,7 @@ export default {
         timerProgressBar: true,
         showConfirmButton: false
       });
-    },
-    updateView(view) {
-      this.showPending = view === "pending";
-      this.showApproved = view === "approved";
-      this.showRejected = view === "rejected";
-      
-      // 重置搜索參數
-      if (this.$refs.searchComponent) {
-        this.$refs.searchComponent.resetFilters();
-      } else {
-        this.searchParams = null;
-        this.searchPerformed = false;
-      }
-      
-      // 重置分頁
-      this.currentPage = 0;
-      
-      // 獲取新數據
-      this.fetchApplications();
     }
-  },
-  created() {
-    // 創建計數管理者對象
-    this.countManager = {
-      updateCount: (type, amount) => {
-        this.updateApplicationCounts({ type, amount });
-      }
-    };
   },
   mounted() {
     this.adminId = this.getAdminId();
@@ -560,15 +731,14 @@ export default {
     
     // 設置定時器定期更新計數（例如每5分鐘）
     this.countUpdateTimer = setInterval(() => {
-      if (!this.searchPerformed) {
-        // 如果沒有正在搜索，則獲取最新計數
+      if (!this.isLoading) {
+        // 如果沒有正在加載，則獲取最新計數
         axios.get("/api/shop/application/counts")
           .then(response => {
             if (response.data) {
               this.pendingCount = response.data.pending || 0;
               this.approvedCount = response.data.approved || 0;
               this.rejectedCount = response.data.rejected || 0;
-              this.updateCountsDisplayFromData();
               this.updateNavBadgeCount();
             }
           })
@@ -589,8 +759,26 @@ export default {
 
 <style scoped>
 .admin-dashboard {
-  /* background-color: #f8f9fc; */
   min-height: 100vh;
+}
+
+.application-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+}
+
+.btn-group {
+  border-radius: 0.375rem;
+  overflow: hidden;
+}
+
+.search-container {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 0.375rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
 .table-container {
@@ -639,6 +827,79 @@ export default {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   font-size: 0.9rem;
   color: #666;
+}
+
+.user-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #4e73df;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 0.8rem;
+}
+
+.description-cell, .comment-cell {
+  cursor: pointer;
+  position: relative;
+  white-space: normal;
+  word-break: break-word;
+  max-width: 200px;
+}
+
+.description-cell:hover, .comment-cell:hover {
+  color: #007bff;
+  text-decoration: underline;
+}
+
+.description-cell:hover::after, .comment-cell:hover::after {
+  content: "點擊查看完整內容";
+  position: absolute;
+  top: -30px;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  z-index: 10;
+}
+
+.shop-name {
+  font-weight: 500;
+}
+
+.reviewer-badge {
+  background-color: #f8f9fa;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.pagination-container {
+  font-size: 0.875rem;
+}
+
+.pagination-info {
+  color: #6c757d;
+}
+
+.page-link {
+  color: #4e73df;
+  padding: 0.375rem 0.5rem;
+}
+
+.page-item.active .page-link {
+  background-color: #4e73df;
+  border-color: #4e73df;
+}
+
+.page-item.disabled .page-link {
+  color: #6c757d;
 }
 
 .empty-state {
