@@ -494,6 +494,58 @@ const getImageUrl = (path) => {
   return fullPath;
 };
 
+//評價功能多次留言
+const replyThreads = ref({}); // reviewId -> reply list
+const threadInputs = ref({}); // reviewId -> { content, imageFile }
+
+// 載入每個 review 的留言串
+const fetchReplyThreads = async () => {
+  for (const review of reviews.value) {
+    try {
+      const res = await axios.get(`/api/review/${review.reviewId}/reply-thread`);
+      replyThreads.value[review.reviewId] = res.data || [];
+    } catch (err) {
+      console.warn(`❌ 無法載入 review ${review.reviewId} 的留言串`, err);
+      replyThreads.value[review.reviewId] = [];
+    }
+  }
+};
+
+// 留言圖片上傳
+const handleImageUpload = (event, reviewId) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!threadInputs.value[reviewId]) threadInputs.value[reviewId] = {};
+  threadInputs.value[reviewId].imageFile = file;
+};
+
+// 提交留言
+const submitThreadReply = async (reviewId) => {
+  const input = threadInputs.value[reviewId];
+  if (!input?.content) return;
+
+  const formData = new FormData();
+  formData.append("content", input.content);
+  formData.append("userId", userStore.userId);
+  if (input.imageFile) {
+    formData.append("image", input.imageFile);
+  }
+
+  try {
+    await axios.post(`/api/review/${reviewId}/reply-thread`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    Swal.fire("留言成功", "", "success");
+    threadInputs.value[reviewId] = {}; // 清空輸入
+    await fetchReplyThreads(); // 重新載入
+  } catch (error) {
+    console.error("❌ 留言失敗", error);
+    Swal.fire("留言失敗", "請稍後再試", "error");
+  }
+};
+
+
 // 監聽 shopId 變化
 watch(
   () => route.params.shopId,
@@ -532,6 +584,9 @@ onMounted(async () => {
   await fetchShopData();
   await checkOwner();
   await fetchProducts();
+  await fetchProductDetail();
+  await fetchReviews();
+  await fetchReplyThreads();
 });
 </script>
 
@@ -712,13 +767,13 @@ onMounted(async () => {
   color: #333;
   margin: 0 0 12px 0;
   font-weight: 500;
-  height: 42px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-height: 1.4;
+  overflow: hidden;               
+  display: -webkit-box;           
+  -webkit-box-orient: vertical;   
+  -webkit-line-clamp: 2;          
+  line-clamp: 2;                  
+  line-height: 1.4;               
+  height: 2.8em;                  
 }
 
 .product-price {
