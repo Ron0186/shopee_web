@@ -1,11 +1,12 @@
 <template>
-  <div>
-    <!-- <AdminNavbar /> -->
-    <AdminNavbar></AdminNavbar>
+  <div class="admin-layout">
+    <AdminNavbar class="admin-navbar" />
     <div class="admin-container">
-      <Sidebar />
-      <main class="content">
-        <router-view />
+      <Sidebar class="admin-sidebar" />
+      <main class="admin-content">
+        <div class="content-wrapper">
+          <router-view />
+        </div>
       </main>
     </div>
   </div>
@@ -17,23 +18,67 @@ import Sidebar from "@/components/admin/Sidebar.vue";
 </script>
 
 <style scoped>
+.admin-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f5f7fa;
+}
+
+.admin-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
 .admin-container {
   display: flex;
-
+  flex: 1;
+  margin-top: 60px; /* 導航欄高度 */
 }
 
-.content {
+.admin-sidebar {
+  position: fixed;
+  top: 60px; /* 與導航欄高度一致 */
+  left: 0;
+  bottom: 0;
+  z-index: 90;
+  transition: all 0.3s ease;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
+}
+
+.admin-content {
+  flex: 1;
+  margin-left: 260px; /* 與側邊欄寬度一致 */
+  min-width: 0; /* 防止內容溢出 */
+  transition: margin-left 0.3s ease;
+  overflow-x: hidden;
+}
+
+.content-wrapper {
   padding: 25px;
-  /* 保留內容區域的內邊距 */
-  flex-grow: 1;
-  /* 讓 content 填滿剩餘寬度 */
-  overflow-y: auto;
-  /* 如果 content 內容過長，允許垂直滾動 */
+  height: 100%;
+}
 
-  /* 可能需要 min-width: 0; 防止在 flex 佈局中內容溢出導致父容器變寬 */
-  min-width: 0;
-      padding-top: 80px;
+/* 響應式設計 */
+@media (max-width: 768px) {
+  .admin-content {
+    margin-left: 70px; /* 與折疊後的側邊欄寬度一致 */
+  }
+}
 
+/* 針對打印的樣式 */
+@media print {
+  .admin-navbar, .admin-sidebar {
+    display: none;
+  }
+  
+  .admin-content {
+    margin-left: 0;
+    padding: 0;
+  }
 }
 </style>
-// Compare this snippet from src/components/admin/Sidebar.vue:
