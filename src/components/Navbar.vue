@@ -117,11 +117,6 @@
         </router-link>
       </div>
 
-      <!-- 後台入口 -->
-      <span @click="logoutToAdmin" class="admin-link">
-        <span class="admin-icon">🔐</span>
-        <span class="admin-text">後台</span>
-      </span>
     </div>
   </nav>
 
@@ -226,6 +221,13 @@
           <span class="sidebar-icon">🏬</span>
           <span>查看商店列表</span>
         </router-link>
+      </li>
+
+      <li class="sidebar-item">
+        <div @click="logoutToAdmin" class="sidebar-link admin-link">
+          <span class="sidebar-icon">🔐</span>
+          <span>後台入口</span>
+        </div>
       </li>
     </ul>
   </div>
