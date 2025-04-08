@@ -11,36 +11,10 @@ const instance = axios.create({
   withCredentials: true,
 });
 
-instance.interceptors.response.use(
-  function (response) {
-    // 檢查 API 回應是否包含特定錯誤碼或訊息
-    if (response.data && response.data.error) {
-      console.error("API 回傳錯誤:", response.data.error);
-    }
-    return response;
-  },
-  function (error) {
-    if (
-      error.response &&
-      error.response.status &&
-      error.response.status === 403
-    ) {
-      window.location.href = "/403";
-    } else if (error.response && error.response.status === 400) {
-      // 針對綠界常見的錯誤碼進行處理
-      console.error("付款資訊有誤:", error.response.data);
-    } else if (error.request) {
-      // 沒有收到回應
-      console.error("未收到回應:", error.request);
-    }
-    return Promise.reject(error);
-  }
-);
-
 // 🔒 自動在請求中加入 Token
 instance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

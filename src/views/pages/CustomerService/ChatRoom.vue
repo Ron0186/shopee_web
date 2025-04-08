@@ -1,44 +1,46 @@
 <template>
-    <div class="connection-status" :class="connectionStatus">
-        {{ statusText }}
-    </div>
-    <div v-if="!activeChatRoom || !activeChatRoom.chatRoomId || checkingExisting" class="loading-container">
-        <div class="loading-spinner"></div>
-        <p>{{ loadingText }}</p>
-    </div>
-    <div class="chat-room" v-else>
-        <h2 v-if="activeChatRoom.shop">
-            {{ activeChatRoom.shop.shopName || activeChatRoom.seller.username }}聊天室
-        </h2>
-        <h2 v-else>
-            {{ activeChatRoom.seller.username }}聊天室
-        </h2>
+    <div>
+        <div class="connection-status" :class="connectionStatus">
+            {{ statusText }}
+        </div>
+        <div v-if="!activeChatRoom || !activeChatRoom.chatRoomId || checkingExisting" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>{{ loadingText }}</p>
+        </div>
+        <div class="chat-room" v-else>
+            <h2 v-if="activeChatRoom.shop">
+                {{ activeChatRoom.shop.shopName || activeChatRoom.seller.username }}聊天室
+            </h2>
+            <h2 v-else>
+                {{ activeChatRoom.seller.username }}聊天室
+            </h2>
 
-        <div class="messages">
-            <transition-group name="message-list" tag="div">
-                <div v-for="msg in displayMessages" :key="msg.tempId || msg.id" class="message">
-                    <div class="message-wrapper" :class="{
-                        'sent-by-me': isMyMessage(msg),
-                        'sent-by-other': !isMyMessage(msg)
-                    }">
-                        <div class="message-bubble">
-                            <div class="message-header">
-                                <span class="username">{{ msg.senderName || '未知用户' }}</span>
-                                <span class="timestamp">{{ formatTime(msg.timestamp) }}</span>
-                            </div>
-                            <div class="message-content">{{ msg.content }}</div>
-                            <div class="message-state">
-                                <span v-if="msg._status === 'failed'">❌ 發送失败</span>
+            <div class="messages">
+                <transition-group name="message-list" tag="div">
+                    <div v-for="msg in displayMessages" :key="msg.tempId || msg.id" class="message">
+                        <div class="message-wrapper" :class="{
+                            'sent-by-me': isMyMessage(msg),
+                            'sent-by-other': !isMyMessage(msg)
+                        }">
+                            <div class="message-bubble">
+                                <div class="message-header">
+                                    <span class="username">{{ msg.senderName || '未知用户' }}</span>
+                                    <span class="timestamp">{{ formatTime(msg.timestamp) }}</span>
+                                </div>
+                                <div class="message-content">{{ msg.content }}</div>
+                                <div class="message-state">
+                                    <span v-if="msg._status === 'failed'">❌ 發送失败</span>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </transition-group>
-        </div>
+                </transition-group>
+            </div>
 
-        <div class="input-area">
-            <input v-model="newMessage" @keyup.enter="send" placeholder="輸入訊息..." />
-            <button @click="send">發送</button>
+            <div class="input-area">
+                <input v-model="newMessage" @keyup.enter="send" placeholder="輸入訊息..." />
+                <button @click="send">發送</button>
+            </div>
         </div>
     </div>
 </template>

@@ -319,6 +319,32 @@ export const useUserStore = defineStore("user", () => {
 
   loadUserData();
 
+
+  function resetChatState() {
+    console.log("[ChatStore] Resetting chat state...");
+
+    // 1. 斷開 WebSocket 連接並清理相關資源
+    // disconnectWebSocket 內部會處理 stompClient 設為 null 和清理 subscriptions
+    disconnectWebSocket();
+
+    // 2. 清理 Store 中的狀態 Ref
+    conversations.value = [];
+    isLoadingConversations.value = false;
+    activeChatRoom.value = null;
+    messages.value = [];
+    connectionStatus.value = 'disconnected'; // 確保狀態為 disconnected
+    unreadCounts.value = {};
+    // authToken ref 已移除，無需清理
+
+    // 3. 確保 socketManager 內部狀態也乾淨 (雖然 disconnectWebSocket 會做，多做一層保險)
+    socketManager.value = {
+      stompClient: null,
+      subscriptions: new Map(),
+      isConnecting: false
+    };
+    console.log("[ChatStore] Chat state reset complete.");
+  }
+  // --- *** resetChatState 定義結束 *** ---
   return {
     username,
     userId,
@@ -342,5 +368,6 @@ export const useUserStore = defineStore("user", () => {
     logout,
     isLoggedIn,
     loadUserFromStorage,
+    resetChatState
   };
 });

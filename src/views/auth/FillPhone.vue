@@ -2,24 +2,21 @@
   <div class="fill-phone-container">
     <h2>完成您的 Google 註冊</h2>
     <p>請提供以下資訊以完成您的註冊流程</p>
-    
+
     <form @submit.prevent="completeRegistration">
       <div class="form-group">
         <label for="password">
           建立密碼
-          <span 
-            class="password-info-icon" 
-            @click="togglePasswordPopover"
-          >
+          <span class="password-info-icon" @click="togglePasswordPopover">
             <i class="bi bi-info-circle"></i>
           </span>
         </label>
         <div class="password-container">
-          <input 
-            :type="showPassword ? 'text' : 'password'" 
-            id="password" 
-            v-model="password" 
-            required 
+          <input
+            :type="showPassword ? 'text' : 'password'"
+            id="password"
+            v-model="password"
+            required
             placeholder="輸入密碼"
             @input="handlePasswordInput"
             @focus="handleFocus"
@@ -31,69 +28,120 @@
             <i v-else class="bi bi-eye-slash"></i>
           </span>
         </div>
-        
+
         <!-- 密碼強度進度條 -->
         <div v-if="password.length > 0" class="password-strength-meter">
-          <div class="password-strength-bar" :style="{ width: passwordStrength.percentage + '%', backgroundColor: passwordStrength.color }"></div>
+          <div
+            class="password-strength-bar"
+            :style="{
+              width: passwordStrength.percentage + '%',
+              backgroundColor: passwordStrength.color,
+            }"
+          ></div>
         </div>
-        <div v-if="password.length > 0" class="password-strength-text" :style="{ color: passwordStrength.color }">
+        <div
+          v-if="password.length > 0"
+          class="password-strength-text"
+          :style="{ color: passwordStrength.color }"
+        >
           {{ passwordStrength.text }}
         </div>
-        
+
         <!-- 密碼要求 Popover -->
         <div class="password-popover" v-if="showPasswordPopover">
           <div class="popover-arrow"></div>
           <div class="popover-header">密碼要求</div>
           <div class="popover-body">
-            <div class="requirement" :class="{ 'met': passwordChecks.hasLength }">
-              <span class="check-icon" :class="{ 'checked': passwordChecks.hasLength }">
-                <i v-if="passwordChecks.hasLength" class="bi bi-check-circle-fill"></i>
+            <div class="requirement" :class="{ met: passwordChecks.hasLength }">
+              <span
+                class="check-icon"
+                :class="{ checked: passwordChecks.hasLength }"
+              >
+                <i
+                  v-if="passwordChecks.hasLength"
+                  class="bi bi-check-circle-fill"
+                ></i>
                 <i v-else class="bi bi-circle"></i>
               </span>
               至少 8 個字
             </div>
-            <div class="requirement" :class="{ 'met': passwordChecks.hasUppercase }">
-              <span class="check-icon" :class="{ 'checked': passwordChecks.hasUppercase }">
-                <i v-if="passwordChecks.hasUppercase" class="bi bi-check-circle-fill"></i>
+            <div
+              class="requirement"
+              :class="{ met: passwordChecks.hasUppercase }"
+            >
+              <span
+                class="check-icon"
+                :class="{ checked: passwordChecks.hasUppercase }"
+              >
+                <i
+                  v-if="passwordChecks.hasUppercase"
+                  class="bi bi-check-circle-fill"
+                ></i>
                 <i v-else class="bi bi-circle"></i>
               </span>
               至少 1 個大寫字母 (A-Z)
             </div>
-            <div class="requirement" :class="{ 'met': passwordChecks.hasLowercase }">
-              <span class="check-icon" :class="{ 'checked': passwordChecks.hasLowercase }">
-                <i v-if="passwordChecks.hasLowercase" class="bi bi-check-circle-fill"></i>
+            <div
+              class="requirement"
+              :class="{ met: passwordChecks.hasLowercase }"
+            >
+              <span
+                class="check-icon"
+                :class="{ checked: passwordChecks.hasLowercase }"
+              >
+                <i
+                  v-if="passwordChecks.hasLowercase"
+                  class="bi bi-check-circle-fill"
+                ></i>
                 <i v-else class="bi bi-circle"></i>
               </span>
               至少 1 個小寫字母 (a-z)
             </div>
-            <div class="requirement" :class="{ 'met': passwordChecks.hasNumber }">
-              <span class="check-icon" :class="{ 'checked': passwordChecks.hasNumber }">
-                <i v-if="passwordChecks.hasNumber" class="bi bi-check-circle-fill"></i>
+            <div class="requirement" :class="{ met: passwordChecks.hasNumber }">
+              <span
+                class="check-icon"
+                :class="{ checked: passwordChecks.hasNumber }"
+              >
+                <i
+                  v-if="passwordChecks.hasNumber"
+                  class="bi bi-check-circle-fill"
+                ></i>
                 <i v-else class="bi bi-circle"></i>
               </span>
               至少 1 個數字 (0-9)
             </div>
-            <div class="requirement" :class="{ 'met': passwordChecks.hasSpecial }">
-              <span class="check-icon" :class="{ 'checked': passwordChecks.hasSpecial }">
-                <i v-if="passwordChecks.hasSpecial" class="bi bi-check-circle-fill"></i>
+            <div
+              class="requirement"
+              :class="{ met: passwordChecks.hasSpecial }"
+            >
+              <span
+                class="check-icon"
+                :class="{ checked: passwordChecks.hasSpecial }"
+              >
+                <i
+                  v-if="passwordChecks.hasSpecial"
+                  class="bi bi-check-circle-fill"
+                ></i>
                 <i v-else class="bi bi-circle"></i>
               </span>
               特殊符號 (!@#$%^&*) 可增強密碼強度 (非必要)
             </div>
           </div>
         </div>
-        
-        <small v-if="passwordError" class="error-message">{{ passwordError }}</small>
+
+        <small v-if="passwordError" class="error-message">{{
+          passwordError
+        }}</small>
       </div>
-      
+
       <div class="form-group">
         <label for="confirmPassword">確認密碼</label>
         <div class="password-container">
-          <input 
-            :type="showConfirmPassword ? 'text' : 'password'" 
-            id="confirmPassword" 
-            v-model="confirmPassword" 
-            required 
+          <input
+            :type="showConfirmPassword ? 'text' : 'password'"
+            id="confirmPassword"
+            v-model="confirmPassword"
+            required
             placeholder="確認您的密碼"
             class="form-input"
           />
@@ -102,30 +150,36 @@
             <i v-else class="bi bi-eye-slash"></i>
           </span>
         </div>
-        <small v-if="confirmPasswordError" class="error-message">{{ confirmPasswordError }}</small>
+        <small v-if="confirmPasswordError" class="error-message">{{
+          confirmPasswordError
+        }}</small>
       </div>
-      
+
       <div class="form-group">
-  <label for="phone">電話號碼</label>
-  <input 
-    type="tel" 
-    id="phone" 
-    v-model="phone" 
-    required 
-    placeholder="輸入您的電話號碼"
-    class="form-input"
-    @input="handlePhoneInput"
-    maxlength="10"
-  />
-  <small v-if="phoneError" class="error-message">{{ phoneError }}</small>
-</div>
-      
-      <button type="submit" :disabled="isSubmitting || hasErrors" class="submit-button">
+        <label for="phone">電話號碼</label>
+        <input
+          type="tel"
+          id="phone"
+          v-model="phone"
+          required
+          placeholder="輸入您的電話號碼"
+          class="form-input"
+          @input="handlePhoneInput"
+          maxlength="10"
+        />
+        <small v-if="phoneError" class="error-message">{{ phoneError }}</small>
+      </div>
+
+      <button
+        type="submit"
+        :disabled="isSubmitting || hasErrors"
+        class="submit-button"
+      >
         <i v-if="isSubmitting" class="bi bi-arrow-repeat spin"></i>
         <i v-else class="bi bi-check-circle"></i>
-        {{ isSubmitting ? '處理中...' : '完成註冊' }}
+        {{ isSubmitting ? "處理中..." : "完成註冊" }}
       </button>
-      
+
       <div v-if="serverError" class="server-error">
         <i class="bi bi-exclamation-triangle"></i> {{ serverError }}
       </div>
@@ -134,23 +188,23 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch, nextTick } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import axios from '@/plugins/axios';
+import { ref, computed, onMounted, watch, nextTick } from "vue";
+import { useRouter, useRoute } from "vue-router";
+import axios from "@/plugins/axios";
 import { useUserStore } from "@/stores/user";
 import { jwtDecode } from "jwt-decode";
-import Swal from 'sweetalert2';
+import Swal from "sweetalert2";
 
 const userStore = useUserStore();
 const router = useRouter();
 const route = useRoute();
 
-const token = ref('');
-const password = ref('');
-const confirmPassword = ref('');
-const phone = ref('');
+const token = ref("");
+const password = ref("");
+const confirmPassword = ref("");
+const phone = ref("");
 const isSubmitting = ref(false);
-const serverError = ref('');
+const serverError = ref("");
 
 // 密碼可見性
 const showPassword = ref(false);
@@ -164,19 +218,19 @@ const lastInputTime = ref(0);
 
 // 密碼檢查狀態
 const passwordChecks = ref({
-  hasLength: false,      // 至少8個字
-  hasUppercase: false,   // 至少1個大寫字母
-  hasLowercase: false,   // 至少1個小寫字母
-  hasNumber: false,      // 至少1個數字
-  hasSpecial: false      // 至少1個特殊符號 (非必要)
+  hasLength: false, // 至少8個字
+  hasUppercase: false, // 至少1個大寫字母
+  hasLowercase: false, // 至少1個小寫字母
+  hasNumber: false, // 至少1個數字
+  hasSpecial: false, // 至少1個特殊符號 (非必要)
 });
 
 // 密碼強度
 const passwordStrength = ref({
-  score: 0,        // 0-2 的分數
-  percentage: 0,   // 0-100% 進度條
-  text: "",        // 強度文字描述
-  color: "#cccccc" // 強度顏色
+  score: 0, // 0-2 的分數
+  percentage: 0, // 0-100% 進度條
+  text: "", // 強度文字描述
+  color: "#cccccc", // 強度顏色
 });
 
 // 切換 Popover 顯示
@@ -189,8 +243,8 @@ function togglePasswordPopover() {
 
 function handlePhoneInput(event) {
   // 只允許數字輸入
-  const input = event.target.value.replace(/\D/g, '');
-  
+  const input = event.target.value.replace(/\D/g, "");
+
   // 限制最大長度為10位數
   if (input.length > 10) {
     phone.value = input.slice(0, 10);
@@ -212,7 +266,7 @@ function handleBlur() {
   // 立即隱藏 Popover
   showPasswordPopover.value = false;
   isInputting.value = false;
-  
+
   // 清除任何現有的計時器
   if (timeoutId.value) {
     clearTimeout(timeoutId.value);
@@ -221,12 +275,13 @@ function handleBlur() {
 
 // 點擊文檔其他區域時隱藏 Popover
 function setupClickOutsideListener() {
-  document.addEventListener('click', (event) => {
+  document.addEventListener("click", (event) => {
     // 如果點擊的不是密碼輸入框、Popover 或資訊圖標
-    const isClickedOutside = !event.target.closest('#password') && 
-                           !event.target.closest('.password-popover') && 
-                           !event.target.closest('.password-info-icon');
-    
+    const isClickedOutside =
+      !event.target.closest("#password") &&
+      !event.target.closest(".password-popover") &&
+      !event.target.closest(".password-info-icon");
+
     if (isClickedOutside && showPasswordPopover.value) {
       showPasswordPopover.value = false;
       isInputting.value = false;
@@ -236,9 +291,9 @@ function setupClickOutsideListener() {
 
 // 切換密碼可見性
 function togglePasswordVisibility(field) {
-  if (field === 'password') {
+  if (field === "password") {
     showPassword.value = !showPassword.value;
-  } else if (field === 'confirm') {
+  } else if (field === "confirm") {
     showConfirmPassword.value = !showConfirmPassword.value;
   }
 }
@@ -247,19 +302,19 @@ function togglePasswordVisibility(field) {
 function handlePasswordInput() {
   // 檢查密碼要求
   checkPasswordRequirements();
-  
+
   // 當用戶輸入時顯示 Popover
   showPasswordPopover.value = true;
-  
+
   // 標記用戶正在輸入
   isInputting.value = true;
   lastInputTime.value = Date.now();
-  
+
   // 3秒後如果沒有新的輸入，則隱藏 Popover
   if (timeoutId.value) {
     clearTimeout(timeoutId.value);
   }
-  
+
   timeoutId.value = setTimeout(() => {
     // 檢查最後輸入時間，如果超過3秒沒有新輸入則隱藏
     if (Date.now() - lastInputTime.value > 3000) {
@@ -275,19 +330,19 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 // 檢查密碼要求
 function checkPasswordRequirements() {
   const pwd = password.value;
-  
+
   // 更新密碼檢查狀態
   passwordChecks.value = {
     hasLength: pwd.length >= 8,
     hasUppercase: /[A-Z]/.test(pwd),
     hasLowercase: /[a-z]/.test(pwd),
     hasNumber: /[0-9]/.test(pwd),
-    hasSpecial: /[!@#$%^&*]/.test(pwd)
+    hasSpecial: /[!@#$%^&*]/.test(pwd),
   };
-  
+
   // 快速檢查是否符合完整正則
   const meetsAllRequirements = passwordRegex.test(pwd);
-  
+
   // 計算強度分數 (0-4)
   let score = 0;
   if (pwd.length >= 8) score++;
@@ -295,14 +350,14 @@ function checkPasswordRequirements() {
   if (/[a-z]/.test(pwd)) score++;
   if (/[0-9]/.test(pwd)) score++;
   if (/[!@#$%^&*]/.test(pwd)) score++;
-  
+
   // 設定強度百分比、文字和顏色
   const percentage = pwd.length ? Math.min(Math.max(score, 1), 4) * 25 : 0;
-  
+
   // 設定顏色和文字
   let text = "";
   let color = "#cccccc";
-  
+
   if (pwd.length > 0) {
     if (score <= 2) {
       text = "弱";
@@ -315,49 +370,46 @@ function checkPasswordRequirements() {
       color = "#29cc29";
     }
   }
-  
+
   passwordStrength.value = { score, percentage, text, color };
 }
 
 // 錯誤訊息
 const passwordError = computed(() => {
-  if (!password.value) return '';
-  if (password.value.length < 8) 
-    return '密碼長度需至少8個字符';
-  if (!/[A-Z]/.test(password.value)) 
-    return '密碼需包含至少一個大寫字母';
-  if (!/[a-z]/.test(password.value)) 
-    return '密碼需包含至少一個小寫字母';
-  if (!/[0-9]/.test(password.value)) 
-    return '密碼需包含至少一個數字';
-  return '';
+  if (!password.value) return "";
+  if (password.value.length < 8) return "密碼長度需至少8個字符";
+  if (!/[A-Z]/.test(password.value)) return "密碼需包含至少一個大寫字母";
+  if (!/[a-z]/.test(password.value)) return "密碼需包含至少一個小寫字母";
+  if (!/[0-9]/.test(password.value)) return "密碼需包含至少一個數字";
+  return "";
 });
 
 const confirmPasswordError = computed(() => {
-  if (!confirmPassword.value) return '';
-  if (password.value !== confirmPassword.value) 
-    return '兩次輸入的密碼不一致';
-  return '';
+  if (!confirmPassword.value) return "";
+  if (password.value !== confirmPassword.value) return "兩次輸入的密碼不一致";
+  return "";
 });
 
 const phoneError = computed(() => {
-  if (!phone.value) return '';
-  if (!/^09\d{8}$/.test(phone.value)) 
-    return '請輸入正確的台灣手機號碼格式 (09xxxxxxxx)';
-  return '';
+  if (!phone.value) return "";
+  if (!/^09\d{8}$/.test(phone.value))
+    return "請輸入正確的台灣手機號碼格式 (09xxxxxxxx)";
+  return "";
 });
 
 const hasErrors = computed(() => {
-  return !!passwordError.value || !!confirmPasswordError.value || !!phoneError.value;
+  return (
+    !!passwordError.value || !!confirmPasswordError.value || !!phoneError.value
+  );
 });
 
 onMounted(() => {
   // 從 URL 參數中獲取 token
   token.value = route.query.token;
   if (!token.value) {
-    router.push('/login');
+    router.push("/login");
   }
-  
+
   // 設置點擊外部區域隱藏 Popover
   setupClickOutsideListener();
 });
@@ -369,52 +421,59 @@ watch(password, () => {
 
 const completeRegistration = async () => {
   if (hasErrors.value) return;
-  
+
   isSubmitting.value = true;
-  serverError.value = '';
-  
+  serverError.value = "";
+
   try {
     const response = await axios.post(
       `${import.meta.env.VITE_API_URL}/api/auth/complete-google-signup`,
       {
         token: token.value,
         password: password.value,
-        phone: phone.value
+        phone: phone.value,
       }
     );
-    
+
     if (response.data && response.data.success) {
       // 解析 token
       const decodedToken = jwtDecode(response.data.token);
-      
+
       // 設定 axios 的 authorization header
-      axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
-      
+      axios.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${response.data.token}`;
+
       // 使用 Pinia store 保存用戶數據
-      userStore.saveUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
+      userStore.saveUserData(
+        decodedToken.sub,
+        decodedToken.userId,
+        response.data.token,
+        decodedToken.roles
+      );
       userStore.reloadUserData();
-      
+
       // 顯示成功訊息
       Swal.fire({
-        title: 'Google 登入成功!',
-        text: '歡迎來到我們的網站',
-        icon: 'success',
-        confirmButtonText: '開始購物'
+        title: "Google 登入成功!",
+        text: "歡迎來到我們的網站",
+        icon: "success",
+        confirmButtonText: "開始購物",
       }).then((result) => {
         if (result.isConfirmed) {
           // 導向到商店頁面
-          router.push('/shop');
+          router.push("/shop");
         }
       });
     } else {
-      serverError.value = response.data.message || '註冊失敗，請重試。';
+      serverError.value = response.data.message || "註冊失敗，請重試。";
     }
   } catch (error) {
-    console.error('註冊錯誤:', error);
+    console.error("註冊錯誤:", error);
     if (error.response && error.response.data) {
-      serverError.value = error.response.data.message || '註冊失敗，請重試。';
+      serverError.value = error.response.data.message || "註冊失敗，請重試。";
     } else {
-      serverError.value = '網路錯誤，請稍後重試。';
+      serverError.value = "網路錯誤，請稍後重試。";
     }
   } finally {
     isSubmitting.value = false;
@@ -595,8 +654,14 @@ label {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .requirement {
@@ -667,8 +732,12 @@ label {
 }
 
 @keyframes spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* 錯誤提示 */
@@ -698,14 +767,14 @@ label {
     margin: 1rem;
     padding: 1.5rem;
   }
-  
+
   .password-popover {
     left: 0;
     top: 100%;
     width: 100%;
     margin-top: 10px;
   }
-  
+
   .popover-arrow {
     top: -8px;
     left: 20px;

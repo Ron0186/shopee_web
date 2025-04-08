@@ -9,7 +9,7 @@
           </button>
         </div>
       </div>
-      
+
       <div class="card-body">
         <div class="row mb-4">
           <div class="col-md-6">
@@ -17,16 +17,20 @@
               <span class="input-group-text bg-light border-end-0">
                 <i class="bi bi-search text-muted"></i>
               </span>
-              <input 
-                v-model="searchName" 
-                class="form-control border-start-0" 
+              <input
+                v-model="searchName"
+                class="form-control border-start-0"
                 placeholder="搜尋使用者名稱..."
                 @input="searchUsers"
-              >
+              />
             </div>
           </div>
           <div class="col-md-2">
-            <select v-model="pageSize" class="form-select" @change="handlePageSizeChange">
+            <select
+              v-model="pageSize"
+              class="form-select"
+              @change="handlePageSizeChange"
+            >
               <option :value="10">每頁 10 筆</option>
               <option :value="20">每頁 20 筆</option>
               <option :value="50">每頁 50 筆</option>
@@ -38,7 +42,10 @@
           <!-- 表格加載指示器 -->
           <div v-if="tableLoading" class="table-overlay">
             <div class="table-loading-indicator">
-              <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+              <div
+                class="spinner-border text-primary spinner-border-sm"
+                role="status"
+              ></div>
               <span class="ms-2">載入中...</span>
             </div>
           </div>
@@ -46,179 +53,272 @@
           <div class="table-responsive">
             <table class="table table-hover user-table border">
               <thead class="table-light">
-  <tr>
-    <th class="text-center sortable" style="width: 80px;" @click="toggleSort('userId')">
-      ID
-      <i v-if="sortField === 'userId'" 
-         :class="[
-           'bi ms-1', 
-           sortDirection === 'asc' ? 'bi-sort-numeric-down' : 'bi-sort-numeric-down-alt'
-         ]">
-      </i>
-    </th>
-    <th class="sortable" style="width: 150px;" @click="toggleSort('userName')">
-      名稱
-      <i v-if="sortField === 'userName'" 
-         :class="[
-           'bi ms-1', 
-           sortDirection === 'asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-down-alt'
-         ]">
-      </i>
-    </th>
-    <th class="sortable" style="width: 220px;" @click="toggleSort('email')">
-      Email
-      <i v-if="sortField === 'email'" 
-         :class="[
-           'bi ms-1', 
-           sortDirection === 'asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-down-alt'
-         ]">
-      </i>
-    </th>
-    <th class="sortable" style="width: 120px;" @click="toggleSort('phone')">
-      電話
-      <i v-if="sortField === 'phone'" 
-         :class="[
-           'bi ms-1', 
-           sortDirection === 'asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-down-alt'
-         ]">
-      </i>
-    </th>
-    <th class="sortable" style="width: 120px;" @click="toggleSort('status')">
-      帳號狀態
-      <i v-if="sortField === 'status'" 
-         :class="[
-           'bi ms-1', 
-           sortDirection === 'asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-down-alt'
-         ]">
-      </i>
-    </th>
-    <th class="sortable" style="width: 120px;" @click="toggleSort('shopIsActive')">
-      商店狀態
-      <i v-if="sortField === 'shopIsActive'" 
-         :class="[
-           'bi ms-1', 
-           sortDirection === 'asc' ? 'bi-sort-down' : 'bi-sort-up-alt'
-         ]">
-      </i>
-    </th>
-    <th style="width: 150px;">角色</th>
-    <th class="text-center" style="width: 210px;">操作</th>
-  </tr>
-</thead>
-<tbody>
-  <tr v-if="users.length > 0" v-for="user in users" :key="user.userId">
-    <td class="text-center">{{ user.userId }}</td>
-    <td>
-      <div class="d-flex align-items-center">
-        <div class="user-avatar me-2">
-          {{ getInitials(user.userName) }}
-        </div>
-        {{ user.userName }}
-      </div>
-    </td>
-    <td>{{ user.email }}</td>
-    <td>{{ user.phone || '無' }}</td>
-    <td>
-      <span :class="getStatusBadgeClass(user.status)">
-        <i :class="getStatusIconClass(user.status)"></i>
-        {{ getStatusText(user.status) }}
-      </span>
-    </td>
-    <td>
-      <span v-if="user.shopIsActive === true" class="badge bg-success">
-        <i class="bi bi-check-circle-fill me-1"></i> 已啟用
-      </span>
-      <span v-else-if="user.shopIsActive === false" class="badge bg-danger">
-        <i class="bi bi-x-circle-fill me-1"></i> 已停用
-      </span>
-      <span v-else class="badge bg-warning text-dark">
-        <i class="bi bi-exclamation-triangle me-1"></i> 無商店
-      </span>
-    </td>
-    <td>
-      <span 
-  v-for="(role, index) in user.roles" 
-  :key="index" 
-  class="badge me-1 mb-1"
-  :class="getRoleBadgeClass(role)"
->
-  {{ getRoleDisplayName(role) }}
-</span>
-    </td>
-    <td class="text-center">
-      <div class="btn-group">
-        <button class="btn btn-outline-primary btn-sm" @click="openEditModal(user)" title="編輯資料">
-          <i class="bi bi-pencil-square"></i>
-        </button>
-        <button class="btn btn-outline-info btn-sm" @click="openModal(user)" title="編輯權限">
-          <i class="bi bi-key"></i>
-        </button>
-        <button 
-          class="btn btn-sm" 
-          :class="user.status === 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'"
-          @click="toggleUserStatus(user)" 
-          :title="user.status === 'ACTIVE' ? '禁用帳號' : '啟用帳號'">
-          <i :class="user.status === 'ACTIVE' ? 'bi bi-slash-circle' : 'bi bi-check-circle'"></i>
-        </button>
-        <button class="btn btn-outline-danger btn-sm" @click="deleteUser(user.userId)" title="刪除用戶">
-          <i class="bi bi-trash"></i>
-        </button>
-      </div>
-    </td>
-  </tr>
-  <tr v-else>
-    <td colspan="8" class="text-center py-4">
-      <div class="empty-state">
-        <i class="bi bi-search fa-3x text-muted mb-3"></i>
-        <p>查無使用者資料</p>
-      </div>
-    </td>
-  </tr>
-</tbody>
+                <tr>
+                  <th
+                    class="text-center sortable"
+                    style="width: 80px"
+                    @click="toggleSort('userId')"
+                  >
+                    ID
+                    <i
+                      v-if="sortField === 'userId'"
+                      :class="[
+                        'bi ms-1',
+                        sortDirection === 'asc'
+                          ? 'bi-sort-numeric-down'
+                          : 'bi-sort-numeric-down-alt',
+                      ]"
+                    >
+                    </i>
+                  </th>
+                  <th
+                    class="sortable"
+                    style="width: 150px"
+                    @click="toggleSort('userName')"
+                  >
+                    名稱
+                    <i
+                      v-if="sortField === 'userName'"
+                      :class="[
+                        'bi ms-1',
+                        sortDirection === 'asc'
+                          ? 'bi-sort-alpha-down'
+                          : 'bi-sort-alpha-down-alt',
+                      ]"
+                    >
+                    </i>
+                  </th>
+                  <th
+                    class="sortable"
+                    style="width: 220px"
+                    @click="toggleSort('email')"
+                  >
+                    Email
+                    <i
+                      v-if="sortField === 'email'"
+                      :class="[
+                        'bi ms-1',
+                        sortDirection === 'asc'
+                          ? 'bi-sort-alpha-down'
+                          : 'bi-sort-alpha-down-alt',
+                      ]"
+                    >
+                    </i>
+                  </th>
+                  <th
+                    class="sortable"
+                    style="width: 120px"
+                    @click="toggleSort('phone')"
+                  >
+                    電話
+                    <i
+                      v-if="sortField === 'phone'"
+                      :class="[
+                        'bi ms-1',
+                        sortDirection === 'asc'
+                          ? 'bi-sort-alpha-down'
+                          : 'bi-sort-alpha-down-alt',
+                      ]"
+                    >
+                    </i>
+                  </th>
+                  <th
+                    class="sortable"
+                    style="width: 120px"
+                    @click="toggleSort('status')"
+                  >
+                    帳號狀態
+                    <i
+                      v-if="sortField === 'status'"
+                      :class="[
+                        'bi ms-1',
+                        sortDirection === 'asc'
+                          ? 'bi-sort-alpha-down'
+                          : 'bi-sort-alpha-down-alt',
+                      ]"
+                    >
+                    </i>
+                  </th>
+                  <th
+                    class="sortable"
+                    style="width: 120px"
+                    @click="toggleSort('shopIsActive')"
+                  >
+                    商店狀態
+                    <i
+                      v-if="sortField === 'shopIsActive'"
+                      :class="[
+                        'bi ms-1',
+                        sortDirection === 'asc'
+                          ? 'bi-sort-down'
+                          : 'bi-sort-up-alt',
+                      ]"
+                    >
+                    </i>
+                  </th>
+                  <th style="width: 150px">角色</th>
+                  <th class="text-center" style="width: 210px">操作</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  v-if="users.length > 0"
+                  v-for="user in users"
+                  :key="user.userId"
+                >
+                  <td class="text-center">{{ user.userId }}</td>
+                  <td>
+                    <div class="d-flex align-items-center">
+                      <div class="user-avatar me-2">
+                        {{ getInitials(user.userName) }}
+                      </div>
+                      {{ user.userName }}
+                    </div>
+                  </td>
+                  <td>{{ user.email }}</td>
+                  <td>{{ user.phone || "無" }}</td>
+                  <td>
+                    <span :class="getStatusBadgeClass(user.status)">
+                      <i :class="getStatusIconClass(user.status)"></i>
+                      {{ getStatusText(user.status) }}
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      v-if="user.shopIsActive === true"
+                      class="badge bg-success"
+                    >
+                      <i class="bi bi-check-circle-fill me-1"></i> 已啟用
+                    </span>
+                    <span
+                      v-else-if="user.shopIsActive === false"
+                      class="badge bg-danger"
+                    >
+                      <i class="bi bi-x-circle-fill me-1"></i> 已停用
+                    </span>
+                    <span v-else class="badge bg-warning text-dark">
+                      <i class="bi bi-exclamation-triangle me-1"></i> 無商店
+                    </span>
+                  </td>
+                  <td>
+                    <span
+                      v-for="(role, index) in user.roles"
+                      :key="index"
+                      class="badge me-1 mb-1"
+                      :class="getRoleBadgeClass(role)"
+                    >
+                      {{ getRoleDisplayName(role) }}
+                    </span>
+                  </td>
+                  <td class="text-center">
+                    <div class="btn-group">
+                      <button
+                        class="btn btn-outline-primary btn-sm"
+                        @click="openEditModal(user)"
+                        title="編輯資料"
+                      >
+                        <i class="bi bi-pencil-square"></i>
+                      </button>
+                      <button
+                        class="btn btn-outline-info btn-sm"
+                        @click="openModal(user)"
+                        title="編輯權限"
+                      >
+                        <i class="bi bi-key"></i>
+                      </button>
+                      <button
+                        class="btn btn-sm"
+                        :class="
+                          user.status === 'ACTIVE'
+                            ? 'btn-outline-warning'
+                            : 'btn-outline-success'
+                        "
+                        @click="toggleUserStatus(user)"
+                        :title="
+                          user.status === 'ACTIVE' ? '禁用帳號' : '啟用帳號'
+                        "
+                      >
+                        <i
+                          :class="
+                            user.status === 'ACTIVE'
+                              ? 'bi bi-slash-circle'
+                              : 'bi bi-check-circle'
+                          "
+                        ></i>
+                      </button>
+                      <button
+                        class="btn btn-outline-danger btn-sm"
+                        @click="deleteUser(user.userId)"
+                        title="刪除用戶"
+                      >
+                        <i class="bi bi-trash"></i>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+                <tr v-else>
+                  <td colspan="8" class="text-center py-4">
+                    <div class="empty-state">
+                      <i class="bi bi-search fa-3x text-muted mb-3"></i>
+                      <p>查無使用者資料</p>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
             </table>
           </div>
         </div>
 
         <nav v-if="users.length > 0" class="mt-4">
-  <ul class="pagination justify-content-center">
-    <!-- 第一頁按鈕 -->
-    <li class="page-item" :class="{ disabled: currentPage === 0 }">
-      <button class="page-link" @click="fetchUsers(0)" title="第一頁">
-        <i class="bi bi-chevron-double-left"></i>
-      </button>
-    </li>
-    
-    <!-- 上一頁按鈕 -->
-    <li class="page-item" :class="{ disabled: currentPage === 0 }">
-      <button class="page-link" @click="prevPage">
-        <i class="bi bi-chevron-left"></i>
-      </button>
-    </li>
-    
-    <!-- 頁碼按鈕 -->
-    <template v-for="index in getPageNumbers()" :key="index">
-      <li class="page-item" :class="{ active: currentPage === index }">
-        <button class="page-link" @click="fetchUsers(index)">
-          {{ index + 1 }}
-        </button>
-      </li>
-    </template>
-    
-    <!-- 下一頁按鈕 -->
-    <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
-      <button class="page-link" @click="nextPage">
-        <i class="bi bi-chevron-right"></i>
-      </button>
-    </li>
-    
-    <!-- 最後一頁按鈕 -->
-    <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
-      <button class="page-link" @click="fetchUsers(totalPages - 1)" title="最後一頁">
-        <i class="bi bi-chevron-double-right"></i>
-      </button>
-    </li>
-  </ul>
-</nav>
+          <ul class="pagination justify-content-center">
+            <!-- 第一頁按鈕 -->
+            <li class="page-item" :class="{ disabled: currentPage === 0 }">
+              <button class="page-link" @click="fetchUsers(0)" title="第一頁">
+                <i class="bi bi-chevron-double-left"></i>
+              </button>
+            </li>
+
+            <!-- 上一頁按鈕 -->
+            <li class="page-item" :class="{ disabled: currentPage === 0 }">
+              <button class="page-link" @click="prevPage">
+                <i class="bi bi-chevron-left"></i>
+              </button>
+            </li>
+
+            <!-- 頁碼按鈕 -->
+            <template v-for="index in getPageNumbers()" :key="index">
+              <li class="page-item" :class="{ active: currentPage === index }">
+                <button class="page-link" @click="fetchUsers(index)">
+                  {{ index + 1 }}
+                </button>
+              </li>
+            </template>
+
+            <!-- 下一頁按鈕 -->
+            <li
+              class="page-item"
+              :class="{ disabled: currentPage === totalPages - 1 }"
+            >
+              <button class="page-link" @click="nextPage">
+                <i class="bi bi-chevron-right"></i>
+              </button>
+            </li>
+
+            <!-- 最後一頁按鈕 -->
+            <li
+              class="page-item"
+              :class="{ disabled: currentPage === totalPages - 1 }"
+            >
+              <button
+                class="page-link"
+                @click="fetchUsers(totalPages - 1)"
+                title="最後一頁"
+              >
+                <i class="bi bi-chevron-double-right"></i>
+              </button>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
 
@@ -230,28 +330,28 @@
     </div>
 
     <!-- Modals -->
-    <UserEditModal 
-      :user="selectedUser" 
-      :isOpen="editModalOpen" 
-      @close="closeEditModal" 
+    <UserEditModal
+      :user="selectedUser"
+      :isOpen="editModalOpen"
+      @close="closeEditModal"
       @save="saveUserChanges"
-      v-if="editModalOpen" 
+      v-if="editModalOpen"
     />
-    
-    <UserAddModal 
-      :isOpen="addModalOpen" 
-      @close="closeAddModal" 
-      @insert="handleInsertUser" 
-      v-if="addModalOpen" 
+
+    <UserAddModal
+      :isOpen="addModalOpen"
+      @close="closeAddModal"
+      @insert="handleInsertUser"
+      v-if="addModalOpen"
     />
-    
-    <UserRoleEdit 
-      v-if="isModalOpen" 
-      :is-open="isModalOpen" 
+
+    <UserRoleEdit
+      v-if="isModalOpen"
+      :is-open="isModalOpen"
       :user="selectedUser || {}"
-      :all-available-roles="availableRoles" 
-      @close="closeModal" 
-      @save="handleSaveRoles" 
+      :all-available-roles="availableRoles"
+      @close="closeModal"
+      @save="handleSaveRoles"
     />
   </div>
 </template>
@@ -280,8 +380,8 @@ const sortField = ref("userId"); // 預設排序欄位
 const sortDirection = ref("asc"); // 預設排序方向 asc 或 desc
 
 const availableRoles = ref([
-  { id: 'USER', roleName: 'USER' },
-  { id: 'SELLER', roleName: 'SELLER' },
+  { id: "USER", roleName: "USER" },
+  { id: "SELLER", roleName: "SELLER" },
 ]);
 
 const openModal = (user) => {
@@ -298,19 +398,31 @@ const closeModal = () => {
 const handleSaveRoles = async (updatedUserData) => {
   loading.value = true;
   try {
-    const response = await axios.put(`/api/admin/role/${updatedUserData.userId}`, {
-      roles: updatedUserData.roles
-    });
+    const response = await axios.put(
+      `/api/admin/role/${updatedUserData.userId}`,
+      {
+        roles: updatedUserData.roles,
+      }
+    );
 
     if (response.data.success) {
-      showSuccessNotification("角色更新成功", response.data.message || "使用者角色已成功更新");
+      showSuccessNotification(
+        "角色更新成功",
+        response.data.message || "使用者角色已成功更新"
+      );
       await fetchUsers(currentPage.value);
       closeModal();
     } else {
-      showErrorNotification("角色更新失敗", response.data.message || "發生未知錯誤");
+      showErrorNotification(
+        "角色更新失敗",
+        response.data.message || "發生未知錯誤"
+      );
     }
   } catch (error) {
-    showErrorNotification("錯誤", error.response?.data?.message || "無法更新角色");
+    showErrorNotification(
+      "錯誤",
+      error.response?.data?.message || "無法更新角色"
+    );
   } finally {
     loading.value = false;
   }
@@ -321,26 +433,29 @@ const maxDisplayedPages = ref(5); // 最多顯示的頁碼數量
 // 添加頁碼計算方法
 const getPageNumbers = () => {
   if (totalPages.value <= 1) return [];
-  
+
   // 如果總頁數小於等於最大顯示頁碼數，則顯示所有頁碼
   if (totalPages.value <= maxDisplayedPages.value) {
     return Array.from({ length: totalPages.value }, (_, i) => i);
   }
-  
+
   // 計算起始和結束頁碼
-  let start = Math.max(0, currentPage.value - Math.floor(maxDisplayedPages.value / 2));
+  let start = Math.max(
+    0,
+    currentPage.value - Math.floor(maxDisplayedPages.value / 2)
+  );
   let end = Math.min(totalPages.value - 1, start + maxDisplayedPages.value - 1);
-  
+
   // 如果結束頁碼已經接近總頁數，則調整起始頁碼
   if (end >= totalPages.value - 1) {
     start = Math.max(0, totalPages.value - maxDisplayedPages.value);
   }
-  
+
   // 如果起始頁碼已經是 0，則調整結束頁碼
   if (start === 0) {
     end = Math.min(totalPages.value - 1, maxDisplayedPages.value - 1);
   }
-  
+
   // 生成頁碼陣列
   return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 };
@@ -354,10 +469,10 @@ const fetchUsers = async (page = 0, name = searchName.value) => {
         roleName: "USER",
         page: page,
         size: pageSize.value,
-        sort: `${sortField.value},${sortDirection.value}` // 添加排序參數
-      }
+        sort: `${sortField.value},${sortDirection.value}`, // 添加排序參數
+      },
     });
-    
+
     // 確保 users 屬性存在
     if (response.data && response.data.content) {
       users.value = response.data.content;
@@ -368,7 +483,10 @@ const fetchUsers = async (page = 0, name = searchName.value) => {
     }
   } catch (error) {
     console.error("獲取使用者時發生錯誤:", error);
-    showErrorNotification("載入失敗", error.response?.data?.message || "無法載入使用者列表");
+    showErrorNotification(
+      "載入失敗",
+      error.response?.data?.message || "無法載入使用者列表"
+    );
   } finally {
     setTimeout(() => {
       tableLoading.value = false;
@@ -385,11 +503,10 @@ const toggleSort = (field) => {
     sortField.value = field;
     sortDirection.value = "asc";
   }
-  
+
   // 重新獲取數據
   fetchUsers(currentPage.value);
 };
-
 
 const openAddModal = () => {
   addModalOpen.value = true;
@@ -426,7 +543,7 @@ const searchUsers = () => {
   if (searchDebounceTimer.value) {
     clearTimeout(searchDebounceTimer.value);
   }
-  
+
   searchDebounceTimer.value = setTimeout(() => {
     fetchUsers(0, searchName.value);
   }, 300);
@@ -450,12 +567,18 @@ const saveUserChanges = async (editedUser) => {
       editedUser
     );
     if (response.data.success) {
-      showSuccessNotification("資料更新", response.data.message || "使用者資料已成功更新");
+      showSuccessNotification(
+        "資料更新",
+        response.data.message || "使用者資料已成功更新"
+      );
       await fetchUsers(currentPage.value);
     }
     closeEditModal();
   } catch (error) {
-    showErrorNotification("錯誤", error.response?.data?.message || "無法更新使用者資料");
+    showErrorNotification(
+      "錯誤",
+      error.response?.data?.message || "無法更新使用者資料"
+    );
   } finally {
     loading.value = false;
   }
@@ -478,18 +601,25 @@ const deleteUser = async (userId) => {
       loading.value = true;
       const response = await axios.delete(`/api/admin/user/any/${userId}`);
       if (response.data.success) {
-        showSuccessNotification("刪除成功", response.data.message || "使用者已成功刪除");
-        
+        showSuccessNotification(
+          "刪除成功",
+          response.data.message || "使用者已成功刪除"
+        );
+
         // 計算要回到哪一頁
-        const newPage = users.value.length === 1 && currentPage.value > 0
-          ? currentPage.value - 1
-          : currentPage.value;
+        const newPage =
+          users.value.length === 1 && currentPage.value > 0
+            ? currentPage.value - 1
+            : currentPage.value;
 
         fetchUsers(newPage);
       }
     }
   } catch (error) {
-    showErrorNotification("錯誤", error.response?.data?.message || "無法刪除使用者");
+    showErrorNotification(
+      "錯誤",
+      error.response?.data?.message || "無法刪除使用者"
+    );
   } finally {
     loading.value = false;
   }
@@ -497,23 +627,23 @@ const deleteUser = async (userId) => {
 
 // 獲取名稱縮寫作為頭像
 const getInitials = (name) => {
-  if (!name) return '?';
+  if (!name) return "?";
   return name.charAt(0).toUpperCase();
 };
 
 // 獲取角色徽章的樣式類
 const getRoleBadgeClass = (role) => {
   switch (role) {
-    case 'USER':
-      return 'bg-secondary text-white';
-    case 'SELLER':
-      return 'bg-success text-white';
-    case 'ADMIN':
-      return 'bg-primary text-white';
-    case 'SUPER_ADMIN':
-      return 'bg-danger text-white';
+    case "USER":
+      return "bg-secondary text-white";
+    case "SELLER":
+      return "bg-success text-white";
+    case "ADMIN":
+      return "bg-primary text-white";
+    case "SUPER_ADMIN":
+      return "bg-danger text-white";
     default:
-      return 'bg-light text-dark';
+      return "bg-light text-dark";
   }
 };
 
@@ -525,7 +655,7 @@ const showSuccessNotification = (title, message) => {
     icon: "success",
     timer: 2000,
     timerProgressBar: true,
-    showConfirmButton: false
+    showConfirmButton: false,
   });
 };
 
@@ -534,7 +664,7 @@ const showErrorNotification = (title, error) => {
   console.error(title, error);
   Swal.fire({
     title: title,
-    text: typeof error === 'string' ? error : error.message || "發生未知錯誤",
+    text: typeof error === "string" ? error : error.message || "發生未知錯誤",
     icon: "error",
   });
 };
@@ -542,25 +672,25 @@ const showErrorNotification = (title, error) => {
 // 處理用戶狀態相關方法
 const getStatusBadgeClass = (status) => {
   switch (status) {
-    case 'ACTIVE':
-      return 'badge bg-success';
-    case 'BANNED':
-      return 'badge bg-danger';
+    case "ACTIVE":
+      return "badge bg-success";
+    case "BANNED":
+      return "badge bg-danger";
     default:
-      return 'badge bg-secondary';
+      return "badge bg-secondary";
   }
 };
 
 const getRoleDisplayName = (role) => {
   switch (role) {
-    case 'USER':
-      return '買家';
-    case 'SELLER':
-      return '賣家';
-    case 'ADMIN':
-      return '管理員';
-    case 'SUPER_ADMIN':
-      return '超級管理員';
+    case "USER":
+      return "買家";
+    case "SELLER":
+      return "賣家";
+    case "ADMIN":
+      return "管理員";
+    case "SUPER_ADMIN":
+      return "超級管理員";
     default:
       return role;
   }
@@ -568,23 +698,23 @@ const getRoleDisplayName = (role) => {
 
 const getStatusIconClass = (status) => {
   switch (status) {
-    case 'ACTIVE':
-      return 'bi bi-person-check-fill me-1';
-    case 'BANNED':
-      return 'bi bi-person-x-fill me-1';
+    case "ACTIVE":
+      return "bi bi-person-check-fill me-1";
+    case "BANNED":
+      return "bi bi-person-x-fill me-1";
     default:
-      return 'bi bi-question-circle-fill me-1';
+      return "bi bi-question-circle-fill me-1";
   }
 };
 
 const getStatusText = (status) => {
   switch (status) {
-    case 'ACTIVE':
-      return '正常';
-    case 'BANNED':
-      return '已禁用';
+    case "ACTIVE":
+      return "正常";
+    case "BANNED":
+      return "已禁用";
     default:
-      return '未知狀態';
+      return "未知狀態";
   }
 };
 
@@ -592,39 +722,53 @@ const getStatusText = (status) => {
 const toggleUserStatus = async (user) => {
   try {
     const result = await Swal.fire({
-      title: user.status === 'ACTIVE' 
-        ? `確定要禁用 ${user.userName} 的帳號嗎？` 
-        : `確定要啟用 ${user.userName} 的帳號嗎？`,
-      text: user.status === 'ACTIVE' 
-        ? "禁用後，該用戶將無法登入系統" 
-        : "啟用後，該用戶將可以正常登入系統",
+      title:
+        user.status === "ACTIVE"
+          ? `確定要禁用 ${user.userName} 的帳號嗎？`
+          : `確定要啟用 ${user.userName} 的帳號嗎？`,
+      text:
+        user.status === "ACTIVE"
+          ? "禁用後，該用戶將無法登入系統"
+          : "啟用後，該用戶將可以正常登入系統",
       icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: user.status === 'ACTIVE' ? "#d33" : "#3085d6",
+      confirmButtonColor: user.status === "ACTIVE" ? "#d33" : "#3085d6",
       cancelButtonColor: "#6c757d",
-      confirmButtonText: user.status === 'ACTIVE' ? "確定禁用" : "確定啟用",
+      confirmButtonText: user.status === "ACTIVE" ? "確定禁用" : "確定啟用",
       cancelButtonText: "取消",
     });
 
     if (result.isConfirmed) {
       loading.value = true;
-      const newStatus = user.status === 'ACTIVE' ? 'BANNED' : 'ACTIVE';
-      const response = await axios.put(`/api/admin/user/status/${user.userId}`, {
-        status: newStatus
-      });
-      
+      const newStatus = user.status === "ACTIVE" ? "BANNED" : "ACTIVE";
+      const response = await axios.put(
+        `/api/admin/user/status/${user.userId}`,
+        {
+          status: newStatus,
+        }
+      );
+
       if (response.data.success) {
         showSuccessNotification(
-          user.status === 'ACTIVE' ? "帳號已禁用" : "帳號已啟用", 
-          response.data.message || (user.status === 'ACTIVE' ? "使用者帳號已成功禁用" : "使用者帳號已成功啟用")
+          user.status === "ACTIVE" ? "帳號已禁用" : "帳號已啟用",
+          response.data.message ||
+            (user.status === "ACTIVE"
+              ? "使用者帳號已成功禁用"
+              : "使用者帳號已成功啟用")
         );
         await fetchUsers(currentPage.value);
       } else {
-        showErrorNotification("操作失敗", response.data.message || "無法更新使用者狀態");
+        showErrorNotification(
+          "操作失敗",
+          response.data.message || "無法更新使用者狀態"
+        );
       }
     }
   } catch (error) {
-    showErrorNotification("錯誤", error.response?.data?.message || "無法更新使用者狀態");
+    showErrorNotification(
+      "錯誤",
+      error.response?.data?.message || "無法更新使用者狀態"
+    );
   } finally {
     loading.value = false;
   }

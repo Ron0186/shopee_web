@@ -363,32 +363,31 @@ const router = createRouter({
             title: "連結帳號",
             requiresAuth: false, // 此頁面不需要身份驗證
           },
-
         },
         //跳到商品的頁面
         {
-          path: '/products/:productId',
-          name: 'ProductDetail',
-          component: () => import('@/views/front/ProductDetail.vue'),
+          path: "/products/:productId",
+          name: "ProductDetail",
+          component: () => import("@/views/front/ProductDetail.vue"),
         },
         {
-          path: '/seller/shops/:shopId/campaigns',
-          name: 'SellerCampaigns',
-          component: () => import('@/views/front/SellerCampaigns.vue'),
-          meta: { requiresAuth: true }
+          path: "/seller/shops/:shopId/campaigns",
+          name: "SellerCampaigns",
+          component: () => import("@/views/front/SellerCampaigns.vue"),
+          meta: { requiresAuth: true },
         },
         {
           path: "seller/coupon/apply", // 注意這是相對路徑
           name: "CouponApply",
           component: () => import("@/views/front/CouponApplicationForm.vue"),
-          meta: { requiresAuth: true, role: "SELLER" } // 設定路由元信息
+          meta: { requiresAuth: true, role: "SELLER" }, // 設定路由元信息
         },
         {
           path: "/shops/list", // 或者 'shop-list' 等你喜歡的路徑
           name: "ShopListPage", // 給路由命名
           component: () => import("@/views/front/ShopListPage.vue"), // 指向新元件
           // meta: { requiresAuth: true } // 看是否需要登入才能查看列表
-        }
+        },
       ],
     },
 
@@ -505,6 +504,12 @@ const router = createRouter({
           path: "profile",
           name: "AdminProfile",
           component: () => import("@/views/admin/AdminProfile.vue"),
+        },
+        {
+          // 管理員個人資料頁面
+          path: "analytics/user-analytics",
+          name: "UserAnalytics",
+          component: () => import("@/views/admin/UserAnalyticsPage.vue"),
         },
         {
           // 分類管理頁面

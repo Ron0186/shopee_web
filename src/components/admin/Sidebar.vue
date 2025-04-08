@@ -179,9 +179,9 @@ const isRouteActive = (route) => {
             <i class="icon fas fa-chart-bar"></i>
             <span>銷售報告</span>
           </router-link>
-          <router-link to="/admin/analytics/user-behavior" class="nav-subitem">
+          <router-link to="/admin/analytics/user-analytics" class="nav-subitem">
             <i class="icon fas fa-users-cog"></i>
-            <span>用戶行為分析</span>
+            <span>用戶分析</span>
           </router-link>
         </div>
       </div>

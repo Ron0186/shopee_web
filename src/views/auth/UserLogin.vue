@@ -7,23 +7,38 @@
       <div class="recaptcha-toggle-container">
         <span>reCAPTCHA:</span>
         <label class="toggle-switch">
-          <input type="checkbox" v-model="enableRecaptcha" @change="handleRecaptchaToggle">
+          <input
+            type="checkbox"
+            v-model="enableRecaptcha"
+            @change="handleRecaptchaToggle"
+          />
           <span class="toggle-slider"></span>
         </label>
-        <span>{{ enableRecaptcha ? '開啟' : '關閉' }}</span>
+        <span>{{ enableRecaptcha ? "開啟" : "關閉" }}</span>
       </div>
 
       <form @submit.prevent="login" class="login-form">
         <div class="form-group">
           <label for="username">使用者名稱</label>
-          <input type="text" id="username" v-model="username" class="form-input" placeholder="請輸入使用者名稱" />
+          <input
+            type="text"
+            id="username"
+            v-model="username"
+            class="form-input"
+            placeholder="請輸入使用者名稱"
+          />
         </div>
 
         <div class="form-group">
           <label for="password">密碼</label>
           <div class="password-container">
-            <input :type="showPassword ? 'text' : 'password'" id="password" v-model="password" class="form-input"
-              placeholder="請輸入密碼" />
+            <input
+              :type="showPassword ? 'text' : 'password'"
+              id="password"
+              v-model="password"
+              class="form-input"
+              placeholder="請輸入密碼"
+            />
             <span class="eye-icon" @click="togglePasswordVisibility">
               <i v-if="showPassword" class="bi bi-eye"></i>
               <i v-else class="bi bi-eye-slash"></i>
@@ -33,7 +48,11 @@
 
         <!-- reCAPTCHA v2 勾選框，只有在啟用時顯示 -->
         <div v-if="enableRecaptcha" class="form-group recaptcha-container">
-          <div ref="recaptchaContainer" class="g-recaptcha" :data-sitekey="recaptchaSiteKey"></div>
+          <div
+            ref="recaptchaContainer"
+            class="g-recaptcha"
+            :data-sitekey="recaptchaSiteKey"
+          ></div>
           <div v-if="captchaError" class="captcha-error">
             請勾選「我不是機器人」
           </div>
@@ -71,10 +90,18 @@
         <div class="quick-login">
           <h3 class="quick-login-title">快速登入</h3>
           <div class="quick-login-buttons">
-            <button type="button" @click="quickLogin('買家')" class="quick-login-btn">
+            <button
+              type="button"
+              @click="quickLogin('買家')"
+              class="quick-login-btn"
+            >
               <i class="bi bi-lightning-charge"></i> 買家
             </button>
-            <button type="button" @click="quickLogin('賣家')" class="quick-login-btn">
+            <button
+              type="button"
+              @click="quickLogin('賣家')"
+              class="quick-login-btn"
+            >
               <i class="bi bi-shield-lock"></i> 賣家
             </button>
           </div>
@@ -91,7 +118,7 @@ import Swal from "sweetalert2";
 import { useRouter, useRoute } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 import { useUserStore } from "@/stores/user";
-import { useChatStore } from '@/stores/chatStore';
+import { useChatStore } from "@/stores/chatStore";
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
 const SiteKey = import.meta.env.VITE_RECAPTCHA_V2_SITE_KEY;
 
@@ -111,17 +138,17 @@ const enableRecaptcha = ref(false);
 
 // 從 localStorage 讀取開關狀態，確保頁面重載後狀態保持不變
 onMounted(() => {
-  const savedState = localStorage.getItem('recaptchaEnabled');
+  const savedState = localStorage.getItem("recaptchaEnabled");
   if (savedState !== null) {
-    enableRecaptcha.value = savedState === 'true';
+    enableRecaptcha.value = savedState === "true";
   }
   const error = route.query.error; // 從路由物件獲取查詢參數
-  if (error === 'account_banned') {
+  if (error === "account_banned") {
     Swal.fire({
-      icon: 'error', // 圖示 (error, warning, success, info, question)
-      title: '帳號狀態異常', // 標題
-      text: '您的帳號已被禁用，請聯繫客服。', // 提示文字
-      confirmButtonText: '確定' // 按鈕文字
+      icon: "error", // 圖示 (error, warning, success, info, question)
+      title: "帳號狀態異常", // 標題
+      text: "您的帳號已被禁用，請聯繫客服。", // 提示文字
+      confirmButtonText: "確定", // 按鈕文字
       // 您可以添加更多 SweetAlert2 的配置選項
     });
   }
@@ -130,7 +157,7 @@ onMounted(() => {
 // 處理 reCAPTCHA 切換開關
 function handleRecaptchaToggle() {
   // 保存開關狀態到 localStorage
-  localStorage.setItem('recaptchaEnabled', enableRecaptcha.value);
+  localStorage.setItem("recaptchaEnabled", enableRecaptcha.value);
 
   if (enableRecaptcha.value) {
     // 如果開啟，則初始化 reCAPTCHA
@@ -314,7 +341,9 @@ async function login() {
       localStorage.setItem("username", decodedToken.sub);
 
       // 設定 Authorization header
-      axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
+      axios.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${response.data.token}`;
 
       // 獲取使用者資料，包括頭像URL
       try {
@@ -353,7 +382,7 @@ async function login() {
         username: userStore.username,
         roles: JSON.stringify(userStore.roles),
         token: userStore.token,
-        profilePhoto: userStore.profilePhoto // 記錄頭像URL
+        profilePhoto: userStore.profilePhoto, // 記錄頭像URL
       });
 
       // 如果用戶是賣家，獲取他們的商店 ID
@@ -382,12 +411,13 @@ async function login() {
         console.log("[Login Success] WebSocket 連接成功。");
       } else {
         console.error("[Login Success] WebSocket 連接失敗。");
-        await Swal.fire("提示", "聊天服務連線失敗，部分功能可能無法使用。", "warning"); // 改為 await
+        await Swal.fire(
+          "提示",
+          "聊天服務連線失敗，部分功能可能無法使用。",
+          "warning"
+        ); // 改為 await
       }
       // --- WebSocket 連接結束 ---
-
-
-
 
       if (result.isConfirmed) {
         router.push("/shop");
@@ -556,7 +586,7 @@ window.addEventListener("storage", (event) => {
   right: 0;
   bottom: 0;
   background-color: #ccc;
-  transition: .4s;
+  transition: 0.4s;
   border-radius: 24px;
 }
 
@@ -570,19 +600,19 @@ window.addEventListener("storage", (event) => {
   left: 3px;
   bottom: 3px;
   background-color: white;
-  transition: .4s;
+  transition: 0.4s;
   border-radius: 50%;
 }
 
-input:checked+.toggle-slider {
+input:checked + .toggle-slider {
   background-color: #ff9b20;
 }
 
-input:focus+.toggle-slider {
+input:focus + .toggle-slider {
   box-shadow: 0 0 1px #ff9b20;
 }
 
-input:checked+.toggle-slider:before {
+input:checked + .toggle-slider:before {
   transform: translateX(24px);
 }
 
@@ -753,7 +783,6 @@ input:checked+.toggle-slider:before {
   /* 增大字體 */
   padding: 0 15px;
   /* 增加左右內邊距 */
-
 }
 
 /* 社交登入按鈕 */
@@ -793,7 +822,6 @@ input:checked+.toggle-slider:before {
   gap: 20px;
   /* 增加按鈕之間的間距 */
 }
-
 
 .quick-login-btn {
   background-color: #6c757d;
