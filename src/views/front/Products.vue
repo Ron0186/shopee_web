@@ -569,6 +569,9 @@ const fetchProducts = async () => {
       return;
     }
 
+    // 获取新数据前清除产品数组
+    products.value = [];
+
     // 构建查询参数
     const params = {
       shopId: shopId,
