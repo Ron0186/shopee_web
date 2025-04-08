@@ -1,95 +1,98 @@
 <template>
-    <div class="container my-4 shop-list-page">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2><i class="bi bi-shop-window me-2"></i> 商店列表</h2>
-        </div>
-        <p>點擊商店名稱或資訊區域可以選中該行，再點擊「進入」按鈕前往商店頁面。</p>
-
-        <div class="row g-2 mb-3">
-            <div class="col flex-grow-1">
-                <input type="text" class="form-control" placeholder="搜尋商店或賣家名稱..." v-model="searchQuery.text"
-                    @keyup.enter="searchShops" />
+    <div>
+        <div class="container my-4 shop-list-page">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2><i class="bi bi-shop-window me-2"></i> 商店列表</h2>
             </div>
-            <div class="col-auto">
-                <button class="btn btn-info" @click="searchShops" :disabled="isLoading">
-                    <i class="bi bi-search"></i>
-                    <span class="d-none d-sm-inline ms-1">搜尋</span>
-                </button>
-            </div>
-        </div>
+            <p>點擊商店名稱或資訊區域可以選中該行，再點擊「進入」按鈕前往商店頁面。</p>
 
-        <div v-if="isLoading" class="text-center my-5">
-            <div class="spinner-border text-primary" role="status">
-                <span class="visually-hidden">載入中...</span>
-            </div>
-        </div>
-        <div v-else-if="errorMessage" class="alert alert-danger">
-            載入商店列表失敗：{{ errorMessage }}
-        </div>
-        <div v-else-if="shops.length === 0" class="alert alert-light text-center border">
-            找不到符合條件的商店。
-        </div>
-
-        <div class="list-group shop-list mt-3">
-            <a href="#" v-for="shop in shops" :key="shop.shopId"
-                class="list-group-item list-group-item-action px-0 py-2"
-                :class="{ active: selectedShopId === shop.shopId }" @click.prevent="selectShop(shop.shopId)">
-                <div class="row align-items-center gx-2">
-                    <div class="col-auto text-center ps-3">
-                        <span class="fw-bold small">#{{ shop.shopId }}</span>
-                    </div>
-
-                    <div class="col">
-                        <div class="fw-bold text-truncate" :title="shop.shopName">{{ shop.shopName }}</div>
-
-                        <div v-if="shop.shopCategory" class="text-muted small text-truncate mt-1 mb-2"
-                            :title="shop.shopCategory">
-                            <i class="bi bi-tag-fill me-1"></i> {{ shop.shopCategory }}
-                        </div>
-                        <div class="text-muted small text-truncate" :title="shop.userName">
-                            (販賣類型: {{ shop.userName || 'N/A' }})
-                        </div>
-                    </div>
-
-                    <div class="col-auto ms-auto pe-3">
-                        <button class="btn btn-primary btn-sm flex-shrink-0" @click.stop="navigateToShop(shop.shopId)"
-                            :disabled="selectedShopId !== shop.shopId" title="進入商店頁面">
-                            <i class="bi bi-box-arrow-in-right"></i>
-                            <span class="d-none d-sm-inline ms-1">進入</span>
-                        </button>
-                    </div>
+            <div class="row g-2 mb-3">
+                <div class="col flex-grow-1">
+                    <input type="text" class="form-control" placeholder="搜尋商店或賣家名稱..." v-model="searchQuery.text"
+                        @keyup.enter="searchShops" />
                 </div>
-            </a>
-        </div>
-
-
-        <nav v-if="pagination.totalPages > 1 && !isLoading" class="mt-4 d-flex justify-content-center">
-            <ul class="pagination pagination-sm mb-0">
-                <li class="page-item" :class="{ disabled: pagination.currentPage === 0 }">
-                    <a class="page-link" href="#" @click.prevent="fetchShops(0)" aria-label="First">«</a>
-                </li>
-                <li class="page-item" :class="{ disabled: pagination.currentPage === 0 }">
-                    <a class="page-link" href="#" @click.prevent="fetchShops(pagination.currentPage - 1)"
-                        aria-label="Previous">‹</a>
-                </li>
-                <li v-for="page in visiblePages" :key="page" class="page-item"
-                    :class="{ active: page === pagination.currentPage }">
-                    <a class="page-link" href="#" @click.prevent="fetchShops(page)">{{ page + 1 }}</a>
-                </li>
-                <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
-                    <a class="page-link" href="#" @click.prevent="fetchShops(pagination.currentPage + 1)"
-                        aria-label="Next">›</a>
-                </li>
-                <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
-                    <a class="page-link" href="#" @click.prevent="fetchShops(pagination.totalPages - 1)"
-                        aria-label="Last">»</a>
-                </li>
-            </ul>
-            <div v-if="pagination.totalItems > 0 && !isLoading" class="text-muted small ms-3 align-self-center">
-                共 {{ pagination.totalItems }} 筆資料
+                <div class="col-auto">
+                    <button class="btn btn-info" @click="searchShops" :disabled="isLoading">
+                        <i class="bi bi-search"></i>
+                        <span class="d-none d-sm-inline ms-1">搜尋</span>
+                    </button>
+                </div>
             </div>
-        </nav>
 
+            <div v-if="isLoading" class="text-center my-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">載入中...</span>
+                </div>
+            </div>
+            <div v-else-if="errorMessage" class="alert alert-danger">
+                載入商店列表失敗：{{ errorMessage }}
+            </div>
+            <div v-else-if="shops.length === 0" class="alert alert-light text-center border">
+                找不到符合條件的商店。
+            </div>
+
+            <div class="list-group shop-list mt-3">
+                <a href="#" v-for="shop in shops" :key="shop.shopId"
+                    class="list-group-item list-group-item-action px-0 py-2"
+                    :class="{ active: selectedShopId === shop.shopId }" @click.prevent="selectShop(shop.shopId)">
+                    <div class="row align-items-center gx-2">
+                        <div class="col-auto text-center ps-3">
+                            <span class="fw-bold small">#{{ shop.shopId }}</span>
+                        </div>
+
+                        <div class="col">
+                            <div class="fw-bold text-truncate" :title="shop.shopName">{{ shop.shopName }}</div>
+
+                            <div v-if="shop.shopCategory" class="text-muted small text-truncate mt-1 mb-2"
+                                :title="shop.shopCategory">
+                                <i class="bi bi-tag-fill me-1"></i> {{ shop.shopCategory }}
+                            </div>
+                            <div class="text-muted small text-truncate" :title="shop.userName">
+                                (販賣類型: {{ shop.userName || 'N/A' }})
+                            </div>
+                        </div>
+
+                        <div class="col-auto ms-auto pe-3">
+                            <button class="btn btn-primary btn-sm flex-shrink-0"
+                                @click.stop="navigateToShop(shop.shopId)" :disabled="selectedShopId !== shop.shopId"
+                                title="進入商店頁面">
+                                <i class="bi bi-box-arrow-in-right"></i>
+                                <span class="d-none d-sm-inline ms-1">進入</span>
+                            </button>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+
+            <nav v-if="pagination.totalPages > 1 && !isLoading" class="mt-4 d-flex justify-content-center">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item" :class="{ disabled: pagination.currentPage === 0 }">
+                        <a class="page-link" href="#" @click.prevent="fetchShops(0)" aria-label="First">«</a>
+                    </li>
+                    <li class="page-item" :class="{ disabled: pagination.currentPage === 0 }">
+                        <a class="page-link" href="#" @click.prevent="fetchShops(pagination.currentPage - 1)"
+                            aria-label="Previous">‹</a>
+                    </li>
+                    <li v-for="page in visiblePages" :key="page" class="page-item"
+                        :class="{ active: page === pagination.currentPage }">
+                        <a class="page-link" href="#" @click.prevent="fetchShops(page)">{{ page + 1 }}</a>
+                    </li>
+                    <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
+                        <a class="page-link" href="#" @click.prevent="fetchShops(pagination.currentPage + 1)"
+                            aria-label="Next">›</a>
+                    </li>
+                    <li class="page-item" :class="{ disabled: pagination.currentPage === pagination.totalPages - 1 }">
+                        <a class="page-link" href="#" @click.prevent="fetchShops(pagination.totalPages - 1)"
+                            aria-label="Last">»</a>
+                    </li>
+                </ul>
+                <div v-if="pagination.totalItems > 0 && !isLoading" class="text-muted small ms-3 align-self-center">
+                    共 {{ pagination.totalItems }} 筆資料
+                </div>
+            </nav>
+
+        </div>
     </div>
 </template>
 
