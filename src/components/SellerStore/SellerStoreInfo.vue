@@ -2,19 +2,20 @@
   <div class="shop-header">
     <!-- 商店資訊 (左側) -->
     <div class="shop-info">
-      <img :src="shopLogo" class="shop-logo" alt="商店 Logo">
+      <img :src="shopLogo" class="shop-logo" alt="商店 Logo" />
       <div class="shop-details">
         <h2 class="shop-name">
           <span class="highlight">{{ shop.shopName }}</span>
         </h2>
         <div class="shop-actions">
-<<<<<<< HEAD
-          <button class="btn btn-chat" v-if="!isOwner">💬 聊聊</button>
-=======
-          <button class="btn btn-chat" v-if="!isOwner" @click="startChat" :disabled="isCreatingChat">
-            {{ isCreatingChat ? '創建中...' : '💬 聊聊' }}
+          <button
+            class="btn btn-chat"
+            v-if="!isOwner"
+            @click="startChat"
+            :disabled="isCreatingChat"
+          >
+            {{ isCreatingChat ? "創建中..." : "💬 聊聊" }}
           </button>
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
         </div>
       </div>
     </div>
@@ -24,65 +25,43 @@
       <p><strong>商品數量：</strong> {{ shop.countProducts ?? 0 }}</p>
       <p><strong>加入時間：</strong> {{ shop.createdAt }}</p>
     </div>
-<<<<<<< HEAD
 
     <!-- 編輯按鈕 (右側) -->
-    <button class="btn btn-edit-shop" :style="{ visibility: isOwner ? 'visible' : 'hidden' }">
-  ⚙️ 編輯賣場資訊
-</button>
-=======
-    <!-- 右側區域：通知 + 編輯按鈕 -->
-    <div class="shop-right">
-
-      <!-- 編輯按鈕 (右側) -->
-      <button class="btn btn-edit-shop" :style="{ visibility: isOwner ? 'visible' : 'hidden' }">
-        ⚙️ 編輯賣場資訊
-      </button>
-
-    </div>
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
+    <button
+      class="btn btn-edit-shop"
+      :style="{ visibility: isOwner ? 'visible' : 'hidden' }"
+    >
+      ⚙️ 編輯賣場資訊
+    </button>
   </div>
 </template>
 
 <script setup>
-<<<<<<< HEAD
-import { computed } from 'vue';
-import defaultLogo from "@/assets/shop-logo.jpg";
-=======
-import { ref, computed } from 'vue';
+import { ref, computed } from "vue";
 import defaultLogo from "@/assets/shop-logo.jpg";
 import { useRouter } from "vue-router";
 import axios from "@/plugins/axios";
-import Swal from 'sweetalert2';  // 引入更美觀的提示套件
+import Swal from "sweetalert2"; // 引入更美觀的提示套件
 
 const isCreatingChat = ref(false); // 正確定義變量
 const props = defineProps({
   shop: Object,
-  isOwner: Boolean
+  isOwner: Boolean,
 });
 
 const router = useRouter();
-
-
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
 
 const shopLogo = computed(() => {
   return props.shop.logo ? props.shop.logo : defaultLogo;
 });
 
-<<<<<<< HEAD
-const props = defineProps({
-  shop: Object,
-  isOwner: Boolean
-});
-=======
 const startChat = async () => {
   try {
     // 驗證參數更嚴謹
     const rawUserId = localStorage.getItem("userId");
     if (!rawUserId) {
       await Swal.fire("需要登入", "請先登入才能使用聊天功能", "warning");
-      return router.push('/user/login');
+      return router.push("/user/login");
     }
     const buyerId = parseInt(rawUserId);
     if (isNaN(buyerId)) {
@@ -96,52 +75,55 @@ const startChat = async () => {
 
     const shopId = parseInt(props.shop.shopId);
     if (isNaN(shopId)) {
-      Swal.fire('錯誤', '商店資訊取得失敗', 'error');
+      Swal.fire("錯誤", "商店資訊取得失敗", "error");
       return;
     }
     console.log("發送請求參數：", {
       buyerId: buyerId,
-      shopId: shopId
+      shopId: shopId,
     });
-    isCreatingChat.value = true;  // 開始載入
+    isCreatingChat.value = true; // 開始載入
 
     // 參數名稱修正為 buyerId
-    const response = await axios.post("http://localhost:8081/api/chat/create", {
-      buyerId: buyerId,
-      shopId: shopId
-    }, {
-      headers: {
-        'Content-Type': 'application/json'
+    const response = await axios.post(
+      "http://localhost:8081/api/chat/create",
+      {
+        buyerId: buyerId,
+        shopId: shopId,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
       }
-    });
+    );
 
     // 強化回應處理
     if (response.data?.chatRoomId) {
-      const action = response.data.alreadyExists ? '跳轉至現有' : '進入新';
+      const action = response.data.alreadyExists ? "跳轉至現有" : "進入新";
       Swal.fire({
-        icon: 'success',
+        icon: "success",
         title: `${action}聊天室`,
         showConfirmButton: false,
-        timer: 1500
+        timer: 1500,
       });
 
       router.push(`/chat/${response.data.chatRoomId}`);
     } else {
-      throw new Error('後端未返回聊天室ID');
+      throw new Error("後端未返回聊天室ID");
     }
   } catch (error) {
-    console.error('聊天室建立失敗:', error);
+    console.error("聊天室建立失敗:", error);
 
     // 分類錯誤處理
-    const errorMessage = error.response?.data?.message
-      || error.message
-      || '未知錯誤';
+    const errorMessage =
+      error.response?.data?.message || error.message || "未知錯誤";
 
     Swal.fire({
-      icon: 'error',
-      title: '操作失敗',
-      text: errorMessage.includes('already exists')
-        ? '聊天室已存在，正在為您跳轉...'
+      icon: "error",
+      title: "操作失敗",
+      text: errorMessage.includes("already exists")
+        ? "聊天室已存在，正在為您跳轉..."
         : errorMessage,
     });
 
@@ -151,10 +133,9 @@ const startChat = async () => {
       return; // 確保後續代碼不執行
     }
   } finally {
-    isCreatingChat.value = false;  // 結束載入
+    isCreatingChat.value = false; // 結束載入
   }
-}
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
+};
 </script>
 
 <style scoped>
@@ -208,7 +189,7 @@ const startChat = async () => {
 }
 
 .btn-chat {
-  background-color: #4CAF50;
+  background-color: #4caf50;
   color: white;
   border: none;
   padding: 8px 14px;
@@ -217,12 +198,9 @@ const startChat = async () => {
 }
 
 .btn-chat:hover {
-  background-color: #388E3C;
+  background-color: #388e3c;
 }
-<<<<<<< HEAD
-=======
 
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
 .btn-edit-shop {
   background-color: #3498db;
   color: white;
@@ -231,20 +209,13 @@ const startChat = async () => {
   border-radius: 5px;
   cursor: pointer;
   margin-left: 10px;
-<<<<<<< HEAD
   visibility: hidden; /* 隱藏但保留空間 */
-=======
-  visibility: hidden;
-  /* 隱藏但保留空間 */
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
 }
 
 .btn-edit-shop:hover {
   background-color: #2980b9;
 }
 
-<<<<<<< HEAD
-=======
 /* 新增右側區域樣式 */
 .shop-right {
   display: flex;
@@ -259,7 +230,6 @@ const startChat = async () => {
   /* 移除原有左邊距 */
 }
 
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
 /* .btn-chat {
     background-color: #f1c40f;
     color: black;

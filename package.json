@@ -35,12 +35,8 @@
     "vue-flatpickr-component": "^12.0.0",
     "vue-router": "^4.5.0",
     "vue3-google-login": "^2.0.33",
-<<<<<<< HEAD
-    "webstomp-client": "^1.2.6"
-=======
     "webstomp-client": "^1.2.6",
     "ws": "^8.18.1"
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.1",
