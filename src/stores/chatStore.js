@@ -903,6 +903,7 @@ export const useChatStore = defineStore('chat', () => {
         console.log("[ChatStore] Chat state reset complete.");
     }
 
+
     return {
         // 給 Content.vue
         conversations,
@@ -937,6 +938,7 @@ export const useChatStore = defineStore('chat', () => {
         checkConnection, // 新增 checkConnection 方法
         socketManager,
         markConversationAsRead,
-        totalUnreadCount
+        totalUnreadCount,
+        resetChatState
     };
 });
