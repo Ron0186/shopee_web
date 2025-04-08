@@ -10,21 +10,28 @@
     <button @click="getStoreList">取得門市清單</button>
 
     <div class="filters" v-if="storeList.length">
-      <label>
+      <!-- <label>
         城市：<input v-model="cityFilter" placeholder="例如：高雄市" />
       </label>
       <label>
         區名：<input v-model="districtFilter" placeholder="例如：鼓山區" />
-      </label>
+      </label> -->
       <label>
-        路名/街名：<input v-model="streetFilter" placeholder="例如：美術館路" />
+        地址/店名：<input
+          v-model="streetFilter"
+          placeholder="例如：美術館路、大台門市"
+        />
       </label>
     </div>
 
     <div v-if="filteredStores.length">
       <h3>門市選擇：</h3>
       <select v-model="selectedStoreId">
-        <option v-for="store in filteredStores" :key="store.StoreId" :value="store.StoreId">
+        <option
+          v-for="store in filteredStores"
+          :key="store.StoreId"
+          :value="store.StoreId"
+        >
           {{ store.StoreName }} - {{ store.StoreAddr }}
         </option>
       </select>
@@ -39,60 +46,63 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import axios from 'axios'
-import qs from 'qs'
-import { parseStoreAddress } from '@/assets/parseStoreAddress.js'
+import { ref, computed } from "vue";
+import axios from "axios";
+import qs from "qs";
+import { parseStoreAddress } from "@/assets/parseStoreAddress.js";
 
-const emit = defineEmits(['selected'])
+const emit = defineEmits(["selected"]);
 
-const cvsType = ref('FAMI')
-const storeList = ref([])
+const cvsType = ref("FAMI");
+const storeList = ref([]);
 
-const cityFilter = ref('')
-const districtFilter = ref('')
-const streetFilter = ref('')
+const cityFilter = ref("");
+const districtFilter = ref("");
+const streetFilter = ref("");
 
-const selectedStoreId = ref(null)
+const selectedStoreId = ref(null);
 const selectedStore = computed(() =>
-  storeList.value.find(store => store.StoreId === selectedStoreId.value)
-)
+  storeList.value.find((store) => store.StoreId === selectedStoreId.value)
+);
 
 async function getStoreList() {
   try {
     const response = await axios.post(
-      'http://localhost:8081/api/ecpay/store-list',
+      "http://localhost:8081/api/ecpay/store-list",
       qs.stringify({ cvsType: cvsType.value }),
-      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
-    )
-    const allStores = response.data.StoreList.flatMap(item => item.StoreInfo)
-    storeList.value = allStores
-    selectedStoreId.value = null
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+    );
+    const allStores = response.data.StoreList.flatMap((item) => item.StoreInfo);
+    storeList.value = allStores;
+    selectedStoreId.value = null;
   } catch (error) {
-    console.error('取得門市清單失敗:', error)
+    console.error("取得門市清單失敗:", error);
   }
 }
 
 const filteredStores = computed(() => {
-  return storeList.value.filter(store => {
-    const addr = store.StoreAddr || ''
+  return storeList.value.filter((store) => {
+    const addr = store.StoreAddr || "";
     return (
       (!cityFilter.value || addr.includes(cityFilter.value)) &&
       (!districtFilter.value || addr.includes(districtFilter.value)) &&
       (!streetFilter.value || addr.includes(streetFilter.value))
-    )
-  })
-})
+    );
+  });
+});
 
 function confirmStore() {
-  if (!selectedStore.value) return
-  const parsed = parseStoreAddress(selectedStore.value.StoreName, selectedStore.value.StoreAddr)
-  emit('selected', {
+  if (!selectedStore.value) return;
+  const parsed = parseStoreAddress(
+    selectedStore.value.StoreName,
+    selectedStore.value.StoreAddr
+  );
+  emit("selected", {
     name: selectedStore.value.StoreName,
     address: selectedStore.value.StoreAddr,
     ...parsed,
     type: cvsType.value,
-  })
+  });
 }
 </script>
 

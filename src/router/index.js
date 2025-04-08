@@ -151,7 +151,7 @@ const router = createRouter({
         {
           path: "/memberCoupons",
           name: "memberCoupons",
-          component: () => import("@/views/member/MemberCoupons.vue"),
+          component: () => import("@/views/member/memberCoupons.vue"),
         },
         {
           path: "/updateHomeAddress/:addressId",
@@ -211,7 +211,6 @@ const router = createRouter({
           name: "cvs",
           component: () => import("@/components/address/EcpayCvsPicker.vue"),
         },
-
 
         //下單頁面
         // {
@@ -390,10 +389,11 @@ const router = createRouter({
           // meta: { requiresAuth: true } // 看是否需要登入才能查看列表
         },
       ],
-    }, {
-      path: '/cropper-popup',
-      name: 'AvatarCropperWindow',
-      component: () => import('@/components/profile/AvatarCropperWindow.vue')
+    },
+    {
+      path: "/cropper-popup",
+      name: "AvatarCropperWindow",
+      component: () => import("@/components/profile/AvatarCropperWindow.vue"),
     },
 
     /**

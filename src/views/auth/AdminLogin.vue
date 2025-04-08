@@ -2,60 +2,94 @@
   <div class="login-container">
     <div class="login-card">
       <h2>管理員登入</h2>
-      
+
       <!-- reCAPTCHA 開關 -->
       <div class="recaptcha-toggle-container">
         <span>reCAPTCHA:</span>
         <label class="toggle-switch">
-          <input type="checkbox" v-model="enableRecaptcha" @change="handleRecaptchaToggle">
+          <input
+            type="checkbox"
+            v-model="enableRecaptcha"
+            @change="handleRecaptchaToggle"
+          />
           <span class="toggle-slider"></span>
         </label>
-        <span>{{ enableRecaptcha ? '開啟' : '關閉' }}</span>
+        <span>{{ enableRecaptcha ? "開啟" : "關閉" }}</span>
       </div>
 
       <!-- 帳號輸入 -->
       <div class="form-group">
         <label for="username">管理員名稱：</label>
-        <input type="text" id="username" v-model="username" placeholder="請輸入帳號">
+        <input
+          type="text"
+          id="username"
+          v-model="username"
+          placeholder="請輸入帳號"
+        />
       </div>
 
       <!-- 密碼輸入 -->
       <div class="form-group">
         <label for="password">密碼：</label>
-        <input type="password" id="password" v-model="password" placeholder="請輸入密碼">
+        <input
+          type="password"
+          id="password"
+          v-model="password"
+          placeholder="請輸入密碼"
+        />
       </div>
 
       <!-- reCAPTCHA v2 勾選框，只有在啟用時顯示 -->
       <div v-if="enableRecaptcha" class="form-group recaptcha-container">
-        <div ref="recaptchaContainer" class="g-recaptcha" :data-sitekey="recaptchaSiteKey"></div>
-        <div v-if="captchaError" class="captcha-error">請勾選「我不是機器人」</div>
+        <div
+          ref="recaptchaContainer"
+          class="g-recaptcha"
+          :data-sitekey="recaptchaSiteKey"
+        ></div>
+        <div v-if="captchaError" class="captcha-error">
+          請勾選「我不是機器人」
+        </div>
       </div>
 
       <!-- 登入按鈕 -->
       <button class="login-btn" @click="login">登入</button>
 
-<!-- 快速登入區塊 -->
-<div class="quick-login">
-  <p>快速登入：</p>
-  <div class="quick-btn-container">
-    <button class="quick-btn watcher" @click="quickLogin('Watcher')">Watcher</button>
-    <button class="quick-btn product-manager" @click="quickLogin('ProductManager')">商品管理員</button>
-    <button class="quick-btn account-manager" @click="quickLogin('AccountManager')">帳號管理員</button>
-    <button class="quick-btn admin" @click="quickLogin('SuperAdmin')">SuperAdmin</button>
-  </div>
-</div>
+      <!-- 快速登入區塊 -->
+      <div class="quick-login">
+        <p>快速登入：</p>
+        <div class="quick-btn-container">
+          <button class="quick-btn watcher" @click="quickLogin('Watcher')">
+            Watcher
+          </button>
+          <button
+            class="quick-btn product-manager"
+            @click="quickLogin('ProductManager')"
+          >
+            商品管理員
+          </button>
+          <button
+            class="quick-btn account-manager"
+            @click="quickLogin('AccountManager')"
+          >
+            帳號管理員
+          </button>
+          <button class="quick-btn admin" @click="quickLogin('SuperAdmin')">
+            SuperAdmin
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, nextTick, watch } from 'vue';
-import axios from '@/plugins/axios';
-import Swal from 'sweetalert2';
-import { useRouter, useRoute } from 'vue-router';
-import { jwtDecode } from 'jwt-decode';
-import { useUserStore } from '@/stores/user';
-const SiteKey=import.meta.env.VITE_RECAPTCHA_V2_SITE_KEY;
+import { ref, onMounted, nextTick, watch } from "vue";
+import axios from "@/plugins/axios";
+import Swal from "sweetalert2";
+import { useRouter, useRoute } from "vue-router";
+import { jwtDecode } from "jwt-decode";
+import { useUserStore } from "@/stores/user";
+const SiteKey = import.meta.env.VITE_RECAPTCHA_V2_SITE_KEY;
 
 const userStore = useUserStore();
 
@@ -72,17 +106,17 @@ const enableRecaptcha = ref(false);
 
 // 從 localStorage 讀取開關狀態，確保頁面重載後狀態保持不變
 onMounted(() => {
-  const savedState = localStorage.getItem('adminRecaptchaEnabled');
+  const savedState = localStorage.getItem("adminRecaptchaEnabled");
   if (savedState !== null) {
-    enableRecaptcha.value = savedState === 'true';
+    enableRecaptcha.value = savedState === "true";
   }
 });
 
 // 處理 reCAPTCHA 切換開關
 function handleRecaptchaToggle() {
   // 保存開關狀態到 localStorage
-  localStorage.setItem('adminRecaptchaEnabled', enableRecaptcha.value);
-  
+  localStorage.setItem("adminRecaptchaEnabled", enableRecaptcha.value);
+
   if (enableRecaptcha.value) {
     // 如果開啟，則初始化 reCAPTCHA
     nextTick(() => {
@@ -105,19 +139,20 @@ function loadRecaptchaScript() {
       recaptchaLoaded.value = true;
       return resolve();
     }
-    
+
     // 載入 reCAPTCHA 腳本
-    const recaptchaScript = document.createElement('script');
-    recaptchaScript.src = "https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoaded&render=explicit";
+    const recaptchaScript = document.createElement("script");
+    recaptchaScript.src =
+      "https://www.google.com/recaptcha/api.js?onload=onRecaptchaLoaded&render=explicit";
     recaptchaScript.async = true;
     recaptchaScript.defer = true;
-    
+
     // 定義全局回調函數
     window.onRecaptchaLoaded = () => {
       recaptchaLoaded.value = true;
       resolve();
     };
-    
+
     document.head.appendChild(recaptchaScript);
   });
 }
@@ -126,23 +161,27 @@ function loadRecaptchaScript() {
 async function initializeRecaptcha() {
   // 如果 reCAPTCHA 未啟用，則不載入
   if (!enableRecaptcha.value) return;
-  
+
   // 確保腳本已載入
   if (!recaptchaLoaded.value) {
     await loadRecaptchaScript();
   }
-  
+
   // 確保 DOM 已更新
   await nextTick();
-  
+
   // 確保容器元素存在且 grecaptcha 已載入
-  if (recaptchaContainer.value && window.grecaptcha && window.grecaptcha.render) {
+  if (
+    recaptchaContainer.value &&
+    window.grecaptcha &&
+    window.grecaptcha.render
+  ) {
     try {
       // 嘗試渲染 reCAPTCHA
       // 可能需要檢查元素是否已經包含 reCAPTCHA 以避免重複渲染
-      if (!recaptchaContainer.value.querySelector('iframe')) {
+      if (!recaptchaContainer.value.querySelector("iframe")) {
         window.grecaptcha.render(recaptchaContainer.value, {
-          'sitekey': recaptchaSiteKey
+          sitekey: recaptchaSiteKey,
         });
       }
     } catch (error) {
@@ -178,7 +217,7 @@ function validateRecaptcha() {
   if (!enableRecaptcha.value) {
     return true;
   }
-  
+
   if (window.grecaptcha) {
     const response = window.grecaptcha.getResponse();
     if (response.length === 0) {
@@ -218,35 +257,48 @@ async function login() {
 
   try {
     // 根據 reCAPTCHA 狀態選擇不同的 API
-    const loginUrl = enableRecaptcha.value 
-      ? "/api/auth/admin/login" 
+    const loginUrl = enableRecaptcha.value
+      ? "/api/auth/admin/login"
       : "/api/auth/admin/login/withoutReCaptcha";
-      
+
     const response = await axios.post(loginUrl, {
-      "username": username.value,
-      "password": password.value,
-      "recaptchaResponse": recaptchaResponse === true ? null : recaptchaResponse // 根據是否啟用 reCAPTCHA 傳遞不同的值
+      username: username.value,
+      password: password.value,
+      recaptchaResponse: recaptchaResponse === true ? null : recaptchaResponse, // 根據是否啟用 reCAPTCHA 傳遞不同的值
     });
 
     if (response.data.success) {
       // 解析JWT並設置Authorization頭部
       const decodedToken = jwtDecode(response.data.token);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
-      
+      axios.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${response.data.token}`;
+
       // 先保存基本用戶資訊
-      userStore.saveUserData(decodedToken.sub, decodedToken.userId, response.data.token, decodedToken.roles);
-      
+      userStore.saveUserData(
+        decodedToken.sub,
+        decodedToken.userId,
+        response.data.token,
+        decodedToken.roles
+      );
+
       // 獲取管理員的詳細資訊，包括頭像URL
       try {
-        const profileResponse = await axios.get('/api/admin/profile');
+        const profileResponse = await axios.get("/api/admin/profile");
         if (profileResponse.data && profileResponse.data.profilePhotoUrl) {
           // 更新頭像信息
           userStore.updateProfilePhoto(profileResponse.data.profilePhotoUrl);
-          
+
           // 同步更新到localStorage
-          localStorage.setItem('profilePhoto', profileResponse.data.profilePhotoUrl);
-          
-          console.log("成功獲取管理員頭像:", profileResponse.data.profilePhotoUrl);
+          localStorage.setItem(
+            "profilePhoto",
+            profileResponse.data.profilePhotoUrl
+          );
+
+          console.log(
+            "成功獲取管理員頭像:",
+            profileResponse.data.profilePhotoUrl
+          );
         }
       } catch (profileError) {
         console.error("獲取管理員資料失敗:", profileError);
@@ -259,7 +311,7 @@ async function login() {
       });
 
       // 重定向到儀表板
-      router.push({ name: "Dashboard" });
+      router.push("/admin/profile");
     }
   } catch (error) {
     let errorMessage = error.response?.data?.message || "登入失敗，請稍後再試";
@@ -267,7 +319,7 @@ async function login() {
       title: "錯誤: " + errorMessage,
       icon: "error",
     });
-    
+
     // 登入失敗時重設 reCAPTCHA
     if (enableRecaptcha.value) {
       resetRecaptcha();
@@ -276,20 +328,20 @@ async function login() {
 }
 // 快速登入功能
 function quickLogin(role) {
-  switch(role) {
-    case 'ProductManager':
+  switch (role) {
+    case "ProductManager":
       username.value = "我是商品管理員";
       password.value = "admin123";
       break;
-    case 'AccountManager':
+    case "AccountManager":
       username.value = "我是帳號管理員";
       password.value = "admin123";
       break;
-    case 'SuperAdmin':
+    case "SuperAdmin":
       username.value = "SuperAdmin";
       password.value = "admin123";
       break;
-    case 'Watcher':
+    case "Watcher":
       username.value = "Watcher";
       password.value = "admin123";
       break;
@@ -308,7 +360,7 @@ function quickLogin(role) {
   justify-content: center;
   align-items: center;
   height: 100vh;
-  background: url('@/assets/AdminLogin.png') no-repeat center center;
+  background: url("@/assets/AdminLogin.png") no-repeat center center;
   background-size: cover;
 }
 
@@ -364,7 +416,7 @@ function quickLogin(role) {
   right: 0;
   bottom: 0;
   background-color: #ccc;
-  transition: .4s;
+  transition: 0.4s;
   border-radius: 24px;
 }
 
@@ -376,7 +428,7 @@ function quickLogin(role) {
   left: 3px;
   bottom: 3px;
   background-color: white;
-  transition: .4s;
+  transition: 0.4s;
   border-radius: 50%;
 }
 

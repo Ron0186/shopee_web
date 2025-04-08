@@ -326,7 +326,7 @@ export default {
             text: response.data.message,
             confirmButtonText: "確定",
           }).then(() => {
-            this.$router.push("/");
+            this.$router.push("/shop");
           });
         } else {
           Swal.fire({

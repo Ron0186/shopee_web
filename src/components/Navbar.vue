@@ -12,12 +12,12 @@
     <div class="nav-icons">
       <router-link to="/shop" class="nav-link">
         <span class="nav-icon">👕</span>
-        <span class="nav-text">所有商品</span>
+        <span class="nav-text">商品總覽</span>
       </router-link>
 
       <router-link :to="{ name: 'ShopListPage' }" class="nav-link">
         <span class="nav-icon">🏬</span>
-        <span class="nav-text">所有商店</span>
+        <span class="nav-text">商店總覽</span>
       </router-link>
       <!-- 主要導航按鈕 - 精簡了導航選項 -->
       <router-link to="/cart" class="nav-link">
@@ -128,7 +128,7 @@
             class="dropdown-item"
             @click="userMenuOpen = false"
           >
-            <span class="dropdown-icon-left">📝</span>
+            <span class="dropdown-icon-left">🈸</span>
             <span>申請成為賣家</span>
           </router-link>
 

@@ -22,25 +22,28 @@
           <form @submit.prevent="updateProfile">
             <div class="form-group">
               <label for="username">使用者名稱</label>
-              <input 
-                type="text" 
-                id="username" 
-                v-model="profileData.userName" 
+              <input
+                type="text"
+                id="username"
+                v-model="profileData.userName"
                 required
                 placeholder="請輸入使用者名稱"
                 class="form-control"
               />
-              <div v-if="validationErrors.userName" class="text-danger small mt-1">
+              <div
+                v-if="validationErrors.userName"
+                class="text-danger small mt-1"
+              >
                 {{ validationErrors.userName }}
               </div>
             </div>
 
             <div class="form-group">
               <label for="email">電子郵件</label>
-              <input 
-                type="email" 
-                id="email" 
-                v-model="profileData.email" 
+              <input
+                type="email"
+                id="email"
+                v-model="profileData.email"
                 required
                 placeholder="請輸入電子郵件"
                 class="form-control"
@@ -52,17 +55,19 @@
 
             <div class="form-group">
               <label for="phone">電話</label>
-              <input 
-                type="tel" 
-                id="phone" 
-                v-model="profileData.phone" 
+              <input
+                type="tel"
+                id="phone"
+                v-model="profileData.phone"
                 placeholder="請輸入電話號碼"
-                pattern="[0-9]{10}" 
+                pattern="[0-9]{10}"
                 maxlength="10"
                 title="請輸入10位數字的手機號碼"
                 class="form-control"
               />
-              <small class="form-text text-muted">請輸入10位數字的手機號碼 (例如：0912345678)</small>
+              <small class="form-text text-muted"
+                >請輸入10位數字的手機號碼 (例如：0912345678)</small
+              >
               <div v-if="validationErrors.phone" class="text-danger small mt-1">
                 {{ validationErrors.phone }}
               </div>
@@ -72,10 +77,12 @@
             <div class="form-group">
               <label>管理員角色</label>
               <div class="role-badges">
-                <div v-if="userRoles.length === 0" class="text-muted">尚未設定角色</div>
-                <span 
-                  v-for="(role, index) in userRoles" 
-                  :key="index" 
+                <div v-if="userRoles.length === 0" class="text-muted">
+                  尚未設定角色
+                </div>
+                <span
+                  v-for="(role, index) in userRoles"
+                  :key="index"
                   class="role-badge"
                   :class="getRoleBadgeClass(role)"
                 >
@@ -86,7 +93,11 @@
             </div>
 
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary" :disabled="isSubmitting">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                :disabled="isSubmitting"
+              >
                 <i class="bi bi-save"></i> 儲存變更
               </button>
             </div>
@@ -104,22 +115,29 @@
             <div class="form-group">
               <label for="current-password">目前密碼</label>
               <div class="input-group">
-                <input 
-                  :type="showCurrentPassword ? 'text' : 'password'" 
-                  id="current-password" 
-                  v-model="passwordData.currentPassword" 
+                <input
+                  :type="showCurrentPassword ? 'text' : 'password'"
+                  id="current-password"
+                  v-model="passwordData.currentPassword"
                   required
                   placeholder="請輸入目前密碼"
                   class="form-control"
                 />
                 <div class="input-group-append">
-                  <button class="btn btn-outline-secondary" type="button" @click="togglePasswordVisibility('current')">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="togglePasswordVisibility('current')"
+                  >
                     <i v-if="showCurrentPassword" class="bi bi-eye"></i>
                     <i v-else class="bi bi-eye-slash"></i>
                   </button>
                 </div>
               </div>
-              <div v-if="validationErrors.currentPassword" class="text-danger small mt-1">
+              <div
+                v-if="validationErrors.currentPassword"
+                class="text-danger small mt-1"
+              >
                 {{ validationErrors.currentPassword }}
               </div>
             </div>
@@ -127,15 +145,19 @@
             <div class="form-group">
               <label for="new-password" class="d-flex align-items-center">
                 新密碼
-                <button type="button" class="btn btn-link p-0 ml-1" @click="togglePasswordPopover">
+                <button
+                  type="button"
+                  class="btn btn-link p-0 ml-1"
+                  @click="togglePasswordPopover"
+                >
                   <i class="bi bi-info-circle"></i>
                 </button>
               </label>
               <div class="input-group">
-                <input 
-                  :type="showNewPassword ? 'text' : 'password'" 
-                  id="new-password" 
-                  v-model="passwordData.newPassword" 
+                <input
+                  :type="showNewPassword ? 'text' : 'password'"
+                  id="new-password"
+                  v-model="passwordData.newPassword"
                   required
                   @input="handlePasswordInput"
                   @focus="handleFocus"
@@ -144,51 +166,103 @@
                   class="form-control"
                 />
                 <div class="input-group-append">
-                  <button class="btn btn-outline-secondary" type="button" @click="togglePasswordVisibility('new')">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="togglePasswordVisibility('new')"
+                  >
                     <i v-if="showNewPassword" class="bi bi-eye"></i>
                     <i v-else class="bi bi-eye-slash"></i>
                   </button>
                 </div>
               </div>
-              
+
               <!-- Bootstrap Popover (使用定位策略確保可見) -->
-              <div class="password-requirements-popover position-fixed" id="password-popover" style="display: none;">
+              <div
+                class="password-requirements-popover position-fixed"
+                id="password-popover"
+                style="display: none"
+              >
                 <div class="arrow"></div>
                 <h3 class="popover-header">密碼要求</h3>
                 <div class="popover-body">
-                  <div class="requirement" :class="{ 'text-success': passwordChecks.hasLength }">
-                    <i v-if="passwordChecks.hasLength" class="bi bi-check-circle-fill"></i>
+                  <div
+                    class="requirement"
+                    :class="{ 'text-success': passwordChecks.hasLength }"
+                  >
+                    <i
+                      v-if="passwordChecks.hasLength"
+                      class="bi bi-check-circle-fill"
+                    ></i>
                     <i v-else class="bi bi-circle"></i>
                     <span class="ms-2">至少 8 個字</span>
                   </div>
-                  <div class="requirement" :class="{ 'text-success': passwordChecks.hasUppercase }">
-                    <i v-if="passwordChecks.hasUppercase" class="bi bi-check-circle-fill"></i>
+                  <div
+                    class="requirement"
+                    :class="{ 'text-success': passwordChecks.hasUppercase }"
+                  >
+                    <i
+                      v-if="passwordChecks.hasUppercase"
+                      class="bi bi-check-circle-fill"
+                    ></i>
                     <i v-else class="bi bi-circle"></i>
                     <span class="ms-2">至少 1 個大寫字母 (A-Z)</span>
                   </div>
-                  <div class="requirement" :class="{ 'text-success': passwordChecks.hasLowercase }">
-                    <i v-if="passwordChecks.hasLowercase" class="bi bi-check-circle-fill"></i>
+                  <div
+                    class="requirement"
+                    :class="{ 'text-success': passwordChecks.hasLowercase }"
+                  >
+                    <i
+                      v-if="passwordChecks.hasLowercase"
+                      class="bi bi-check-circle-fill"
+                    ></i>
                     <i v-else class="bi bi-circle"></i>
                     <span class="ms-2">至少 1 個小寫字母 (a-z)</span>
                   </div>
-                  <div class="requirement" :class="{ 'text-success': passwordChecks.hasNumber }">
-                    <i v-if="passwordChecks.hasNumber" class="bi bi-check-circle-fill"></i>
+                  <div
+                    class="requirement"
+                    :class="{ 'text-success': passwordChecks.hasNumber }"
+                  >
+                    <i
+                      v-if="passwordChecks.hasNumber"
+                      class="bi bi-check-circle-fill"
+                    ></i>
                     <i v-else class="bi bi-circle"></i>
                     <span class="ms-2">至少 1 個數字 (0-9)</span>
                   </div>
-                  <div class="requirement" :class="{ 'text-success': passwordChecks.hasSpecial }">
-                    <i v-if="passwordChecks.hasSpecial" class="bi bi-check-circle-fill"></i>
+                  <div
+                    class="requirement"
+                    :class="{ 'text-success': passwordChecks.hasSpecial }"
+                  >
+                    <i
+                      v-if="passwordChecks.hasSpecial"
+                      class="bi bi-check-circle-fill"
+                    ></i>
                     <i v-else class="bi bi-circle"></i>
-                    <span class="ms-2">特殊符號 (!@#$%^&*) 可增強密碼強度 (非必要)</span>
+                    <span class="ms-2"
+                      >特殊符號 (!@#$%^&*) 可增強密碼強度 (非必要)</span
+                    >
                   </div>
                 </div>
               </div>
-              
+
               <!-- 密碼強度進度條 -->
-              <div v-if="passwordData.newPassword.length > 0" class="progress mt-2" style="height: 5px;">
-                <div class="progress-bar" :class="getProgressBarClass()" :style="{ width: passwordStrength.percentage + '%' }"></div>
+              <div
+                v-if="passwordData.newPassword.length > 0"
+                class="progress mt-2"
+                style="height: 5px"
+              >
+                <div
+                  class="progress-bar"
+                  :class="getProgressBarClass()"
+                  :style="{ width: passwordStrength.percentage + '%' }"
+                ></div>
               </div>
-              <div v-if="passwordData.newPassword.length > 0" class="password-strength-text small text-right mt-1" :class="getStrengthTextClass()">
+              <div
+                v-if="passwordData.newPassword.length > 0"
+                class="password-strength-text small text-right mt-1"
+                :class="getStrengthTextClass()"
+              >
                 {{ passwordStrength.text }}
               </div>
             </div>
@@ -196,16 +270,20 @@
             <div class="form-group">
               <label for="confirm-password">確認新密碼</label>
               <div class="input-group">
-                <input 
-                  :type="showConfirmPassword ? 'text' : 'password'" 
-                  id="confirm-password" 
-                  v-model="passwordData.confirmPassword" 
+                <input
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  id="confirm-password"
+                  v-model="passwordData.confirmPassword"
                   required
                   placeholder="請再次輸入新密碼"
                   class="form-control"
                 />
                 <div class="input-group-append">
-                  <button class="btn btn-outline-secondary" type="button" @click="togglePasswordVisibility('confirm')">
+                  <button
+                    class="btn btn-outline-secondary"
+                    type="button"
+                    @click="togglePasswordVisibility('confirm')"
+                  >
                     <i v-if="showConfirmPassword" class="bi bi-eye"></i>
                     <i v-else class="bi bi-eye-slash"></i>
                   </button>
@@ -217,7 +295,11 @@
             </div>
 
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary" :disabled="isSubmitting || !isPasswordValid">
+              <button
+                type="submit"
+                class="btn btn-primary"
+                :disabled="isSubmitting || !isPasswordValid"
+              >
                 <i class="bi bi-key"></i> 更新密碼
               </button>
             </div>
@@ -229,12 +311,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, computed, watch, onBeforeUnmount } from 'vue';
-import { useUserStore } from '@/stores/user';
-import Swal from 'sweetalert2';
-import axios from '@/plugins/axios';
-import { useRouter } from 'vue-router';
-import ProfilePhotoUpload from '@/components/admin/Profile.components/ProfilePhotoUpload.vue'; // 引入頭像上傳組件
+import {
+  ref,
+  reactive,
+  onMounted,
+  computed,
+  watch,
+  onBeforeUnmount,
+} from "vue";
+import { useUserStore } from "@/stores/user";
+import Swal from "sweetalert2";
+import axios from "@/plugins/axios";
+import { useRouter } from "vue-router";
+import ProfilePhotoUpload from "@/components/admin/Profile.components/ProfilePhotoUpload.vue"; // 引入頭像上傳組件
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -245,18 +334,18 @@ const userRoles = ref([]);
 
 // 個人資料表單數據
 const profileData = reactive({
-  userId: '',
-  userName: '',
-  email: '',
-  phone: '',
-  profilePhotoUrl: '' // 添加頭像URL字段
+  userId: "",
+  userName: "",
+  email: "",
+  phone: "",
+  profilePhotoUrl: "", // 添加頭像URL字段
 });
 
 // 密碼表單數據
 const passwordData = reactive({
-  currentPassword: '',
-  newPassword: '',
-  confirmPassword: ''
+  currentPassword: "",
+  newPassword: "",
+  confirmPassword: "",
 });
 
 // 密碼可見性
@@ -268,51 +357,51 @@ const showConfirmPassword = ref(false);
 function handlePhotoUploaded(photoUrl) {
   // 更新本地數據
   profileData.profilePhotoUrl = photoUrl;
-  
+
   // 直接更新到服務器
   updateProfilePhoto(photoUrl);
 }
 
 // 處理頭像移除
 function handlePhotoRemoved() {
-  profileData.profilePhotoUrl = '';
-  
+  profileData.profilePhotoUrl = "";
+
   // 更新到服務器（設置為空字符串）
-  updateProfilePhoto('');
+  updateProfilePhoto("");
 }
 
 // 更新頭像到服務器
 async function updateProfilePhoto(photoUrl) {
   try {
     isSubmitting.value = true;
-    
-    const response = await axios.put('/api/admin/profile/photo', {
-      profilePhotoUrl: photoUrl
+
+    const response = await axios.put("/api/admin/profile/photo", {
+      profilePhotoUrl: photoUrl,
     });
-    
+
     if (response.data.success) {
       // 使用正確的方法更新 userStore 中的頭像
       userStore.updateProfilePhoto(photoUrl);
-      
+
       // 更新 localStorage
-      localStorage.setItem('profilePhoto', photoUrl);
-      
+      localStorage.setItem("profilePhoto", photoUrl);
+
       // 顯示成功訊息
       Swal.fire({
-        icon: 'success',
-        title: '頭像更新成功',
+        icon: "success",
+        title: "頭像更新成功",
         toast: true,
-        position: 'top-end',
+        position: "top-end",
         showConfirmButton: false,
-        timer: 3000
+        timer: 3000,
       });
     }
   } catch (error) {
-    console.error('更新頭像失敗:', error);
+    console.error("更新頭像失敗:", error);
     Swal.fire({
-      icon: 'error',
-      title: '頭像更新失敗',
-      text: error.response?.data?.message || '無法更新頭像，請稍後再試'
+      icon: "error",
+      title: "頭像更新失敗",
+      text: error.response?.data?.message || "無法更新頭像，請稍後再試",
     });
   } finally {
     isSubmitting.value = false;
@@ -322,46 +411,46 @@ async function updateProfilePhoto(photoUrl) {
 // 獲取角色徽章樣式
 function getRoleBadgeClass(role) {
   switch (role) {
-    case 'ADMIN':
-      return 'admin';
-    case 'PRODUCT_MANAGER':
-      return 'product-manager';
-    case 'ACCOUNT_MANAGER':
-      return 'account-manager';
-    case 'SUPER_ADMIN':
-      return 'super-admin';
+    case "ADMIN":
+      return "admin";
+    case "PRODUCT_MANAGER":
+      return "product-manager";
+    case "ACCOUNT_MANAGER":
+      return "account-manager";
+    case "SUPER_ADMIN":
+      return "super-admin";
     default:
-      return '';
+      return "";
   }
 }
 
 // 獲取角色圖標
 function getRoleIconClass(role) {
   switch (role) {
-    case 'ADMIN':
-      return 'bi bi-person-fill-lock';
-    case 'PRODUCT_MANAGER':
-      return 'bi bi-box-seam';
-    case 'ACCOUNT_MANAGER':
-      return 'bi bi-person-badge';
-    case 'SUPER_ADMIN':
-      return 'bi bi-shield-lock';
+    case "ADMIN":
+      return "bi bi-person-fill-lock";
+    case "PRODUCT_MANAGER":
+      return "bi bi-box-seam";
+    case "ACCOUNT_MANAGER":
+      return "bi bi-person-badge";
+    case "SUPER_ADMIN":
+      return "bi bi-shield-lock";
     default:
-      return 'bi bi-person';
+      return "bi bi-person";
   }
 }
 
 // 獲取角色中文名稱
 function getRoleDisplayName(role) {
   switch (role) {
-    case 'ADMIN':
-      return '基礎管理員';
-    case 'PRODUCT_MANAGER':
-      return '商品管理員';
-    case 'ACCOUNT_MANAGER':
-      return '帳號管理員';
-    case 'SUPER_ADMIN':
-      return '超級管理員';
+    case "ADMIN":
+      return "基礎管理員";
+    case "PRODUCT_MANAGER":
+      return "商品管理員";
+    case "ACCOUNT_MANAGER":
+      return "帳號管理員";
+    case "SUPER_ADMIN":
+      return "超級管理員";
     default:
       return role;
   }
@@ -375,47 +464,47 @@ const lastInputTime = ref(0);
 
 // 獲取密碼強度顏色類
 function getProgressBarClass() {
-  if (passwordStrength.score <= 2) return 'bg-danger';
-  if (passwordStrength.score === 3) return 'bg-warning';
-  return 'bg-success';
+  if (passwordStrength.score <= 2) return "bg-danger";
+  if (passwordStrength.score === 3) return "bg-warning";
+  return "bg-success";
 }
 
 // 獲取密碼強度文字顏色類
 function getStrengthTextClass() {
-  if (passwordStrength.score <= 2) return 'text-danger';
-  if (passwordStrength.score === 3) return 'text-warning';
-  return 'text-success';
+  if (passwordStrength.score <= 2) return "text-danger";
+  if (passwordStrength.score === 3) return "text-warning";
+  return "text-success";
 }
 
 // 切換 Popover 顯示
 function togglePasswordPopover() {
-  const popover = document.getElementById('password-popover');
+  const popover = document.getElementById("password-popover");
   if (popover) {
     // 切換顯示狀態
-    if (popover.style.display === 'none') {
-      popover.style.display = 'block';
-      
+    if (popover.style.display === "none") {
+      popover.style.display = "block";
+
       // 取得輸入框位置
-      const inputElement = document.getElementById('new-password');
+      const inputElement = document.getElementById("new-password");
       if (inputElement) {
         const rect = inputElement.getBoundingClientRect();
-        
+
         // 使用position: fixed的絕對座標 (相對於視窗)
         if (window.innerWidth <= 768) {
           // 小屏幕設備：在輸入框下方
-          popover.style.top = (rect.bottom + 10) + 'px';
-          popover.style.left = rect.left + 'px';
+          popover.style.top = rect.bottom + 10 + "px";
+          popover.style.left = rect.left + "px";
         } else {
           // 大屏幕設備：在輸入框右側
-          popover.style.top = rect.top + 'px';
-          popover.style.left = (rect.right + 15) + 'px';
+          popover.style.top = rect.top + "px";
+          popover.style.left = rect.right + 15 + "px";
         }
       }
     } else {
-      popover.style.display = 'none';
+      popover.style.display = "none";
     }
   }
-  
+
   if (timeoutId.value) {
     clearTimeout(timeoutId.value);
   }
@@ -425,24 +514,24 @@ function togglePasswordPopover() {
 function handleFocus() {
   // 只有當用戶已經開始輸入內容時才顯示 Popover
   if (passwordData.newPassword.length > 0) {
-    const popover = document.getElementById('password-popover');
+    const popover = document.getElementById("password-popover");
     if (popover) {
-      popover.style.display = 'block';
-      
+      popover.style.display = "block";
+
       // 取得輸入框位置
-      const inputElement = document.getElementById('new-password');
+      const inputElement = document.getElementById("new-password");
       if (inputElement) {
         const rect = inputElement.getBoundingClientRect();
-        
+
         // 使用position: fixed的絕對座標 (相對於視窗)
         if (window.innerWidth <= 768) {
           // 小屏幕設備：在輸入框下方
-          popover.style.top = (rect.bottom + 10) + 'px';
-          popover.style.left = rect.left + 'px';
+          popover.style.top = rect.bottom + 10 + "px";
+          popover.style.left = rect.left + "px";
         } else {
           // 大屏幕設備：在輸入框右側
-          popover.style.top = rect.top + 'px';
-          popover.style.left = (rect.right + 15) + 'px';
+          popover.style.top = rect.top + "px";
+          popover.style.left = rect.right + 15 + "px";
         }
       }
     }
@@ -453,26 +542,27 @@ function handleFocus() {
 function handleBlur() {
   // 延遲隱藏 Popover，避免如果用戶點擊 Popover 內容時就隱藏了
   timeoutId.value = setTimeout(() => {
-    const popover = document.getElementById('password-popover');
+    const popover = document.getElementById("password-popover");
     if (popover) {
-      popover.style.display = 'none';
+      popover.style.display = "none";
     }
   }, 200);
-  
+
   isInputting.value = false;
 }
 
 // 點擊文檔其他區域時隱藏 Popover
 function setupClickOutsideListener() {
-  document.addEventListener('click', (event) => {
+  document.addEventListener("click", (event) => {
     // 如果點擊的不是密碼輸入框、Popover 或資訊圖標
-    const isClickedOutside = !event.target.closest('#new-password') && 
-                            !event.target.closest('#password-popover') && 
-                            !event.target.closest('.btn-link');
-    
-    const popover = document.getElementById('password-popover');
-    if (isClickedOutside && popover && popover.style.display === 'block') {
-      popover.style.display = 'none';
+    const isClickedOutside =
+      !event.target.closest("#new-password") &&
+      !event.target.closest("#password-popover") &&
+      !event.target.closest(".btn-link");
+
+    const popover = document.getElementById("password-popover");
+    if (isClickedOutside && popover && popover.style.display === "block") {
+      popover.style.display = "none";
       isInputting.value = false;
     }
   });
@@ -480,11 +570,11 @@ function setupClickOutsideListener() {
 
 // 切換密碼可見性
 function togglePasswordVisibility(field) {
-  if (field === 'current') {
+  if (field === "current") {
     showCurrentPassword.value = !showCurrentPassword.value;
-  } else if (field === 'new') {
+  } else if (field === "new") {
     showNewPassword.value = !showNewPassword.value;
-  } else if (field === 'confirm') {
+  } else if (field === "confirm") {
     showConfirmPassword.value = !showConfirmPassword.value;
   }
 }
@@ -497,29 +587,31 @@ const passwordMismatch = computed(() => {
 
 // 密碼檢查
 const passwordChecks = reactive({
-  hasLength: false,      // 至少8個字
-  hasUppercase: false,   // 至少1個大寫字母
-  hasLowercase: false,   // 至少1個小寫字母
-  hasNumber: false,      // 至少1個數字
-  hasSpecial: false      // 至少1個特殊符號 (非必要)
+  hasLength: false, // 至少8個字
+  hasUppercase: false, // 至少1個大寫字母
+  hasLowercase: false, // 至少1個小寫字母
+  hasNumber: false, // 至少1個數字
+  hasSpecial: false, // 至少1個特殊符號 (非必要)
 });
 
 // 密碼強度
 const passwordStrength = reactive({
-  score: 0,        // 0-4 的分數
-  percentage: 0,   // 0-100% 進度條
-  text: "",        // 強度文字描述
-  color: "#cccccc" // 強度顏色
+  score: 0, // 0-4 的分數
+  percentage: 0, // 0-100% 進度條
+  text: "", // 強度文字描述
+  color: "#cccccc", // 強度顏色
 });
 
 // 計算密碼是否有效 (必須符合實際要求)
 const isPasswordValid = computed(() => {
-  return passwordChecks.hasLength && 
-         passwordChecks.hasUppercase && 
-         passwordChecks.hasLowercase && 
-         passwordChecks.hasNumber &&
-         !passwordMismatch.value &&
-         passwordData.confirmPassword !== "";
+  return (
+    passwordChecks.hasLength &&
+    passwordChecks.hasUppercase &&
+    passwordChecks.hasLowercase &&
+    passwordChecks.hasNumber &&
+    !passwordMismatch.value &&
+    passwordData.confirmPassword !== ""
+  );
 });
 
 // 密碼正則表達式
@@ -529,46 +621,46 @@ const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{8,}$/;
 function handlePasswordInput() {
   // 先執行密碼強度檢查
   checkPasswordStrength();
-  
+
   // 當用戶輸入時顯示 Popover
-  const popover = document.getElementById('password-popover');
+  const popover = document.getElementById("password-popover");
   if (popover) {
     // 顯示popover
-    popover.style.display = 'block';
-    
+    popover.style.display = "block";
+
     // 計算位置
-    const inputElement = document.getElementById('new-password');
+    const inputElement = document.getElementById("new-password");
     if (inputElement) {
       const rect = inputElement.getBoundingClientRect();
-      
+
       // 使用position: fixed的絕對座標 (相對於視窗)
       if (window.innerWidth <= 768) {
         // 小屏幕設備：在輸入框下方
-        popover.style.top = (rect.bottom + 10) + 'px';
-        popover.style.left = rect.left + 'px';
+        popover.style.top = rect.bottom + 10 + "px";
+        popover.style.left = rect.left + "px";
       } else {
         // 大屏幕設備：在輸入框右側
-        popover.style.top = rect.top + 'px';
-        popover.style.left = (rect.right + 15) + 'px';
+        popover.style.top = rect.top + "px";
+        popover.style.left = rect.right + 15 + "px";
       }
     }
   }
-  
+
   // 標記用戶正在輸入
   isInputting.value = true;
   lastInputTime.value = Date.now();
-  
+
   // 3秒後如果沒有新的輸入，則隱藏 Popover
   if (timeoutId.value) {
     clearTimeout(timeoutId.value);
   }
-  
+
   timeoutId.value = setTimeout(() => {
     // 檢查最後輸入時間，如果超過3秒沒有新輸入則隱藏
     if (Date.now() - lastInputTime.value > 3000) {
-      const popover = document.getElementById('password-popover');
+      const popover = document.getElementById("password-popover");
       if (popover) {
-        popover.style.display = 'none';
+        popover.style.display = "none";
       }
       isInputting.value = false;
     }
@@ -578,14 +670,14 @@ function handlePasswordInput() {
 // 檢查密碼強度
 function checkPasswordStrength() {
   const pwd = passwordData.newPassword;
-  
+
   // 重置檢查結果
   passwordChecks.hasLength = pwd.length >= 8;
   passwordChecks.hasUppercase = /[A-Z]/.test(pwd);
   passwordChecks.hasLowercase = /[a-z]/.test(pwd);
   passwordChecks.hasNumber = /[0-9]/.test(pwd);
   passwordChecks.hasSpecial = /[!@#$%^&*]/.test(pwd);
-  
+
   // 計算強度分數 (0-4)
   let score = 0;
   if (pwd.length >= 6) score++;
@@ -593,13 +685,13 @@ function checkPasswordStrength() {
   if (/[a-z]/.test(pwd)) score++;
   if (/[0-9]/.test(pwd)) score++;
   if (/[!@#$%^&*]/.test(pwd)) score++;
-  
+
   // 設定強度百分比、文字和顏色
   const percentage = pwd.length ? Math.min(Math.max(score, 1), 4) * 25 : 0;
-  
+
   let text = "";
   let color = "#cccccc";
-  
+
   if (pwd.length > 0) {
     if (score <= 2) {
       text = "弱";
@@ -612,7 +704,7 @@ function checkPasswordStrength() {
       color = "#29cc29";
     }
   }
-  
+
   passwordStrength.score = score;
   passwordStrength.percentage = percentage;
   passwordStrength.text = text;
@@ -620,29 +712,32 @@ function checkPasswordStrength() {
 }
 
 // 監聽輸入的電話號碼，只保留數字
-watch(() => profileData.phone, (newValue) => {
-  if (newValue) {
-    profileData.phone = newValue.replace(/\D/g, '').slice(0, 10);
+watch(
+  () => profileData.phone,
+  (newValue) => {
+    if (newValue) {
+      profileData.phone = newValue.replace(/\D/g, "").slice(0, 10);
+    }
   }
-});
+);
 
 // 處理窗口大小變化，調整popover位置
 function handleResize() {
-  const popover = document.getElementById('password-popover');
-  if (popover && popover.style.display === 'block') {
-    const inputElement = document.getElementById('new-password');
+  const popover = document.getElementById("password-popover");
+  if (popover && popover.style.display === "block") {
+    const inputElement = document.getElementById("new-password");
     if (inputElement) {
       const rect = inputElement.getBoundingClientRect();
-      
+
       // 使用position: fixed的絕對座標 (相對於視窗)
       if (window.innerWidth <= 768) {
         // 小屏幕設備：在輸入框下方
-        popover.style.top = (rect.bottom + 10) + 'px';
-        popover.style.left = rect.left + 'px';
+        popover.style.top = rect.bottom + 10 + "px";
+        popover.style.left = rect.left + "px";
       } else {
         // 大屏幕設備：在輸入框右側
-        popover.style.top = rect.top + 'px';
-        popover.style.left = (rect.right + 15) + 'px';
+        popover.style.top = rect.top + "px";
+        popover.style.left = rect.right + 15 + "px";
       }
     }
   }
@@ -651,67 +746,69 @@ function handleResize() {
 // 修改 onMounted 函數，添加獲取角色資訊和頭像URL
 onMounted(async () => {
   // 添加窗口大小變化監聽
-  window.addEventListener('resize', handleResize);
+  window.addEventListener("resize", handleResize);
   try {
     // 發送 API 請求獲取當前管理員資料
-    const response = await axios.get('/api/admin/profile');
-    
+    const response = await axios.get("/api/admin/profile");
+
     // 更新表單數據
     profileData.userId = response.data.userId;
     profileData.userName = response.data.userName;
     profileData.email = response.data.email;
-    profileData.phone = response.data.phone || '';
-    profileData.profilePhotoUrl = response.data.profilePhotoUrl || ''; // 添加頭像URL
-    
+    profileData.phone = response.data.phone || "";
+    profileData.profilePhotoUrl = response.data.profilePhotoUrl || ""; // 添加頭像URL
+
     // 獲取角色資訊
     if (response.data.roles) {
       userRoles.value = response.data.roles;
     } else {
       // 如果 API 沒有返回角色信息，嘗試從 localStorage 獲取
-      const storedRoles = localStorage.getItem('userRoles');
+      const storedRoles = localStorage.getItem("userRoles");
       if (storedRoles) {
         try {
           userRoles.value = JSON.parse(storedRoles);
         } catch (e) {
-          console.error('解析存儲的角色數據失敗:', e);
+          console.error("解析存儲的角色數據失敗:", e);
         }
       } else if (userStore.userData && userStore.userData.roles) {
         // 從 userStore 獲取角色信息
         userRoles.value = userStore.userData.roles;
       }
     }
-    
+
     // 更新 localStorage
-    localStorage.setItem('username', profileData.userName);
-    localStorage.setItem('userId', profileData.userId);
-    localStorage.setItem('email', profileData.email);
+    localStorage.setItem("username", profileData.userName);
+    localStorage.setItem("userId", profileData.userId);
+    localStorage.setItem("email", profileData.email);
     if (profileData.phone) {
-      localStorage.setItem('phone', profileData.phone);
+      localStorage.setItem("phone", profileData.phone);
     }
     if (profileData.profilePhotoUrl) {
-      localStorage.setItem('profilePhoto', profileData.profilePhotoUrl);
+      localStorage.setItem("profilePhoto", profileData.profilePhotoUrl);
     }
-    
+
     // 更新 userStore (若有需要)
     userStore.username = profileData.userName;
-if (profileData.profilePhotoUrl) {
-  userStore.updateProfilePhoto(profileData.profilePhotoUrl);
-}
+    if (profileData.profilePhotoUrl) {
+      userStore.updateProfilePhoto(profileData.profilePhotoUrl);
+    }
   } catch (error) {
-    console.error('載入用戶資料失敗:', error);
+    console.error("載入用戶資料失敗:", error);
     Swal.fire({
-      icon: 'error',
-      title: '載入失敗',
-      text: '無法載入用戶資料，請重新整理頁面',
+      icon: "error",
+      title: "載入失敗",
+      text: "無法載入用戶資料，請重新整理頁面",
     });
   }
-  
+
   // 設置點擊外部關閉 Popover
   setupClickOutsideListener();
-  
+
   // 初始化 Bootstrap 的 tooltip（如果需要）
-  if (typeof bootstrap !== 'undefined' && bootstrap.Tooltip) {
-    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  if (typeof bootstrap !== "undefined" && bootstrap.Tooltip) {
+    const tooltipTriggerList = [].slice.call(
+      document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    );
     tooltipTriggerList.map(function (tooltipTriggerEl) {
       return new bootstrap.Tooltip(tooltipTriggerEl);
     });
@@ -720,8 +817,8 @@ if (profileData.profilePhotoUrl) {
 
 onBeforeUnmount(() => {
   // 移除事件監聽器
-  window.removeEventListener('resize', handleResize);
-  
+  window.removeEventListener("resize", handleResize);
+
   // 清除所有可能的定時器
   if (timeoutId.value) {
     clearTimeout(timeoutId.value);
@@ -730,112 +827,116 @@ onBeforeUnmount(() => {
 
 // 驗證表單輸入
 function validateProfileForm() {
-  validationErrors.userName = '';
-  validationErrors.email = '';
-  validationErrors.phone = '';
-  
+  validationErrors.userName = "";
+  validationErrors.email = "";
+  validationErrors.phone = "";
+
   let isValid = true;
-  
+
   // 用戶名驗證 (6-20字)
-  if (!profileData.userName || profileData.userName.length < 6 || profileData.userName.length > 20) {
-    validationErrors.userName = '名稱長度需介於6-20字';
+  if (
+    !profileData.userName ||
+    profileData.userName.length < 6 ||
+    profileData.userName.length > 20
+  ) {
+    validationErrors.userName = "名稱長度需介於6-20字";
     isValid = false;
   }
-  
+
   // Email 驗證
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   if (!profileData.email || !emailRegex.test(profileData.email)) {
-    validationErrors.email = '請輸入有效的電子郵件';
+    validationErrors.email = "請輸入有效的電子郵件";
     isValid = false;
   }
-  
+
   // 電話驗證 (台灣格式)
   const phoneRegex = /^09\d{8}$/;
   if (profileData.phone && !phoneRegex.test(profileData.phone)) {
-    validationErrors.phone = '請輸入有效的台灣手機號碼';
+    validationErrors.phone = "請輸入有效的台灣手機號碼";
     isValid = false;
   }
-  
+
   return isValid;
 }
 
 // 更新個人資料
 async function updateProfile() {
   if (isSubmitting.value) return;
-  
+
   // 驗證表單
   if (!validateProfileForm()) {
     return;
   }
-  
+
   try {
     isSubmitting.value = true;
-    
+
     // 發送 API 請求
-    const response = await axios.put('/api/admin/profile', {
+    const response = await axios.put("/api/admin/profile", {
       userName: profileData.userName,
       email: profileData.email,
       phone: profileData.phone,
-      profilePhotoUrl: profileData.profilePhotoUrl // 添加頭像URL
+      profilePhotoUrl: profileData.profilePhotoUrl, // 添加頭像URL
     });
-    
+
     if (response.data.success) {
       // 更新 localStorage
-      localStorage.setItem('username', profileData.userName);
-      localStorage.setItem('email', profileData.email);
+      localStorage.setItem("username", profileData.userName);
+      localStorage.setItem("email", profileData.email);
       if (profileData.phone) {
-        localStorage.setItem('phone', profileData.phone);
+        localStorage.setItem("phone", profileData.phone);
       } else {
-        localStorage.removeItem('phone');
+        localStorage.removeItem("phone");
       }
       if (profileData.profilePhotoUrl) {
-        localStorage.setItem('profilePhoto', profileData.profilePhotoUrl);
+        localStorage.setItem("profilePhoto", profileData.profilePhotoUrl);
       } else {
-        localStorage.removeItem('profilePhoto');
+        localStorage.removeItem("profilePhoto");
       }
-      
+
       // 更新 userStore (使用正確的方法)
       // 更新用戶名
       userStore.username = profileData.userName;
-      
+
       // 更新頭像
       if (profileData.profilePhotoUrl) {
         userStore.updateProfilePhoto(profileData.profilePhotoUrl);
       }
-      
+
       // 顯示更新成功並提示需要重新登入
       Swal.fire({
-        icon: 'success',
-        title: '更新成功',
-        text: '您的個人資料已成功更新，請重新登入以套用更改',
-        confirmButtonText: '確定',
-        allowOutsideClick: false
+        icon: "success",
+        title: "更新成功",
+        text: "您的個人資料已成功更新，請重新登入以套用更改",
+        confirmButtonText: "確定",
+        allowOutsideClick: false,
       }).then((result) => {
         if (result.isConfirmed) {
           // 執行登出操作
           userStore.clearUserData(); // 假設 userStore 有清除用戶數據的方法
-          
+
           // 清除 token
-          localStorage.removeItem('token');
-          axios.defaults.headers.common["Authorization"] = '';
-          
+          localStorage.removeItem("token");
+          axios.defaults.headers.common["Authorization"] = "";
+
           // 導航到登入頁面
           router.push("/admin/login");
         }
       });
     } else {
       Swal.fire({
-        icon: 'error',
-        title: '更新失敗',
-        text: response.data.message || '無法更新個人資料'
+        icon: "error",
+        title: "更新失敗",
+        text: response.data.message || "無法更新個人資料",
       });
     }
   } catch (error) {
-    console.error('更新個人資料失敗:', error);
+    console.error("更新個人資料失敗:", error);
     Swal.fire({
-      icon: 'error',
-      title: '更新失敗',
-      text: error.response?.data?.message || '無法更新個人資料，請稍後再試'
+      icon: "error",
+      title: "更新失敗",
+      text: error.response?.data?.message || "無法更新個人資料，請稍後再試",
     });
   } finally {
     isSubmitting.value = false;
@@ -845,63 +946,63 @@ async function updateProfile() {
 // 更新密碼
 async function updatePassword() {
   if (isSubmitting.value || !isPasswordValid.value) return;
-  
-  validationErrors.currentPassword = '';
-  validationErrors.newPassword = '';
-  
+
+  validationErrors.currentPassword = "";
+  validationErrors.newPassword = "";
+
   try {
     isSubmitting.value = true;
-    
+
     // 發送 API 請求
-    const response = await axios.put('/api/admin/profile/password', {
+    const response = await axios.put("/api/admin/profile/password", {
       currentPassword: passwordData.currentPassword,
-      newPassword: passwordData.newPassword
+      newPassword: passwordData.newPassword,
     });
-    
+
     if (response.data.success) {
       // 清空密碼表單
-      passwordData.currentPassword = '';
-      passwordData.newPassword = '';
-      passwordData.confirmPassword = '';
-      
+      passwordData.currentPassword = "";
+      passwordData.newPassword = "";
+      passwordData.confirmPassword = "";
+
       // 顯示成功訊息，並提示需要重新登入
       Swal.fire({
-        icon: 'success',
-        title: '密碼已更新',
-        text: '您的密碼已成功更新，請重新登入以確保安全',
-        confirmButtonText: '確定',
-        allowOutsideClick: false
+        icon: "success",
+        title: "密碼已更新",
+        text: "您的密碼已成功更新，請重新登入以確保安全",
+        confirmButtonText: "確定",
+        allowOutsideClick: false,
       }).then((result) => {
         if (result.isConfirmed) {
           // 執行登出操作
           userStore.clearUserData(); // 清除用戶數據
-          
+
           // 清除 token
-          localStorage.removeItem('token');
-          axios.defaults.headers.common["Authorization"] = '';
-          
+          localStorage.removeItem("token");
+          axios.defaults.headers.common["Authorization"] = "";
+
           // 導航到登入頁面
-          router.push({ name: 'Login' });
+          router.push({ name: "Login" });
         }
       });
     } else {
       Swal.fire({
-        icon: 'error',
-        title: '更新失敗',
-        text: response.data.message || '無法更新密碼'
+        icon: "error",
+        title: "更新失敗",
+        text: response.data.message || "無法更新密碼",
       });
     }
   } catch (error) {
-    console.error('更新密碼失敗:', error);
-    
+    console.error("更新密碼失敗:", error);
+
     // 處理特定錯誤
     if (error.response?.status === 401) {
-      validationErrors.currentPassword = '當前密碼不正確';
+      validationErrors.currentPassword = "當前密碼不正確";
     } else {
       Swal.fire({
-        icon: 'error',
-        title: '更新失敗',
-        text: error.response?.data?.message || '無法更新密碼，請稍後再試'
+        icon: "error",
+        title: "更新失敗",
+        text: error.response?.data?.message || "無法更新密碼，請稍後再試",
       });
     }
   } finally {
@@ -1081,17 +1182,17 @@ async function updatePassword() {
   background-color: #dc3545;
 }
 
-  /* 響應式設計調整 */
+/* 響應式設計調整 */
 @media (max-width: 768px) {
   .profile-cards-container {
     flex-direction: column;
   }
-  
+
   .profile-card {
     width: 100%;
     min-width: 100%;
   }
-  
+
   .password-requirements-popover {
     left: 0;
     right: auto;
@@ -1099,7 +1200,7 @@ async function updatePassword() {
     width: 100%;
     max-width: 100%;
   }
-  
+
   .password-requirements-popover .arrow {
     top: -7px;
     right: auto;
@@ -1109,15 +1210,13 @@ async function updatePassword() {
     border-left: 1px solid #e0e0e0;
     border-bottom: 1px solid #e0e0e0;
   }
-  
+
   .form-actions {
     justify-content: center;
   }
-  
+
   .form-actions .btn {
     width: 100%;
   }
-
-  
 }
 </style>
