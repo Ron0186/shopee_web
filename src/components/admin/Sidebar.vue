@@ -68,6 +68,21 @@ const hasPermission = (role) => {
   );
 };
 
+// 檢查用戶是否有一組權限中的任一權限
+const hasAnyPermission = (roles) => {
+  return roles.some(role => userStore.roles.includes(role)) || userStore.roles.includes("SUPER_ADMIN");
+};
+
+// 判斷是否應顯示用戶管理區塊
+const showUsersSection = computed(() => {
+  return hasAnyPermission(["ACCOUNT_MANAGER"]);
+});
+
+// 判斷是否應顯示產品管理區塊
+const showProductsSection = computed(() => {
+  return hasAnyPermission(["PRODUCT_MANAGER"]);
+});
+
 async function logout() {
   // 清除 pinia userStore
   userStore.clearUserData();
@@ -171,8 +186,8 @@ async function logoutToFrontend() {
         </div>
       </div>
 
-      <!-- 產品管理折疊區 (移除商品標籤) -->
-      <div class="section">
+      <!-- 產品管理折疊區 (只有 PRODUCT_MANAGER 或 SUPER_ADMIN 可見) -->
+      <div class="section" v-if="showProductsSection">
         <div 
           class="section-header" 
           @click="toggleSection('products')"
@@ -194,7 +209,6 @@ async function logoutToFrontend() {
             to="/admin/product-review"
             class="nav-subitem"
             :class="{ active: isRouteActive('/admin/product-review') }"
-            v-if="hasPermission('PRODUCT_MANAGER')"
           >
             <i class="icon fas fa-clipboard-check"></i>
             <span>商品審核</span>
@@ -226,8 +240,8 @@ async function logoutToFrontend() {
         </div>
       </div>
 
-      <!-- 用戶管理折疊區 -->
-      <div class="section">
+      <!-- 用戶管理折疊區 (只有 ACCOUNT_MANAGER 或 SUPER_ADMIN 可見) -->
+      <div class="section" v-if="showUsersSection">
         <div 
           class="section-header" 
           @click="toggleSection('users')"
@@ -249,7 +263,6 @@ async function logoutToFrontend() {
             to="/admin/users"
             class="nav-subitem"
             :class="{ active: isRouteActive('/admin/users') }"
-            v-if="hasPermission('ACCOUNT_MANAGER')"
           >
             <i class="icon fas fa-user"></i>
             <span>會員管理</span>
