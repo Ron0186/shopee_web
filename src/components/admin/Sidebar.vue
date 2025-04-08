@@ -2,7 +2,7 @@
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/stores/user";
 import Swal from "sweetalert2";
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 
 const router = useRouter(); // Vue Router 實例
 const userStore = useUserStore();
@@ -17,6 +17,45 @@ const expandedSections = ref({
   orders: false,
   coupons: false,
 });
+
+// 檢查當前路由是否匹配
+const isRouteActive = (route) => {
+  return router.currentRoute.value.path === route;
+};
+
+// 檢查當前 section 是否是活動的
+const isSectionActive = computed(() => {
+  const path = router.currentRoute.value.path;
+  
+  return {
+    dashboard: path.includes('/admin/profile'),
+    orders: path.includes('/admin/orders') || path.includes('/admin/integrated-management'),
+    products: path.includes('/admin/product-review') || path.includes('/admin/category-management') || 
+              path.includes('/admin/shop/review') || path.includes('/admin/reviews'),
+    users: path.includes('/admin/users') || path.includes('/admin/administrators'),
+    coupons: path.includes('/coupon/adminCouponManager'),
+    analytics: path.includes('/admin/analytics'),
+    settings: path.includes('/admin/settings')
+  };
+});
+
+// 根據當前路由自動展開相應的 section
+onMounted(() => {
+  updateExpandedSectionsBasedOnRoute();
+});
+
+watch(() => router.currentRoute.value.path, () => {
+  updateExpandedSectionsBasedOnRoute();
+});
+
+// 根據當前路由自動更新展開狀態
+function updateExpandedSectionsBasedOnRoute() {
+  for (const [section, isActive] of Object.entries(isSectionActive.value)) {
+    if (isActive) {
+      expandedSections.value[section] = true;
+    }
+  }
+}
 
 const toggleSection = (section) => {
   expandedSections.value[section] = !expandedSections.value[section];
@@ -41,10 +80,22 @@ async function logout() {
   router.push({ name: "AdminLogin" });
 }
 
-// 檢查當前路由是否匹配
-const isRouteActive = (route) => {
-  return router.currentRoute.value.path === route;
-};
+// 從 Navbar 移植的前往前台功能
+async function logoutToFrontend() {
+  const response = await Swal.fire({
+    title: "已登出後台",
+    text: "正在前往前台登入頁面",
+    icon: "success",
+    confirmButtonText: "OK",
+  });
+  
+  if(response.isConfirmed) {  
+    // 清除 pinia userStore
+    userStore.clearUserData();
+    // 跳轉到前台登入頁
+    window.location.href = "/user/login";
+  }
+}
 </script>
 
 <template>
@@ -52,7 +103,11 @@ const isRouteActive = (route) => {
     <div class="sidebar-content">
       <!-- 儀表板/個人資料折疊區 (移除儀錶板) -->
       <div class="section">
-        <div class="section-header" @click="toggleSection('dashboard')">
+        <div 
+          class="section-header" 
+          @click="toggleSection('dashboard')"
+          :class="{ 'active-section': isSectionActive.dashboard }"
+        >
           <div class="header-content">
             <i class="icon fas fa-tachometer-alt"></i>
             <span>儀表板管理</span>
@@ -80,7 +135,11 @@ const isRouteActive = (route) => {
 
       <!-- 訂單管理與物流支付系統折疊區 -->
       <div class="section">
-        <div class="section-header" @click="toggleSection('orders')">
+        <div 
+          class="section-header" 
+          @click="toggleSection('orders')"
+          :class="{ 'active-section': isSectionActive.orders }"
+        >
           <div class="header-content">
             <i class="icon fas fa-shopping-cart"></i>
             <span>訂單與物流管理</span>
@@ -114,7 +173,11 @@ const isRouteActive = (route) => {
 
       <!-- 產品管理折疊區 (移除商品標籤) -->
       <div class="section">
-        <div class="section-header" @click="toggleSection('products')">
+        <div 
+          class="section-header" 
+          @click="toggleSection('products')"
+          :class="{ 'active-section': isSectionActive.products }"
+        >
           <div class="header-content">
             <i class="icon fas fa-box"></i>
             <span>產品管理</span>
@@ -130,20 +193,33 @@ const isRouteActive = (route) => {
           <router-link
             to="/admin/product-review"
             class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/product-review') }"
             v-if="hasPermission('PRODUCT_MANAGER')"
           >
             <i class="icon fas fa-clipboard-check"></i>
             <span>商品審核</span>
           </router-link>
-          <router-link to="/admin/category-management" class="nav-subitem">
+          <router-link 
+            to="/admin/category-management" 
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/category-management') }"
+          >
             <i class="icon fas fa-tags"></i>
             <span>商品分類</span>
           </router-link>
-          <router-link to="/admin/shop/review" class="nav-subitem">
+          <router-link 
+            to="/admin/shop/review" 
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/shop/review') }"
+          >
             <i class="icon fas fa-store"></i>
             <span>商店申請審核</span>
           </router-link>
-          <router-link to="/admin/reviews" class="nav-subitem">
+          <router-link 
+            to="/admin/reviews" 
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/reviews') }"
+          >
             <i class="icon fas fa-star"></i>
             <span>評價管理</span>
           </router-link>
@@ -152,7 +228,11 @@ const isRouteActive = (route) => {
 
       <!-- 用戶管理折疊區 -->
       <div class="section">
-        <div class="section-header" @click="toggleSection('users')">
+        <div 
+          class="section-header" 
+          @click="toggleSection('users')"
+          :class="{ 'active-section': isSectionActive.users }"
+        >
           <div class="header-content">
             <i class="icon fas fa-users"></i>
             <span>用戶管理</span>
@@ -168,6 +248,7 @@ const isRouteActive = (route) => {
           <router-link
             to="/admin/users"
             class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/users') }"
             v-if="hasPermission('ACCOUNT_MANAGER')"
           >
             <i class="icon fas fa-user"></i>
@@ -176,6 +257,7 @@ const isRouteActive = (route) => {
           <router-link
             to="/admin/administrators"
             class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/administrators') }"
             v-if="userStore.roles.includes('SUPER_ADMIN')"
           >
             <i class="icon fas fa-user-shield"></i>
@@ -186,7 +268,11 @@ const isRouteActive = (route) => {
 
       <!-- 優惠券下拉選單 -->
       <div class="section">
-        <div class="section-header" @click="toggleSection('coupons')">
+        <div 
+          class="section-header" 
+          @click="toggleSection('coupons')"
+          :class="{ 'active-section': isSectionActive.coupons }"
+        >
           <div class="header-content">
             <i class="icon fas fa-ticket-alt"></i>
             <span>優惠券</span>
@@ -199,7 +285,11 @@ const isRouteActive = (route) => {
           ></i>
         </div>
         <div class="section-content" v-show="expandedSections.coupons">
-          <router-link to="/coupon/adminCouponManager" class="nav-subitem">
+          <router-link 
+            to="/coupon/adminCouponManager" 
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/coupon/adminCouponManager') }"
+          >
             <i class="icon fas fa-ticket-alt"></i>
             <span>優惠券管理</span>
           </router-link>
@@ -208,7 +298,11 @@ const isRouteActive = (route) => {
 
       <!-- 數據分析折疊區 (移除總攬分析和銷售報告) -->
       <div class="section">
-        <div class="section-header" @click="toggleSection('analytics')">
+        <div 
+          class="section-header" 
+          @click="toggleSection('analytics')"
+          :class="{ 'active-section': isSectionActive.analytics }"
+        >
           <div class="header-content">
             <i class="icon fas fa-chart-line"></i>
             <span>數據分析</span>
@@ -223,7 +317,11 @@ const isRouteActive = (route) => {
           ></i>
         </div>
         <div class="section-content" v-show="expandedSections.analytics">
-          <router-link to="/admin/analytics/user-analytics" class="nav-subitem">
+          <router-link 
+            to="/admin/analytics/user-analytics" 
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/analytics/user-analytics') }"
+          >
             <i class="icon fas fa-users-cog"></i>
             <span>用戶分析</span>
           </router-link>
@@ -232,7 +330,11 @@ const isRouteActive = (route) => {
 
       <!-- 設定折疊區 (移除管理員帳號) -->
       <div class="section">
-        <div class="section-header" @click="toggleSection('settings')">
+        <div 
+          class="section-header" 
+          @click="toggleSection('settings')"
+          :class="{ 'active-section': isSectionActive.settings }"
+        >
           <div class="header-content">
             <i class="icon fas fa-cog"></i>
             <span>系統設定</span>
@@ -245,16 +347,30 @@ const isRouteActive = (route) => {
           ></i>
         </div>
         <div class="section-content" v-show="expandedSections.settings">
-          <router-link to="/admin/settings" class="nav-subitem">
+          <router-link 
+            to="/admin/settings" 
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/settings') }"
+          >
             <i class="icon fas fa-sliders-h"></i>
             <span>一般設定</span>
           </router-link>
-          <router-link to="/admin/settings/platform" class="nav-subitem">
+          <router-link 
+            to="/admin/settings/platform" 
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/settings/platform') }"
+          >
             <i class="icon fas fa-tools"></i>
             <span>平台設定</span>
           </router-link>
         </div>
       </div>
+
+      <!-- 新增: 從 Navbar 移植的前往前台按鈕 -->
+      <button @click="logoutToFrontend" class="frontend-btn">
+        <i class="icon fas fa-home"></i>
+        <span>前往前台</span>
+      </button>
 
       <!-- 登出按鈕 -->
       <button @click="logout" class="logout-btn">
@@ -315,6 +431,15 @@ const isRouteActive = (route) => {
   cursor: pointer;
   background: rgba(0, 0, 0, 0.15);
   margin-bottom: 2px;
+}
+
+/* 活動的 section header 樣式 */
+.section-header.active-section {
+  background: rgba(52, 152, 219, 0.25);
+  color: white;
+  font-weight: 500;
+  border-left: 4px solid #3498db;
+  padding-left: 11px; /* 15px - 4px border */
 }
 
 .header-content {
@@ -380,8 +505,36 @@ const isRouteActive = (route) => {
   opacity: 0.9;
 }
 
+/* 前往前台按鈕樣式 - 整合進 Sidebar */
+/* 前往前台按鈕樣式 - 整合進 Sidebar，使用橘色 */
+.frontend-btn {
+  margin-top: 10px;
+  background: rgba(243, 156, 18, 0.15);
+  color: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 6px;
+  padding: 12px 15px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s ease;
+  font-size: 14px;
+  text-align: left;
+  font-weight: 500;
+}
+
+.frontend-btn:hover {
+  background: rgba(243, 156, 18, 0.3);
+  color: white;
+}
+
+.frontend-btn:active {
+  transform: translateY(1px);
+}
+
+/* 登出按鈕 */
 .logout-btn {
-  margin-top: 20px;
+  margin-top: 10px;
   background: rgba(231, 76, 60, 0.15);
   color: rgba(255, 255, 255, 0.9);
   border: none;
@@ -394,7 +547,6 @@ const isRouteActive = (route) => {
   font-size: 14px;
   text-align: left;
 }
-
 .logout-btn:hover {
   background: rgba(231, 76, 60, 0.3);
   color: white;
@@ -432,7 +584,8 @@ const isRouteActive = (route) => {
   .nav-item span,
   .section-header .header-content span,
   .nav-subitem span,
-  .logout-btn span {
+  .logout-btn span,
+  .frontend-btn span {
     display: none;
   }
 
@@ -442,7 +595,8 @@ const isRouteActive = (route) => {
   }
 
   .nav-item,
-  .logout-btn {
+  .logout-btn,
+  .frontend-btn {
     justify-content: center;
     padding: 15px 0;
   }
@@ -450,6 +604,13 @@ const isRouteActive = (route) => {
   .section-header {
     justify-content: center;
     padding: 15px 0;
+  }
+
+  /* 活動的 section header 在小螢幕時的樣式調整 */
+  .section-header.active-section {
+    padding-left: 0;
+    border-left: none;
+    border-bottom: 3px solid #3498db;
   }
 
   .section-header .fas {
