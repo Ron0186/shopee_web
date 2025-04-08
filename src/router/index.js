@@ -212,6 +212,7 @@ const router = createRouter({
           component: () => import("@/components/address/EcpayCvsPicker.vue"),
         },
 
+
         //下單頁面
         // {
         //   path: "/checkout",
@@ -390,6 +391,10 @@ const router = createRouter({
           // meta: { requiresAuth: true } // 看是否需要登入才能查看列表
         }
       ],
+    }, {
+      path: '/cropper-popup',
+      name: 'AvatarCropperWindow',
+      component: () => import('@/components/profile/AvatarCropperWindow.vue')
     },
 
     /**

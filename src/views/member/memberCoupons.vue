@@ -20,7 +20,11 @@
       <div v-else class="coupon-list">
         <div v-for="coupon in coupons" :key="coupon.couponId" class="coupon-card">
   <div class="card-left">
-    <img v-if="coupon.bannerImage" :src="coupon.bannerImage" alt="活動圖片" class="banner" />
+    <img
+  :src="fullImageUrl(coupon.bannerImage)"
+  alt="活動圖片"
+  class="banner"
+/>
   </div>
   <div class="card-right">
     <div class="card-header">
@@ -70,6 +74,17 @@ const statusClass = (status) => {
   }
 }
 
+const handleImageError = (event) => {
+  const target = event.target
+  if (target && target.tagName === 'IMG') {
+    target.src = '/img/default_coupon.jpg'
+  }
+}
+const fullImageUrl = (path) => {
+  if (!path) return '/img/default_coupon.jpg';
+  if (path.startsWith('http')) return path;
+  return `http://localhost:8081${path}`;
+};
 async function fetchCoupons() {
   loading.value = true
   try {
