@@ -185,27 +185,28 @@
   
   button {
     display: inline-block;
-    padding: 12px 24px;
-    font-size: 16px;
+    padding: 15px 25px;
+    font-size: 24px;
     cursor: pointer;
     text-align: center;
+    text-decoration: none;
+    outline: none;
     color: #fff;
     background-color: #04AA6D;
     border: none;
-    border-radius: 10px;
-    margin-right: 10px;
-    margin-top: 10px;
-  }
-  
-  button:hover {
-    background-color: #3e8e41;
-  }
-  
-  button:active {
+    border-radius: 15px;
+    box-shadow: 0 9px #999;
+}
+
+button:hover {
+    background-color: #3e8e41
+}
+
+button:active {
     background-color: #3e8e41;
     box-shadow: 0 5px #666;
     transform: translateY(4px);
-  }
+}
   
   .error {
     color: red;

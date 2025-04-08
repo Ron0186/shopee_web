@@ -9,6 +9,8 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "@plugins": fileURLToPath(new URL("./src/plugins", import.meta.url)),
+      "@stores": fileURLToPath(new URL("./src/stores", import.meta.url)),
     },
   },
   // 如果使用 Bootstrap Vue Next

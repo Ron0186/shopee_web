@@ -37,7 +37,7 @@ export const useChatStore = defineStore('chat', () => {
     });
 
 
-    const currentUser = ref(null);
+
     const unreadCounts = ref({});
 
     const authToken = ref(sessionStorage.getItem('authToken'));
@@ -227,71 +227,86 @@ export const useChatStore = defineStore('chat', () => {
          * 建立 WebSocket 連接並設定應用級訂閱 (應在登入後呼叫一次)
          */
     async function connectWebSocket() {
-        const currentUserId = userStore.userId; // 從 userStore 獲取響應式 ref 的值
-        const currentAuthToken = sessionStorage.getItem('authToken'); // 獲取 token
+        // *** 使用從 userStore 獲取的響應式 ref 的值 ***
+        const currentUserIdValue = userId.value;
+        const currentUsernameValue = username.value;
+        const currentAuthTokenValue = sessionStorage.getItem('authToken'); // 確保每次都從 sessionStorage 讀取最新
 
-        if (!currentUserId) {
-            console.error("[ChatStore] 無法連接 WebSocket：缺少 User ID。");
-            reject(new Error("缺少 User ID")); // 在 Promise 中 reject
-            return; // 停止執行
+        // 1. 檢查必要資訊
+        if (!currentUserIdValue) {
+            console.error("[ChatStore] 無法連接 WebSocket：缺少 User ID (來自 userStore)。");
+            // 不再 reject Promise，避免未捕捉的錯誤，返回 false 表示失敗
+            return false;
         }
-        if (!currentAuthToken) {
-            console.error("[ChatStore] 無法連接 WebSocket：缺少 Auth Token。");
-            reject(new Error("缺少 Auth Token")); // 在 Promise 中 reject
-            return; // 停止執行
+        if (!currentAuthTokenValue) {
+            console.error("[ChatStore] 無法連接 WebSocket：缺少 Auth Token (來自 sessionStorage)。");
+            return false;
         }
-        // 防止重複連接或未登入時連接
-        if (!userId.value || socketManager.value.stompClient?.connected || socketManager.value.isConnecting) {
-            console.log(`[ChatStore] 跳過 WebSocket 連接 (userId: ${userId.value}, connected: ${socketManager.value.stompClient?.connected}, connecting: ${socketManager.value.isConnecting})`);
-            return;
+
+        // 2. 防止重複連接
+        // *** 修改判斷條件，如果 stompClient 存在且已連接，直接返回 true ***
+        if (socketManager.value.stompClient?.connected) {
+            console.log(`[ChatStore] WebSocket 已連接，跳過。 (User ID: ${currentUserIdValue})`);
+            return true; // 已經是連接狀態，返回成功
         }
+        // 如果正在連接中，也跳過
+        if (socketManager.value.isConnecting) {
+            console.log(`[ChatStore] WebSocket 正在連接中，跳過。 (User ID: ${currentUserIdValue})`);
+            // 可以選擇等待一小段時間再檢查，或直接返回 false/true
+            return false; // 暫時返回 false 表示未完成連接
+        }
+
 
         socketManager.value.isConnecting = true;
         connectionStatus.value = 'connecting';
-        console.log(`[ChatStore] 嘗試建立 WebSocket 連接 for user: ${username.value} (ID: ${userId.value})`);
+        console.log(`[ChatStore] 嘗試建立 WebSocket 連接 for user: ${currentUsernameValue} (ID: ${currentUserIdValue})`);
 
-        const socket = new SockJS('http://localhost:8081/ws'); // 後端 WebSocket 端點
+        const socket = new SockJS('http://localhost:8081/ws');
         const stompClient = Stomp.over(socket);
-        // stompClient.debug = null; // 在生產環境關閉除錯訊息
+        // stompClient.debug = null; // 在生產環境關閉
 
         try {
+            // 使用 Promise 確保異步操作完成
             await new Promise((resolve, reject) => {
-                // *** 從 sessionStorage 獲取最新的 Token ***
-                const currentAuthToken = sessionStorage.getItem('authToken');
-                if (!currentAuthToken) {
-                    reject(new Error("無法連接 WebSocket: 未找到 authToken"));
+                // ** 在 connect 內部再次確認 token **
+                const latestAuthToken = sessionStorage.getItem('authToken');
+                console.log(">>> connectWebSocket: Calling stompClient.connect with headers:", latestAuthToken); // 新增
+                if (!latestAuthToken) {
+                    console.error("[ChatStore connect] Error: Auth token missing right before connect.");
+                    reject(new Error("Auth token missing"));
                     return;
                 }
 
                 stompClient.connect(
                     { // STOMP Headers
-                        // 通常 Token 和 UserId 由後端從 Security Context 或 Session Attributes 獲取
-                        'Authorization': `Bearer ${currentAuthToken}`, // 如果後端需要 Header 驗證
-                        'userId': String(currentUserId) // 如果後端需要 Header 傳遞 ID
+                        'Authorization': `Bearer ${latestAuthToken}`, // 使用最新的 Token
+                        // 'userId': String(currentUserIdValue) // 後端應從 Token 解析，通常不用客戶端傳
                     },
                     (frame) => { // 連接成功回調
                         console.log('[ChatStore] WebSocket 連接成功:', frame);
                         socketManager.value.stompClient = stompClient;
-                        socketManager.value.isConnecting = false;
                         connectionStatus.value = 'connected';
-                        // 設定應用級別的訂閱（錯誤、未讀數等）
-                        setupAppSubscriptions();
-                        resolve();
+                        socketManager.value.isConnecting = false;
+                        setupAppSubscriptions(); // 設定應用級訂閱
+                        resolve(true); // Promise 成功
                     },
                     (error) => { // 連接失敗回調
                         console.error('[ChatStore] WebSocket 連接失敗:', error);
                         socketManager.value.stompClient = null;
-                        socketManager.value.isConnecting = false;
                         connectionStatus.value = 'disconnected';
-                        // 可以在這裡加入重試邏輯
-                        reject(error);
+                        socketManager.value.isConnecting = false;
+                        reject(error); // Promise 失敗
                     }
                 );
             });
+            return true; // Promise 成功後返回 true
         } catch (error) {
+            // 確保 isConnecting 在任何錯誤情況下都被重置
             socketManager.value.isConnecting = false;
-            connectionStatus.value = 'disconnected';
-            console.error("[ChatStore] WebSocket connect Promise 失敗:", error);
+            connectionStatus.value = 'disconnected'; // 出錯時確保狀態是 disconnected
+            socketManager.value.stompClient = null; // 清理 client
+            console.error("[ChatStore] WebSocket connect Promise 執行失敗:", error);
+            return false; // 返回 false 表示連接失敗
         }
     }
 
@@ -301,27 +316,37 @@ export const useChatStore = defineStore('chat', () => {
     function disconnectWebSocket() {
         if (socketManager.value.stompClient?.connected) {
             console.log("[ChatStore] 正在斷開 WebSocket 連接。");
-            // 先取消所有訂閱
             socketManager.value.subscriptions.forEach((sub, key) => {
                 try {
                     sub.unsubscribe();
                     console.log(`[ChatStore] 已取消訂閱: ${key}`);
                 } catch (e) { console.warn(`[ChatStore] 取消訂閱 ${key} 失敗`, e); }
             });
-            socketManager.value.subscriptions.clear(); // 清空 Map
-            // 執行斷開連接
-            socketManager.value.stompClient.disconnect(() => {
-                console.log("[ChatStore] WebSocket 已斷開。");
-                connectionStatus.value = 'disconnected';
-                socketManager.value.stompClient = null; // 清理 stompClient
-            });
-        } else {
-            console.log("[ChatStore] WebSocket 未連接，無需斷開。");
-            // 確保狀態乾淨
-            connectionStatus.value = 'disconnected';
-            socketManager.value.stompClient = null;
             socketManager.value.subscriptions.clear();
+
+            // disconnect 可能需要一點時間，但我們先把狀態設為 disconnected
+            connectionStatus.value = 'disconnected';
+            socketManager.value.isConnecting = false; // 確保 isConnecting 也為 false
+
+            socketManager.value.stompClient.disconnect(() => {
+                console.log("[ChatStore] WebSocket disconnect 回調執行。");
+                // 再次確認狀態
+                connectionStatus.value = 'disconnected';
+                socketManager.value.stompClient = null;
+                socketManager.value.isConnecting = false;
+            }, {}); // 可以傳遞一個空的 header 物件
+            // 即使 disconnect 是異步，立即清理 stompClient 引用
+            // socketManager.value.stompClient = null; // <-- 移到回調或下面
+
+        } else {
+            console.log("[ChatStore] WebSocket 未連接或已在斷開，無需執行斷開操作。");
         }
+        // 無論如何都確保狀態乾淨
+        socketManager.value.stompClient = null;
+        connectionStatus.value = 'disconnected';
+        socketManager.value.isConnecting = false;
+        socketManager.value.subscriptions.clear();
+        console.log("[ChatStore] disconnectWebSocket: 狀態已強制清理。");
     }
 
 
@@ -369,54 +394,100 @@ export const useChatStore = defineStore('chat', () => {
         }
     };
 
-    const fetchCurrentUser = async (uid) => {
-        try {
-            authToken.value = sessionStorage.getItem('authToken');
-            if (!authToken.value) {
-                router.push('/user/login');
-            }
-            const userIdToUse = uid || sessionStorage.getItem('userId');
-            const response = await axios.get(`http://localhost:8081/api/user/check/${userIdToUse}`, {
-                headers: {
-                    Authorization: `Bearer ${authToken.value}`
-                }
-            });
-            currentUser.value = response.data;
-        } catch (error) {
-            console.error('獲取用戶失敗', error);
-            userStore.clearUserData();
-            router.push('/user/login');
-        }
-    };
+
 
     const createOrJoinChatRoom = async (shopId) => {
         try {
-            if (!currentUser.value) {
-                await fetchCurrentUser();
+            // *** 假設 userStore.userId 在此之前已經被正確填充 ***
+            if (!userId.value) {
+                console.error("[ChatStore createOrJoinChatRoom] User ID not found in userStore.");
+                // 可能需要提示用戶重新登入或處理錯誤
+                throw new Error("User not logged in");
             }
+            const currentAuthTokenValue = getCurrentAuthToken(); // 獲取 token
+            if (!currentAuthTokenValue) {
+                throw new Error("Auth token not found");
+            }
+
             const response = await axios.post(
                 'http://localhost:8081/api/chat/create',
                 { shopId },
-                { headers: { Authorization: `Bearer ${authToken.value}` } }
+                { headers: { Authorization: `Bearer ${currentAuthTokenValue}` } }
             );
-            activeChatRoom.value = response.data;
-            await connectChatRoom(response.data.chatRoomId);
+            activeChatRoom.value = response.data; // 假設後端返回 { chatRoomId: xxx, ... }
+
+
+
+            // *** 改為直接設定聊天室訂閱 (如果 WebSocket 已連接) ***
+            if (checkConnection()) {
+                setupChatRoomSpecificSubscription(response.data.chatRoomId);
+            } else {
+                console.warn("[ChatStore createOrJoinChatRoom] WebSocket not connected after creating room. Subscription might be delayed.");
+
+            }
+
         } catch (error) {
-            console.error('创建聊天室失败:', error.response?.data?.error || error.message);
+            console.error('創建或加入聊天室失敗:', error.response?.data?.error || error.message);
+            // Handle error appropriately, e.g., show message to user
         }
     };
-
     const sendMessage = (content, tempId) => {
-        if (!socketManager.value.stompClient?.connected) return;
-        socketManager.value.stompClient.send(
-            `/app/chat/${activeChatRoom.value.chatRoomId}/send`,
-            {},
-            JSON.stringify({
-                content: content,
-                senderId: currentUser.value.userId,
-                tempId: tempId
-            })
-        );
+        if (!socketManager.value.stompClient?.connected) {
+            console.warn("[ChatStore sendMessage] WebSocket not connected. Message not sent.");
+            Swal.fire("錯誤", "連線已中斷，無法發送訊息。", "error");
+            return;
+        }
+        if (!activeChatRoom.value?.chatRoomId) {
+            console.warn("[ChatStore sendMessage] No active chat room ID. Message not sent.");
+            return;
+        }
+
+        // *** 使用從 userStore 獲取的響應式 userId ***
+        const currentSenderId = userId.value;
+
+        if (!currentSenderId) {
+            console.error("[ChatStore sendMessage] 無法發送：缺少 User ID。");
+            Swal.fire("錯誤", "無法識別用戶身份，請重新登入。", "error");
+            // 可能需要強制登出或導向登入
+            // userStore.logout(); // 假設 userStore 有 logout action
+            return;
+        }
+
+        console.log(`[ChatStore sendMessage] 使用 UserStore ID 發送: ${currentSenderId}`);
+        const payload = {
+            content: content,
+            senderId: String(currentSenderId), // *** 使用正確的 ID ***
+            tempId: tempId,
+            // type: 'TEXT_MESSAGE' // 如果後端需要，加上 type
+        };
+
+        // --- 發送前創建臨時訊息用於 UI ---
+        const messageToAdd = {
+            ...payload,
+            senderName: username.value || '我', // 使用 userStore 的 username
+            timestamp: new Date().toISOString(),
+            chatRoomId: activeChatRoom.value.chatRoomId, // 確保訊息帶有 room ID
+            _status: 'sending' // 標記為發送中
+        };
+        // ---
+
+        try {
+            // --- 立即更新 UI (Optimistic Update) ---
+            addMessage(messageToAdd);
+            // ---
+
+            // 發送訊息
+            socketManager.value.stompClient.send(
+                `/app/chat/${activeChatRoom.value.chatRoomId}/send`,
+                {},
+                JSON.stringify(payload)
+            );
+        } catch (error) {
+            console.error("[ChatStore sendMessage] Error sending message via WebSocket:", error);
+            // 可以考慮將剛才添加的訊息標記為失敗
+            // updateMessageStatus(tempId, 'failed'); // 需要實現 updateMessageStatus
+            Swal.fire("錯誤", "訊息發送失敗，請檢查連線。", "error");
+        }
     };
 
     const fetchUnreadCounts = async (sellerId) => {
@@ -809,6 +880,29 @@ export const useChatStore = defineStore('chat', () => {
         messageState.value.pending.delete(tempId);
     };
 
+    function resetChatState() {
+        console.log("[ChatStore] Resetting chat state...");
+        // 斷開可能存在的連接 (包含清理訂閱和 stompClient)
+        disconnectWebSocket();
+
+        // 清理狀態
+        conversations.value = [];
+        isLoadingConversations.value = false;
+        activeChatRoom.value = null;
+        messages.value = [];
+        connectionStatus.value = 'disconnected'; // 確保狀態為 disconnected
+        unreadCounts.value = {};
+        authToken.value = null; // 清理 token ref (雖然主要靠 sessionStorage)
+
+        // 確保 socketManager 內部狀態也乾淨
+        socketManager.value = {
+            stompClient: null,
+            subscriptions: new Map(),
+            isConnecting: false
+        };
+        console.log("[ChatStore] Chat state reset complete.");
+    }
+
     return {
         // 給 Content.vue
         conversations,
@@ -829,15 +923,12 @@ export const useChatStore = defineStore('chat', () => {
         // 給 ChatRoom.vue 的 Actions
         enterChatRoom,
         addMessage,
-
-        currentUser: computed(() => userStore.currentUser),
-
         unreadCounts,
         createOrJoinChatRoom,
         sendMessage,
         fetchUnreadCounts,
         connectChatRoom,
-        fetchCurrentUser,
+
         messageState,
         updateMessageState,
         enterSellerChat,

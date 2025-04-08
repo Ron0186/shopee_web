@@ -28,11 +28,7 @@
           <tr v-for="item in cartItems" :key="item.cartId">
             <td class="product-info">
               <div class="product-image">
-                <img
-                  :src="getImageUrl(item.imageUrl)"
-                  @error="handleImageError($event)"
-                  alt="商品圖片"
-                />
+                <img :src="getImageUrl(item.image)" alt="商品圖片" @error="handleImageError" />
               </div>
               <div class="product-details">
                 <div class="product-name">{{ item.name }}</div>
@@ -40,14 +36,8 @@
               </div>
             </td>
             <td class="specs">
-              <div
-                v-if="item.specInfo && Object.keys(item.specInfo).length > 0"
-              >
-                <div
-                  v-for="(value, key) in item.specInfo"
-                  :key="key"
-                  class="spec-item"
-                >
+              <div v-if="item.specInfo && Object.keys(item.specInfo).length > 0">
+                <div v-for="(value, key) in item.specInfo" :key="key" class="spec-item">
                   {{ key }}: {{ value }}
                 </div>
               </div>
@@ -56,19 +46,13 @@
             <td>{{ item.price.toLocaleString() }} 元</td>
             <td>
               <div class="quantity-controls">
-                <button
-                  @click="updateQuantity(item.cartId, item.quantity - 1)"
-                  :disabled="item.quantity <= 1"
-                  class="quantity-btn"
-                >
+                <button @click="updateQuantity(item.cartId, item.quantity - 1)" :disabled="item.quantity <= 1"
+                  class="quantity-btn">
                   ➖
                 </button>
                 <span class="quantity">{{ item.quantity }}</span>
-                <button
-                  @click="updateQuantity(item.cartId, item.quantity + 1)"
-                  :disabled="item.quantity >= item.stock"
-                  class="quantity-btn"
-                >
+                <button @click="updateQuantity(item.cartId, item.quantity + 1)" :disabled="item.quantity >= item.stock"
+                  class="quantity-btn">
                   ➕
                 </button>
               </div>
@@ -78,10 +62,7 @@
             </td>
             <td>{{ (item.quantity * item.price).toLocaleString() }} 元</td>
             <td>
-              <button
-                @click="removeFromCart(item.cartId, item.skuId)"
-                class="delete-btn"
-              >
+              <button @click="removeFromCart(item.cartId, item.skuId)" class="delete-btn">
                 刪除
               </button>
             </td>
@@ -120,23 +101,32 @@ const userId = ref(userStore.userId);
 const isLoading = ref(true);
 const errorMessage = ref("");
 
-// 處理圖片 URL
-const getImageUrl = (path) => {
-  if (!path) return "/img/default-product.jpg";
+const getImageUrl = (image) => {
+  if (!image) return "/img/default-product.png";
 
-  // 如果路徑已經是完整URL，直接返回
-  if (path.startsWith("http")) {
-    return path;
+  const imagePath = image.imagePath || image.path || image.url || image;
+  if (!imagePath) return "/img/default-product.png";
+
+  // 如果是完整 URL，直接返回
+  if (typeof imagePath === "string" && imagePath.startsWith("http")) {
+    return imagePath;
   }
 
-  // 否則拼接基礎URL和路徑
-  return baseUrl.value + path;
+  // 如果是相對路徑，加上基礎 URL
+  if (typeof imagePath === "string" && baseUrl.value) {
+    return `${baseUrl.value}${imagePath}`;
+  }
+
+  // 如果是本地圖片路徑，直接返回
+  return imagePath;
 };
 
-// 處理圖片載入錯誤
 const handleImageError = (event) => {
-  console.error("圖片載入失敗:", event.target.src);
-  event.target.src = "/img/default-product.jpg";
+  if (!event.target.dataset.errorHandled) {
+    console.error("圖片載入失敗:", event.target.src);
+    event.target.src = "/img/default-product.png"; // 確保這個路徑正確
+    event.target.dataset.errorHandled = "true"; // 標記已處理
+  }
 };
 
 // 計算總價
