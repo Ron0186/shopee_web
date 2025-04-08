@@ -28,7 +28,7 @@
                         @keyup.enter="callFind(0)" />
                 </div>
                 <div class="col-md-3 mb-2 mb-md-0">
-                    <button class="btn btn-info w-100" @click="callFind(0)"> <i class="bi bi-search"></i> 搜尋 </button>
+                    <button class="btn btn-info w-50" @click="callFind(0)"> <i class="bi bi-search"></i> 搜尋 </button>
                 </div>
                 <div class="col-md-4 text-nowrap px-0 text-md-end">
                     <CouponSelect :total="pagination.totalItems" :options="[4, 8, 12, 16]" v-model="pagination.size"
