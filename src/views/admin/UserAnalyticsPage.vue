@@ -4,25 +4,36 @@
     <h1 class="page-title">用戶數據分析</h1>
     <p class="page-subtitle">查看平台用戶增長與活動趨勢</p>
     
-    <!-- 時間範圍選擇 -->
-    <div class="time-filter">
+    <!-- 時間範圍選擇和匯出按鈕 -->
+    <div class="controls-container">
+      <div class="time-filter">
+        <button 
+          :class="['filter-btn', timeRange === 1 ? 'active' : '']" 
+          @click="changeTimeRange(1)"
+        >
+          今日
+        </button>
+        <button 
+          :class="['filter-btn', timeRange === 7 ? 'active' : '']" 
+          @click="changeTimeRange(7)"
+        >
+          7天
+        </button>
+        <button 
+          :class="['filter-btn', timeRange === 30 ? 'active' : '']" 
+          @click="changeTimeRange(30)"
+        >
+          30天
+        </button>
+      </div>
+      
+      <!-- 匯出CSV按鈕 -->
       <button 
-        :class="['filter-btn', timeRange === 1 ? 'active' : '']" 
-        @click="changeTimeRange(1)"
+        class="export-btn" 
+        @click="exportToCSV" 
+        :disabled="loading || chartData.data.length === 0"
       >
-        今日
-      </button>
-      <button 
-        :class="['filter-btn', timeRange === 7 ? 'active' : '']" 
-        @click="changeTimeRange(7)"
-      >
-        7天
-      </button>
-      <button 
-        :class="['filter-btn', timeRange === 30 ? 'active' : '']" 
-        @click="changeTimeRange(30)"
-      >
-        30天
+        <i class="fas fa-download"></i> 匯出CSV
       </button>
     </div>
     
@@ -223,6 +234,92 @@ export default {
       });
     };
 
+// 優化後的CSV匯出函數
+const exportToCSV = () => {
+  if (chartData.value.labels.length === 0) {
+    error.value = '沒有數據可以匯出';
+    return;
+  }
+
+  try {
+    // 準備CSV數據
+    const csvRows = [];
+    
+    // 添加標題行 - 完整的表頭
+    csvRows.push(['日期', '新增用戶數', '佔比(%)', '新增用戶總數', '日均新增用戶', '最高單日新增']);
+    
+    // 添加摘要行 - 包含整體統計數據
+    csvRows.push([
+      '統計摘要',
+      totalNewUsers.value,
+      '100',
+      totalNewUsers.value,
+      averageNewUsers.value,
+      maxDailyNewUsers.value
+    ]);
+    
+    // 添加分隔行
+    csvRows.push(['', '', '', '', '', '']);
+    
+    // 添加第二個標題行 - 僅針對每日詳細數據
+    csvRows.push(['日期', '新增用戶數', '佔比(%)', '', '', '']);
+    
+    // 添加數據行
+    chartData.value.labels.forEach((label, index) => {
+      const percentage = ((chartData.value.data[index] / totalNewUsers.value) * 100).toFixed(1);
+      csvRows.push([
+        label,
+        chartData.value.data[index],
+        percentage,
+        '', // 詳細數據行不顯示摘要資訊
+        '', 
+        ''
+      ]);
+    });
+    
+    // 將數據轉換為CSV格式，考慮到Excel的特性
+    let csvContent = '';
+    
+    // 處理每一行，確保格式正確
+    csvRows.forEach(row => {
+      const processedRow = row.map(cell => {
+        // 如果是數字，直接返回
+        if (!isNaN(cell) && cell !== '') {
+          return cell;
+        }
+        // 如果是文字，用引號包裹以處理可能的逗號
+        return `"${cell}"`;
+      });
+      
+      csvContent += processedRow.join(',') + '\r\n'; // 使用CRLF換行符，對Excel更友好
+    });
+    
+    // 添加BOM以確保Excel正確顯示中文
+    csvContent = '\uFEFF' + csvContent;
+    
+    // 創建Blob對象
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    
+    // 創建下載鏈接
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `用戶數據統計_${timeRange.value}天_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.style.display = 'none';
+    
+    // 添加到文檔並觸發下載
+    document.body.appendChild(link);
+    link.click();
+    
+    // 清理
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('匯出CSV失敗:', err);
+    error.value = '匯出失敗，請稍後再試';
+  }
+};
+
     // 監聽時間範圍變更
     watch(timeRange, () => {
       fetchUserStatistics();
@@ -245,7 +342,8 @@ export default {
       maxDailyDate,
       mainChartRef,
       changeTimeRange,
-      changeChartType
+      changeChartType,
+      exportToCSV // 新增匯出CSV方法
     };
   }
 };
@@ -268,9 +366,15 @@ export default {
   margin-bottom: 20px;
 }
 
+.controls-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
 .time-filter {
   display: flex;
-  margin-bottom: 25px;
 }
 
 .filter-btn {
@@ -292,6 +396,33 @@ export default {
   background-color: #2c3e50;
   color: white;
   border-color: #2c3e50;
+}
+
+/* 匯出按鈕樣式 */
+.export-btn {
+  padding: 8px 15px;
+  background-color: #4caf50;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  transition: background-color 0.2s;
+}
+
+.export-btn:hover {
+  background-color: #45a049;
+}
+
+.export-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.export-btn i {
+  margin-right: 6px;
 }
 
 .stats-container {
@@ -441,6 +572,16 @@ export default {
 
 /* 響應式調整 */
 @media (max-width: 768px) {
+  .controls-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .export-btn {
+    margin-top: 10px;
+    align-self: flex-start;
+  }
+  
   .stats-container {
     grid-template-columns: 1fr;
   }
