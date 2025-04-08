@@ -4,10 +4,46 @@
       <h1 class="navbar-title">後台管理系統</h1>
     </div>
     <div class="navbar-right">
-      <button @click="logoutToFrontend" class="frontend-btn">
-        <i class="fas fa-home"></i>
-        <span>前往前台</span>
-      </button>
+      <!-- 權限徽章區域 - 兩列兩行排列 -->
+      <div class="navbar-roles">
+        <div class="roles-grid">
+          <!-- 左列 -->
+          <div class="roles-column">
+            <span 
+              v-if="userRoles.length > 0" 
+              :class="getRoleBadgeClass(userRoles[0])"
+              class="role-badge"
+            >
+              {{ getRoleDisplayName(userRoles[0]) }}
+            </span>
+            <span 
+              v-if="userRoles.length > 2" 
+              :class="getRoleBadgeClass(userRoles[2])"
+              class="role-badge"
+            >
+              {{ getRoleDisplayName(userRoles[2]) }}
+            </span>
+          </div>
+          
+          <!-- 右列 -->
+          <div class="roles-column">
+            <span 
+              v-if="userRoles.length > 1" 
+              :class="getRoleBadgeClass(userRoles[1])"
+              class="role-badge"
+            >
+              {{ getRoleDisplayName(userRoles[1]) }}
+            </span>
+            <span 
+              v-if="userRoles.length > 3" 
+              :class="getRoleBadgeClass(userRoles[3])"
+              class="role-badge"
+            >
+              {{ getRoleDisplayName(userRoles[3]) }}
+            </span>
+          </div>
+        </div>
+      </div>
       
       <div class="user-dropdown" ref="dropdownRef">
         <button class="user-btn" @click="toggleDropdown">
@@ -56,6 +92,7 @@ const router = useRouter();
 const userStore = useUserStore();
 const username = ref('');
 const userId = ref('');
+const userRoles = ref([]); // 存儲用戶角色
 const dropdownOpen = ref(false);
 const dropdownRef = ref(null);
 const defaultImage = ref('/uploads/AdminDefault.png');
@@ -98,19 +135,61 @@ function handleImageError() {
   useDefaultImage.value = true;
 }
 
+// 獲取角色的徽章樣式類
+function getRoleBadgeClass(role) {
+  switch (role) {
+    case 'ADMIN':
+      return 'role-badge-primary';
+    case 'SUPER_ADMIN':
+      return 'role-badge-danger';
+    case 'PRODUCT_MANAGER':
+      return 'role-badge-dark'; // 商品管理員使用黑底樣式
+    case 'ACCOUNT_MANAGER':
+      return 'role-badge-warning';
+    default:
+      return 'role-badge-light';
+  }
+}
+
+// 獲取角色的中文顯示名稱
+function getRoleDisplayName(role) {
+  switch (role) {
+    case 'ADMIN':
+      return '基礎管理員';
+    case 'PRODUCT_MANAGER':
+      return '商品管理員';
+    case 'ACCOUNT_MANAGER':
+      return '帳號管理員';
+    case 'SUPER_ADMIN':
+      return '超級管理員';
+    default:
+      return role; // 如果是未知角色，顯示原始角色名稱
+  }
+}
+
 // 在組件掛載時從 localStorage 獲取用戶資訊
 onMounted(() => {
   // 嘗試從 localStorage 獲取資訊
   const storedUsername = localStorage.getItem('username');
   const storedUserId = localStorage.getItem('userId');
+  const storedRoles = localStorage.getItem('userRoles');
   
   // 如果有資料，則設置到響應式變數中
   if (storedUsername) username.value = storedUsername;
   if (storedUserId) userId.value = storedUserId;
+  if (storedRoles) {
+    try {
+      userRoles.value = JSON.parse(storedRoles);
+    } catch (e) {
+      console.error('無法解析用戶角色', e);
+      userRoles.value = [];
+    }
+  }
   
   // 優先使用 userStore 中的數據（如果有）
   if (userStore.username) username.value = userStore.username;
   if (userStore.userId) userId.value = userStore.userId;
+  if (userStore.roles && userStore.roles.length) userRoles.value = userStore.roles;
 
   // 添加全局點擊事件監聽器
   document.addEventListener('click', handleClickOutside);
@@ -151,24 +230,6 @@ async function logout() {
   router.push({ name: "AdminLogin" });
   }
 }
-
-// 登出並跳轉到前台登入頁的函數
-async function logoutToFrontend() {
-
-  
-  const response = await Swal.fire({
-    title: "已登出後台",
-    text: "正在前往前台登入頁面",
-    icon: "success",
-    confirmButtonText: "OK",
-  });
-  if(response.isConfirmed){  
-    // 清除 pinia userStore
-    userStore.clearUserData();
-  // 跳轉到前台登入頁
-  window.location.href = "/user/login";
-}
-}
 </script>
 
 <style scoped>
@@ -205,32 +266,57 @@ async function logoutToFrontend() {
   gap: 20px;
 }
 
-/* 前往前台按鈕 */
-.frontend-btn {
+/* 權限徽章樣式 - 兩列兩行排列 */
+.navbar-roles {
   display: flex;
   align-items: center;
+}
+
+.roles-grid {
+  display: flex;
   gap: 8px;
-  background-color: rgba(52, 152, 219, 0.8);
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 14px;
+}
+
+.roles-column {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.role-badge {
+  display: inline-block;
+  font-size: 12px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
 }
 
-.frontend-btn:hover {
+.role-badge-primary {
   background-color: #3498db;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  color: white;
 }
 
-.frontend-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+.role-badge-danger {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.role-badge-dark {
+  background-color: #01070e; /* 更深的黑色背景 */
+  color: white;
+  border: 1px solid #1a2532; /* 添加邊框使其與背景區分 */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3); /* 添加陰影增強立體感 */
+}
+
+.role-badge-warning {
+  background-color: #f39c12;
+  color: #2c3e50;
+}
+
+.role-badge-light {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: white;
 }
 
 /* 用戶下拉菜單 */
@@ -384,17 +470,6 @@ async function logoutToFrontend() {
     font-size: 16px;
   }
   
-  .frontend-btn span {
-    display: none;
-  }
-  
-  .frontend-btn {
-    padding: 8px;
-    width: 36px;
-    height: 36px;
-    justify-content: center;
-  }
-  
   .user-info {
     display: none;
   }
@@ -405,6 +480,16 @@ async function logoutToFrontend() {
   
   .dropdown-icon {
     display: none;
+  }
+  
+  /* 調整權限顯示區域的響應式樣式 */
+  .role-badge {
+    padding: 2px 5px;
+    font-size: 10px;
+  }
+  
+  .roles-grid {
+    gap: 4px;
   }
 }
 </style>
