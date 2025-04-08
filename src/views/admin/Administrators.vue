@@ -36,7 +36,7 @@
 
         <div class="table-responsive">
           <table class="table table-hover admin-table border">
-<thead class="table-light">
+            <thead class="table-light">
   <tr>
     <th class="text-center sortable" style="width: 80px;" @click="toggleSort('userId')">
       ID
@@ -74,81 +74,121 @@
          ]">
       </i>
     </th>
+    <th class="sortable" style="width: 120px;" @click="toggleSort('status')">
+      帳號狀態
+      <i v-if="sortField === 'status'" 
+         :class="[
+           'bi ms-1', 
+           sortDirection === 'asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-down-alt'
+         ]">
+      </i>
+    </th>
     <th style="width: 150px;">角色</th>
     <th class="text-center" style="width: 210px;">操作</th>
   </tr>
 </thead>
-            <tbody>
-              <tr v-if="admins.length > 0" v-for="admin in admins" :key="admin.userId">
-                <td class="text-center">{{ admin.userId }}</td>
-                <td>
-                  <div class="d-flex align-items-center">
-                    <div class="admin-avatar me-2">
-                      {{ getInitials(admin.userName) }}
-                    </div>
-                    {{ admin.userName }}
-                  </div>
-                </td>
-                <td>{{ admin.email }}</td>
-                <td>{{ admin.phone || '無' }}</td>
-                <td>
-                  <span 
-                    v-for="(role, index) in admin.roles" 
-                    :key="index" 
-                    class="badge me-1 mb-1"
-                    :class="getRoleBadgeClass(role)"
-                  >
-                    {{ role }}
-                  </span>
-                </td>
-                <td class="text-center">
-                  <div class="btn-group">
-                    <button class="btn btn-outline-primary btn-sm" @click="openEditProfileModal(admin)" title="編輯資料">
-                      <i class="bi bi-pencil-square"></i>
-                    </button>
-                    <button class="btn btn-outline-info btn-sm" @click="openEditRoleModal(admin)" title="編輯權限">
-                      <i class="bi bi-key"></i>
-                    </button>
-                    <button class="btn btn-outline-danger btn-sm" @click="deleteUser(admin.userId)" title="刪除用戶">
-                      <i class="bi bi-trash"></i>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-              <tr v-else>
-                <td colspan="6" class="text-center py-4">
-                  <div class="empty-state">
-                    <i class="bi bi-search fa-3x text-muted mb-3"></i>
-                    <p>查無管理員資料</p>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
+<tbody>
+  <tr v-if="admins.length > 0" v-for="admin in admins" :key="admin.userId">
+    <td class="text-center">{{ admin.userId }}</td>
+    <td>
+      <div class="d-flex align-items-center">
+        <div class="admin-avatar me-2">
+          {{ getInitials(admin.userName) }}
+        </div>
+        {{ admin.userName }}
+      </div>
+    </td>
+    <td>{{ admin.email }}</td>
+    <td>{{ admin.phone || '無' }}</td>
+    <td>
+      <span :class="getStatusBadgeClass(admin.status)">
+        <i :class="getStatusIconClass(admin.status)"></i>
+        {{ getStatusText(admin.status) }}
+      </span>
+    </td>
+    <td>
+  <span 
+    v-for="(role, index) in admin.roles" 
+    :key="index" 
+    class="badge me-1 mb-1"
+    :class="getRoleBadgeClass(role)"
+  >
+    {{ getRoleDisplayName(role) }}
+  </span>
+</td>
+    <td class="text-center">
+      <div class="btn-group">
+        <button class="btn btn-outline-primary btn-sm" @click="openEditProfileModal(admin)" title="編輯資料">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+        <button class="btn btn-outline-info btn-sm" @click="openEditRoleModal(admin)" title="編輯權限">
+          <i class="bi bi-key"></i>
+        </button>
+        <button 
+          class="btn btn-sm" 
+          :class="admin.status === 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'"
+          @click="toggleAdminStatus(admin)" 
+          :title="admin.status === 'ACTIVE' ? '禁用帳號' : '啟用帳號'">
+          <i :class="admin.status === 'ACTIVE' ? 'bi bi-slash-circle' : 'bi bi-check-circle'"></i>
+        </button>
+        <button class="btn btn-outline-danger btn-sm" @click="deleteUser(admin.userId)" title="刪除用戶">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </td>
+  </tr>
+  <tr v-else>
+    <td colspan="7" class="text-center py-4">
+      <div class="empty-state">
+        <i class="bi bi-search fa-3x text-muted mb-3"></i>
+        <p>查無管理員資料</p>
+      </div>
+    </td>
+  </tr>
+</tbody>
           </table>
         </div>
 
         <nav v-if="admins.length > 0" class="mt-4">
-          <ul class="pagination justify-content-center">
-            <li class="page-item" :class="{ disabled: pageNumber === 0 }">
-              <button class="page-link" @click="fetchAdmins(0)" title="第一頁">
-                <i class="bi bi-chevron-double-left"></i>
-              </button>
-            </li>
-            <li class="page-item" :class="{ disabled: pageNumber === 0 }">
-              <button class="page-link" @click="fetchAdmins(pageNumber - 1)">
-                <i class="bi bi-chevron-left"></i> 上一頁
-              </button>
-            </li>
-            <li class="page-item disabled">
-              <span class="page-link">第 {{ pageNumber + 1 }} 頁</span>
-            </li>
-            <li class="page-item" :class="{ disabled: !hasNextPage }">
-              <button class="page-link" @click="fetchAdmins(pageNumber + 1)">
-                下一頁 <i class="bi bi-chevron-right"></i>
-              </button>
-            </li>
-          </ul>
-        </nav>
+  <ul class="pagination justify-content-center">
+    <!-- 第一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: pageNumber === 0 }">
+      <button class="page-link" @click="fetchAdmins(0)" title="第一頁">
+        <i class="bi bi-chevron-double-left"></i>
+      </button>
+    </li>
+    
+    <!-- 上一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: pageNumber === 0 }">
+      <button class="page-link" @click="fetchAdmins(pageNumber - 1)">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+    </li>
+    
+    <!-- 頁碼按鈕 -->
+    <template v-for="index in getPageNumbers()" :key="index">
+      <li class="page-item" :class="{ active: pageNumber === index }">
+        <button class="page-link" @click="fetchAdmins(index)">
+          {{ index + 1 }}
+        </button>
+      </li>
+    </template>
+    
+    <!-- 下一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: !hasNextPage }">
+      <button class="page-link" @click="fetchAdmins(pageNumber + 1)">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </li>
+    
+    <!-- 最後一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: !hasNextPage }">
+      <button class="page-link" @click="fetchAdmins(totalPages - 1)" title="最後一頁">
+        <i class="bi bi-chevron-double-right"></i>
+      </button>
+    </li>
+  </ul>
+</nav>
       </div>
     </div>
 
@@ -217,6 +257,8 @@ export default {
     tableLoading: false, // 添加表格加載狀態
     sortField: 'userId', // 添加：默認排序欄位
     sortDirection: 'asc', // 添加：默認排序方向
+    totalPages: 0, // 總頁數
+    maxDisplayedPages: 5, // 最多顯示的頁碼數量
   };
 },
   mounted() {
@@ -237,8 +279,35 @@ export default {
         this.fetchAdmins();
       }, 300);
     },
+
+      // 計算該顯示哪些頁碼按鈕
+  getPageNumbers() {
+    if (this.totalPages <= 1) return [];
     
-    async fetchAdmins(page = 0) {
+    // 如果總頁數小於等於最大顯示頁碼數，則顯示所有頁碼
+    if (this.totalPages <= this.maxDisplayedPages) {
+      return Array.from({ length: this.totalPages }, (_, i) => i);
+    }
+    
+    // 計算起始和結束頁碼
+    let start = Math.max(0, this.pageNumber - Math.floor(this.maxDisplayedPages / 2));
+    let end = Math.min(this.totalPages - 1, start + this.maxDisplayedPages - 1);
+    
+    // 如果結束頁碼已經接近總頁數，則調整起始頁碼
+    if (end >= this.totalPages - 1) {
+      start = Math.max(0, this.totalPages - this.maxDisplayedPages);
+    }
+    
+    // 如果起始頁碼已經是 0，則調整結束頁碼
+    if (start === 0) {
+      end = Math.min(this.totalPages - 1, this.maxDisplayedPages - 1);
+    }
+    
+    // 生成頁碼陣列
+    return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+  },
+    
+  async fetchAdmins(page = 0) {
     this.tableLoading = true;
     
     try {
@@ -250,7 +319,7 @@ export default {
           roleName: "Admin",
           page: page,
           size: this.pageSize,
-          sort: `${this.sortField},${this.sortDirection}` // 添加排序參數
+          sort: `${this.sortField},${this.sortDirection}`
         }
       });
       
@@ -264,6 +333,7 @@ export default {
           this.admins = newAdmins;
           this.pageNumber = response.data.number;
           this.hasNextPage = !response.data.last;
+          this.totalPages = response.data.totalPages; // 新增：設定總頁數
         });
       } else {
         this.admins = currentAdmins;
@@ -387,16 +457,36 @@ export default {
       if (!name) return '?';
       return name.charAt(0).toUpperCase();
     },
+
     getRoleBadgeClass(role) {
-    switch (role) {
-      case 'ADMIN':
-        return 'bg-primary text-white';
-      case 'SUPER_ADMIN':
-        return 'bg-danger text-white';
-      default:
-        return 'bg-light text-dark';
-    }
-    },
+  switch (role) {
+    case 'ADMIN':
+      return 'bg-primary text-white';
+    case 'SUPER_ADMIN':
+      return 'bg-danger text-white';
+    case 'PRODUCT_MANAGER':
+      return 'bg-dark	text-white';
+    case 'ACCOUNT_MANAGER':
+      return 'bg-warning text-dark';
+    default:
+      return 'bg-light text-dark';
+  }
+},
+// 獲取角色的中文顯示名稱
+getRoleDisplayName(role) {
+  switch (role) {
+    case 'ADMIN':
+      return '基礎管理員';
+    case 'PRODUCT_MANAGER':
+      return '商品管理員';
+    case 'ACCOUNT_MANAGER':
+      return '帳號管理員';
+    case 'SUPER_ADMIN':
+      return '超級管理員';
+    default:
+      return role; // 如果是未知角色，顯示原始角色名稱
+  }
+},
     toggleSort(field) {
     if (this.sortField === field) {
       // 如果是當前欄位，切換排序方向
@@ -409,14 +499,104 @@ export default {
     
     // 回到第一頁並重新加載數據
     this.fetchAdmins(0);
+  },
+  // 獲取狀態徽章的樣式類
+getStatusBadgeClass(status) {
+  switch (status) {
+    case 'ACTIVE':
+      return 'badge bg-success';
+    case 'BANNED':
+      return 'badge bg-danger';
+    default:
+      return 'badge bg-secondary';
   }
+},
+
+// 獲取狀態圖標的類
+getStatusIconClass(status) {
+  switch (status) {
+    case 'ACTIVE':
+      return 'bi bi-person-check-fill me-1';
+    case 'BANNED':
+      return 'bi bi-person-x-fill me-1';
+    default:
+      return 'bi bi-question-circle-fill me-1';
+  }
+},
+
+// 獲取狀態的文字描述
+getStatusText(status) {
+  switch (status) {
+    case 'ACTIVE':
+      return '正常';
+    case 'BANNED':
+      return '已禁用';
+    default:
+      return '未知狀態';
+  }
+},
+
+// 切換管理員狀態
+async toggleAdminStatus(admin) {
+  try {
+    // 避免操作 SUPER_ADMIN 帳號
+    if (admin.roles.includes('SUPER_ADMIN')) {
+      this.showErrorNotification("操作限制", "超級管理員帳號狀態不可變更");
+      return;
+    }
+
+    const result = await Swal.fire({
+      title: admin.status === 'ACTIVE' 
+        ? `確定要禁用管理員 ${admin.userName} 的帳號嗎？` 
+        : `確定要啟用管理員 ${admin.userName} 的帳號嗎？`,
+      text: admin.status === 'ACTIVE' 
+        ? "禁用後，該管理員將無法登入系統" 
+        : "啟用後，該管理員將可以正常登入系統",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: admin.status === 'ACTIVE' ? "#d33" : "#3085d6",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: admin.status === 'ACTIVE' ? "確定禁用" : "確定啟用",
+      cancelButtonText: "取消",
+    });
+
+    if (result.isConfirmed) {
+      this.loading = true;
+      const newStatus = admin.status === 'ACTIVE' ? 'BANNED' : 'ACTIVE';
+      
+      // 調用 API 更新管理員狀態
+      const response = await axios.put(`/api/admin/user/sa/status/${admin.userId}`, {
+        status: newStatus
+      });
+      
+      if (response.data.success) {
+        this.showSuccessNotification(
+          admin.status === 'ACTIVE' ? "帳號已禁用" : "帳號已啟用", 
+          response.data.message || (admin.status === 'ACTIVE' ? "管理員帳號已成功禁用" : "管理員帳號已成功啟用")
+        );
+        
+        // 重新獲取最新數據
+        await this.fetchAdmins(this.pageNumber);
+      } else {
+        this.showErrorNotification("操作失敗", response.data.message || "無法更新管理員狀態");
+      }
+    }
+  } catch (error) {
+    this.showErrorNotification(
+      "錯誤", 
+      error.response?.data?.message || "無法更新管理員狀態"
+    );
+  } finally {
+    this.loading = false;
+  }
+}
   }
 };
 </script>
 
 <style scoped>
 .admin-dashboard {
-  background-color: #f8f9fc;
+  /* background-color: #f8f9fc; */
   min-height: 100vh;
 }
 

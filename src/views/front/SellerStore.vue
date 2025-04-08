@@ -1,15 +1,19 @@
 <template>
   <div class="shop-container">
-    <!-- 商店資訊 -->
     <SellerStoreInfo :shop="shop" :isOwner="isOwner" />
 
-    <!-- 賣家專屬「我的商品」按鈕 -->
     <div v-if="isOwner" class="my-products-section">
-      <button class="btn btn-my-products" @click="goToMyProducts">
-        🛍️ 我的商品
-      </button>
-    </div>
-
+  <div class="buttons-container">
+    <button class="btn-my-products" @click="goToMyProducts">
+      <span class="icon">🛍️</span> 我的商品
+    </button>
+    <button class="btn-my-products" @click="goToMyCampaign">
+      <span class="icon">📣</span> 我的行銷活動
+    </button>
+  </div>
+</div>
+ <!-- 非店主顯示活動列表 -->
+ <ShopCampaigns v-if="!isOwner" :shopId="shop.shopId || route.params.shopId" />
     <!-- 分類選單 -->
     <nav class="shop-menu">
       <a href="#" class="active">回首頁</a>
@@ -19,262 +23,281 @@
       <a href="#">配件 / 飾品</a>
     </nav>
 
-    <!-- 商品區塊  這是搜尋商品跟上架商品-->
+    <!-- 商品區塊 - 搜尋商品跟上架商品-->
     <div class="product-section">
       <div class="section-header">
-<<<<<<< HEAD
-        <input type="text" class="search-bar" placeholder="🔍 搜尋商品..." />
-        <button class="btn btn-add-product" v-if="isOwner">➕ 上架商品</button>
-=======
-        <input type="text" class="search-bar" placeholder="🔍 搜尋商品..." v-model="searchQuery" @input="filterProducts" />
-        <button class="btn btn-add-product" v-if="isOwner" @click="goToMyProducts">
-          ➕ 上架商品
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-bar"
+            placeholder="搜尋商品..."
+            v-model="searchQuery"
+            @keyup.enter="searchProduct"
+          />
+          <span class="search-icon">🔍</span>
+        </div>
+        <button class="btn-add-product" v-if="isOwner" @click="goToMyProducts">
+          <span class="icon">➕</span> 上架商品
         </button>
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
       </div>
 
-      <!-- 商品區塊  都是商品資訊相關 是商店擁有者的話你會看到編輯&刪除-->
+      <!-- 商品區塊 - 商品資訊相關，移除編輯&刪除按鈕 -->
       <div class="product-wrapper">
-<<<<<<< HEAD
-        <div class="product-list">
-          <div
-            class="product-card"
-            v-for="product in products"
-            :key="product.id"
-          >
-            <img :src="product.image" class="product-img" alt="商品圖片" />
-            <div class="product-info">
-              <p class="product-title">{{ product.name }}</p>
-              <p class="product-price">$ {{ product.price }}</p>
-              <p class="product-rating">
-                ⭐ {{ product.rating }} 已售出 {{ product.sold }}
-              </p>
-            </div>
-            <div class="product-actions">
-              <button class="btn btn-edit" v-if="isOwner">✏️ 編輯</button>
-              <button class="btn btn-delete" v-if="isOwner">🗑️ 刪除</button>
-=======
         <div v-if="loading" class="loading-spinner">
           <div class="spinner"></div>
           <p>載入商品中...</p>
         </div>
 
-        <div v-else-if="filteredProducts.length === 0" class="no-products">
+        <div v-else-if="products.length === 0" class="no-products">
           <p v-if="searchQuery">沒有符合「{{ searchQuery }}」的商品</p>
           <p v-else>商店目前沒有任何商品</p>
-          <button v-if="isOwner" class="btn btn-add-first" @click="goToMyProducts">
+          <button v-if="isOwner" class="btn-add-first" @click="goToMyProducts">
             立即上架第一個商品
           </button>
         </div>
 
         <div v-else class="product-list">
-          <div class="product-card" v-for="product in filteredProducts" :key="product.productId"
-            @click="viewProductDetail(product.productId)">
-            <img :src="product.primaryImageUrl
-              ? product.primaryImageUrl.startsWith('http')
-                ? product.primaryImageUrl
-                : `${baseUrl}${product.primaryImageUrl}`
-              : defaultImage
-              " class="product-img" alt="商品圖片" />
-            <div class="product-info">
-              <p class="product-title">{{ product.productName }}</p>
-              <p class="product-price" v-if="product.minPrice === product.maxPrice">
-                $ {{ formatPrice(product.minPrice) }}
-              </p>
-              <p class="product-price" v-else>
-                $ {{ formatPrice(product.minPrice) }} -
-                {{ formatPrice(product.maxPrice) }}
-              </p>
-              <p class="product-rating">
-                ⭐ {{ product.rating || "暫無評分" }} 已售出
-                {{ product.soldCount || 0 }}
-              </p>
-              <p v-if="!product.active" class="not-active">未上架</p>
+          <div
+            class="product-card"
+            v-for="product in products"
+            :key="product.productId"
+            @click="viewProductDetail(product.productId)"
+          >
+            <div class="image-container">
+              <img
+                :src="
+                  getImageUrl(
+                    product.primaryImageUrl ||
+                      (product.imageUrls && product.imageUrls[0])
+                  )
+                "
+                class="product-img"
+                alt="商品圖片"
+              />
+              <div class="product-badge" v-if="!isProductActive(product)">
+                未上架
+              </div>
             </div>
-            <div class="product-actions" v-if="isOwner" @click.stop>
-              <button class="btn btn-edit" @click="editProduct(product.productId)">
-                ✏️ 編輯
-              </button>
-              <button class="btn btn-delete" @click="confirmDeleteProduct(product.productId)">
-                🗑️ 刪除
-              </button>
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
+            <div class="product-info">
+              <h3 class="product-title">{{ product.productName }}</h3>
+              <p class="product-price">
+                $ {{ formatPrice(product.lowestPrice) }}
+              </p>
+              <p class="product-categories" v-if="product.category1Name">
+                {{ product.category1Name }} / {{ product.category2Name }}
+              </p>
+              <div class="product-meta">
+                <span class="product-rating">
+                  <span class="rating-icon">⭐</span>
+                  <span>{{ product.rating || "暫無評分" }}</span>
+                </span>
+                <span class="sold-count"
+                  >已售出 {{ product.soldCount || 0 }}</span
+                >
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      <!-- 分頁控制 -->
+      <div class="pagination" v-if="totalPages > 1">
+        <button
+          :disabled="currentPage === 0"
+          @click="changePage(currentPage - 1)"
+          class="page-btn prev"
+        >
+          <span class="page-icon">◀</span> 上一頁
+        </button>
+        <span class="page-info">{{ currentPage + 1 }} / {{ totalPages }}</span>
+        <button
+          :disabled="currentPage >= totalPages - 1"
+          @click="changePage(currentPage + 1)"
+          class="page-btn next"
+        >
+          下一頁 <span class="page-icon">▶</span>
+        </button>
+      </div>
     </div>
-<<<<<<< HEAD
-=======
 
     <!-- 商品詳情彈窗 -->
-    <ProductDetail v-model:visible="showProductDetail" :productId="selectedProductId" @close="handleProductModalClose"
-      @add-to-cart="handleAddToCart" @buy-now="handleBuyNow" />
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
+    <ProductDetail
+      v-model:visible="showProductDetail"
+      :productId="selectedProductId"
+      @close="handleProductModalClose"
+      @add-to-cart="handleAddToCart"
+      @buy-now="handleBuyNow"
+    />
   </div>
 </template>
 
 <script setup>
 import SellerStoreInfo from "@/components/SellerStore/SellerStoreInfo.vue";
-<<<<<<< HEAD
-import { ref, onMounted, watch } from "vue";
-import { useRouter, useRoute } from "vue-router";
-import axios from "@/plugins/axios";
-
-const route = useRoute();
-const router = useRouter();
-
-const isOwner = ref(false);
-const shop = ref({});
-const errorMessage = ref("");
-=======
 import ProductDetail from "@/components/product.components/ProductDetail.vue";
-import { ref, onMounted, watch, computed } from "vue";
+import { ref, onMounted, watch, computed, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
+import ShopCampaigns from "@/components/campaign/ShopCampaigns.vue";
 
 const route = useRoute();
 const router = useRouter();
 const userStore = useUserStore();
-
-// 取得用戶資訊
 const token = userStore.token;
 
+// 狀態變數
 const isOwner = ref(false);
 const shop = ref({});
 const products = ref([]);
 const searchQuery = ref("");
 const errorMessage = ref("");
 const loading = ref(true);
-const baseUrl = ref(import.meta.env.VITE_API_URL);
+const baseUrl = ref(import.meta.env.VITE_API_URL || "");
 const defaultImage = "/src/assets/default-image.png"; // 預設商品圖片路徑
 
+// 分頁控制
+const currentPage = ref(0);
+const pageSize = ref(12);
+const totalPages = ref(0);
 // 商品詳情彈窗相關
 const showProductDetail = ref(false);
 const selectedProductId = ref(null);
+// ⭐ 新增：用來存每個商品的星等和留言數
+const reviewSummaries = reactive({});
 
-// 根據搜尋條件過濾商品
 const filteredProducts = computed(() => {
   if (!searchQuery.value) return products.value;
-
   const query = searchQuery.value.toLowerCase();
-  return products.value.filter(
-    (product) =>
-      product.productName.toLowerCase().includes(query) ||
-      (product.description && product.description.toLowerCase().includes(query))
+  return products.value.filter((product) =>
+    product.productName.toLowerCase().includes(query)
   );
 });
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
 
-// 取得商店資訊
 const fetchShopData = async () => {
   const shopId = route.params.shopId;
   try {
     const response = await axios.get(`/api/shop/${shopId}`);
     if (response.data.success && response.data.shopDTO) {
       shop.value = response.data.shopDTO;
+
+      // 將商店 ID 存入 userStore (如果是店主)
+      if (isOwner.value) {
+        userStore.updateShopId(shopId);
+      }
     } else {
       errorMessage.value = response.data.message || "商店資訊獲取失敗";
     }
   } catch (error) {
-    if (error.response && error.response.status === 404) {
-<<<<<<< HEAD
-      alert("此商店不存在!!");
-      if (window.history.length > 1) {
-        router.back();
-      } else {
-        router.push("/shop");
-      }
-=======
-      Swal.fire({
-        title: "錯誤",
-        text: "此商店不存在!",
-        icon: "error",
-        confirmButtonText: "確定",
-      }).then(() => {
-        if (window.history.length > 1) {
-          router.back();
-        } else {
-          router.push("/shop");
-        }
-      });
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
-    } else {
-      errorMessage.value = "無法獲取商店資訊，請稍後再試";
-    }
+    console.error("商店資料載入失敗", error);
   }
 };
 
-<<<<<<< HEAD
-=======
-// 檢查是否為商店擁有者
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
 const checkOwner = async () => {
   const shopId = route.params.shopId;
   try {
-    const response = await axios.get(`/api/shop/${shopId}/is-owner`);
+    const response = await axios.get(`/api/shop/${shopId}/is-owner`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
     isOwner.value = response.data.isOwner;
+
+    // 如果是店主，存儲 shopId
+    if (isOwner.value) {
+      userStore.updateShopId(shopId);
+    }
   } catch (error) {
-    console.error("檢查擁有者錯誤:", error);
-<<<<<<< HEAD
+    console.error("檢查商店擁有者錯誤", error);
   }
 };
 
-// 導航到我的商品頁面，並攜帶 shopId 作為路由參數
-const goToMyProducts = () => {
-  router.push(`/my-products/${shop.value.shopId}`);
-=======
-    isOwner.value = false;
+// ⭐ 新增：根據 productId 抓 review summary
+const fetchReviewSummary = async (productId) => {
+  try {
+    const res = await axios.get(`/api/review/summary/product/${productId}`);
+    reviewSummaries[productId] = res.data;
+  } catch (error) {
+    console.error(`取得商品 ${productId} 評價失敗`, error);
+    reviewSummaries[productId] = { averageRating: 0, reviewCount: 0 };
   }
 };
 
-// 獲取商店的所有商品
+// 獲取商店的所有商品 - 使用新的 API 端點
 const fetchProducts = async () => {
   const shopId = route.params.shopId;
-  loading.value = true;
-
   try {
-    const response = await axios.get(`/api/products`, {
+    const res = await axios.get(`/api/products/public/shop/${shopId}`, {
       params: {
-        shopId: shopId,
-        page: 0,
-        size: 100,
+        page: currentPage.value,
+        size: pageSize.value,
+        nameKeyword: searchQuery.value || undefined,
       },
     });
 
-    if (response.data && response.data.content) {
-      products.value = response.data.content;
-    } else if (Array.isArray(response.data)) {
-      products.value = response.data;
-    } else if (response.data && Array.isArray(response.data.products)) {
-      products.value = response.data.products;
+    if (res.data && res.data.content) {
+      // 標準化數據，確保所有商品的active屬性為布爾值
+      products.value = res.data.content.map((product) => {
+        // 計算正確的上架狀態
+        const normalizedActive =
+          product.active === true ||
+          (typeof product.active === "string" &&
+            product.active.toLowerCase() === "true") ||
+          product.isActive === true ||
+          product.status === "ACTIVE";
+
+        return {
+          ...product,
+          // 覆蓋原始的active屬性
+          active: normalizedActive,
+        };
+      });
+
+      totalPages.value = res.data.totalPages;
     } else {
       products.value = [];
+      totalPages.value = 0;
     }
+    // products.value = response.data.content || []; 先保留
+
+// ⭐ 每筆商品抓一次評價統計
+// for (const product of products.value) {
+  // fetchReviewSummary(product.productId);
   } catch (error) {
-    console.error("獲取商品失敗:", error);
+    console.error("❌ 取得商品失敗：", error);
     products.value = [];
   } finally {
     loading.value = false;
   }
 };
 
+// 分頁控制
+const changePage = (newPage) => {
+  if (newPage >= 0 && newPage < totalPages.value) {
+    currentPage.value = newPage;
+    fetchProducts();
+  }
+};
+
 // 搜尋功能
-const filterProducts = () => {
-  // 使用 computed 屬性自動更新，這裡可以放其他邏輯
+const searchProduct = () => {
+  currentPage.value = 0; // 重置為第一頁
+  fetchProducts();
 };
 
 // 導航到「我的商品」頁面，並攜帶 shopId 作為路由參數
 const goToMyProducts = () => {
+  router.push(`/seller/shops/${shop.value.shopId}/products`);
+};
+
+
+
+const goToMyCampaign = () => {
   router.push(
-    `/seller/shops/${shop.value.shopId || route.params.shopId}/products`
+    `/seller/shops/${shop.value.shopId || route.params.shopId}/campaigns`
   );
 };
 
-// 查看商品詳情
 const viewProductDetail = (productId) => {
+  // router.push(`/products/${productId}`); ///////////
   // 使用彈窗顯示商品詳情
   selectedProductId.value = productId;
   showProductDetail.value = true;
@@ -287,152 +310,245 @@ const handleProductModalClose = () => {
 
 // 處理加入購物車
 const handleAddToCart = (data) => {
-  console.log('加入購物車:', data);
+  console.log("加入購物車:", data);
   // 實現加入購物車的邏輯
 };
 
 // 處理立即購買
-const handleBuyNow = (data) => {
-  console.log('立即購買:', data);
-  // 實現立即購買的邏輯，例如跳轉到結帳頁面
-  router.push({
-    path: '/checkout',
-    query: {
-      productId: data.productId,
-      quantity: data.quantity
-    }
-  });
-};
-
-// 編輯商品
-const editProduct = (productId) => {
-  router.push(
-    `/seller/shops/${shop.value.shopId || route.params.shopId}/products`
-  );
-};
-
-// 確認刪除商品
-const confirmDeleteProduct = async (productId) => {
+const handleBuyNow = async (data) => {
   try {
-    const result = await Swal.fire({
-      title: "確定要刪除該商品嗎？",
-      text: "刪除後將無法恢復!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#d33",
-      cancelButtonColor: "#3085d6",
-      confirmButtonText: "確定刪除",
-      cancelButtonText: "取消",
-    });
-
-    if (result.isConfirmed) {
-      await deleteProduct(productId);
-    }
-  } catch (error) {
-    console.error("刪除確認錯誤:", error);
-  }
-};
-
-// 刪除商品
-const deleteProduct = async (productId) => {
-  try {
-    const response = await axios.delete(`/api/products/${productId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (response.status >= 200 && response.status < 300) {
-      await Swal.fire({
-        title: "刪除成功",
-        icon: "success",
+    // 檢查用戶是否已登錄
+    const token = localStorage.getItem("token");
+    if (!token) {
+      Swal.fire({
+        title: "請先登錄",
+        text: "您需要先登錄才能進行購買",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonText: "前往登錄",
+        cancelButtonText: "取消",
+      }).then((result) => {
+        if (result.isConfirmed) {
+          localStorage.setItem("redirectAfterLogin", window.location.href);
+          window.location.href = "/login";
+        }
       });
+      return;
+    }
 
-      // 重新載入商品列表
-      await fetchProducts();
+    const { productId, quantity } = data;
+
+    // 獲取產品資訊
+    const product = products.value.find((p) => p.productId === productId);
+    if (!product) {
+      throw new Error("商品不存在");
+    }
+
+    const price = product.minPrice;
+    // 確保金額大於0
+    if (!price || price <= 0) {
+      Swal.fire({
+        title: "錯誤",
+        text: "商品價格無效，無法完成購買",
+        icon: "error",
+        confirmButtonText: "確定",
+      });
+      return;
+    }
+
+    const amount = quantity * price; // 計算實際金額
+
+    Swal.fire({
+      title: "訂單建立中",
+      text: "請稍候...",
+      allowOutsideClick: false,
+      didOpen: () => {
+        Swal.showLoading();
+      },
+    });
+
+    const orderRequest = {
+      productId: productId,
+      quantity: quantity,
+      amount: amount,
+      price: price,
+      productName: product.productName,
+    };
+
+    // 確保添加正確的認證頭
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    };
+
+    console.log("發送訂單數據:", orderRequest);
+    console.log("使用的認證頭:", headers);
+
+    const response = await axios.post(
+      "/api/payment/orders/actions/create",
+      orderRequest,
+      {
+        headers,
+      }
+    );
+
+    // 成功建立訂單後，從response中取得訂單ID
+    if (
+      response.data &&
+      (response.data.orderId ||
+        (response.data.data && response.data.data.orderId))
+    ) {
+      // 兼容兩種可能的回應格式
+      const orderId = response.data.orderId || response.data.data.orderId;
+
+      // 獲取支付表單
+      const redirectResponse = await axios.get(
+        `/api/payment/redirect/${orderId}`,
+        {
+          headers,
+          responseType: "json",
+        }
+      );
+
+      if (redirectResponse.data && redirectResponse.data.formHtml) {
+        // 創建一個臨時div來插入HTML
+        const tempDiv = document.createElement("div");
+        tempDiv.innerHTML = redirectResponse.data.formHtml;
+
+        const form = tempDiv.querySelector("form");
+        if (form) {
+          document.body.appendChild(form);
+          Swal.close();
+          form.submit();
+        } else {
+          throw new Error("未找到支付表單");
+        }
+      } else if (redirectResponse.data && redirectResponse.data.redirectUrl) {
+        // 如果有重定向URL，直接跳轉
+        Swal.close();
+        window.location.href = redirectResponse.data.redirectUrl;
+      } else {
+        throw new Error("未獲得付款重定向信息");
+      }
+    } else {
+      throw new Error("訂單創建失敗");
     }
   } catch (error) {
-    Swal.fire({
-      title: "錯誤",
-      text: error.response?.data?.message || "刪除商品失敗",
-      icon: "error",
-    });
+    console.error("下單失敗:", error);
+    Swal.close();
+
+    // 檢查是否是認證錯誤
+    if (error.response && error.response.status === 401) {
+      Swal.fire({
+        title: "登錄已過期",
+        text: "請重新登錄後再試",
+        icon: "warning",
+        confirmButtonText: "前往登錄",
+      }).then(() => {
+        localStorage.removeItem("token");
+        localStorage.setItem("redirectAfterLogin", window.location.href);
+        window.location.href = "/login";
+      });
+    } else {
+      Swal.fire({
+        title: "錯誤",
+        text: error.response?.data?.message || "下單失敗，請稍後再試",
+        icon: "error",
+        confirmButtonText: "確定",
+      });
+    }
   }
 };
 
-// 格式化價格
 const formatPrice = (price) => {
   if (!price && price !== 0) return "未定價";
-  return price.toLocaleString("zh-TW");
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
+  return typeof price === "number" ? price.toLocaleString("zh-TW") : price;
 };
+
+// 修改 getImageUrl 函數
+const getImageUrl = (path) => {
+  // 記錄原始路徑以便調試
+  console.log('getImageUrl 收到的原始路徑:', path);
+  
+  if (!path) {
+    console.log('路徑為空，使用預設圖片');
+    return '/src/assets/default-campaign.png';
+  }
+  
+  // 如果路徑已經是完整 URL，則直接返回
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    console.log('使用完整 URL:', path);
+    return path;
+  }
+  
+  // 確保路徑以 / 開頭
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  console.log('正規化後的路徑:', normalizedPath);
+  
+  // 添加時間戳參數以防止緩存問題
+  const timestamp = new Date().getTime();
+  const fullPath = `${import.meta.env.VITE_API_URL}${normalizedPath}?t=${timestamp}`;
+  console.log('最終完整 URL:', fullPath);
+  
+  return fullPath;
+};
+
+//評價功能多次留言
+const replyThreads = ref({}); // reviewId -> reply list
+const threadInputs = ref({}); // reviewId -> { content, imageFile }
+
+// 載入每個 review 的留言串
+const fetchReplyThreads = async () => {
+  for (const review of reviews.value) {
+    try {
+      const res = await axios.get(`/api/review/${review.reviewId}/reply-thread`);
+      replyThreads.value[review.reviewId] = res.data || [];
+    } catch (err) {
+      console.warn(`❌ 無法載入 review ${review.reviewId} 的留言串`, err);
+      replyThreads.value[review.reviewId] = [];
+    }
+  }
+};
+
+// 留言圖片上傳
+const handleImageUpload = (event, reviewId) => {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (!threadInputs.value[reviewId]) threadInputs.value[reviewId] = {};
+  threadInputs.value[reviewId].imageFile = file;
+};
+
+// 提交留言
+const submitThreadReply = async (reviewId) => {
+  const input = threadInputs.value[reviewId];
+  if (!input?.content) return;
+
+  const formData = new FormData();
+  formData.append("content", input.content);
+  formData.append("userId", userStore.userId);
+  if (input.imageFile) {
+    formData.append("image", input.imageFile);
+  }
+
+  try {
+    await axios.post(`/api/review/${reviewId}/reply-thread`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    Swal.fire("留言成功", "", "success");
+    threadInputs.value[reviewId] = {}; // 清空輸入
+    await fetchReplyThreads(); // 重新載入
+  } catch (error) {
+    console.error("❌ 留言失敗", error);
+    Swal.fire("留言失敗", "請稍後再試", "error");
+  }
+};
+
 
 // 監聽 shopId 變化
 watch(
   () => route.params.shopId,
   async () => {
-<<<<<<< HEAD
-    await fetchShopData();
-    await checkOwner();
-  }
-);
-
-// 組件掛載時請求商店資訊 & 檢查擁有者
-onMounted(async () => {
-  await fetchShopData();
-  await checkOwner();
-});
-
-// 商品列表
-const products = ref([
-  {
-    id: 1,
-    name: "大寬牛仔褲",
-    price: 454,
-    rating: 4.7,
-    sold: 67,
-    image: "https://via.placeholder.com/150",
-  },
-  {
-    id: 2,
-    name: "水洗牛仔褲",
-    price: 449,
-    rating: 3.0,
-    sold: 6,
-    image: "https://via.placeholder.com/150",
-  },
-  {
-    id: 3,
-    name: "迷彩長褲",
-    price: 479,
-    rating: 4.8,
-    sold: 23,
-    image: "https://via.placeholder.com/150",
-  },
-  {
-    id: 4,
-    name: "復古皮帶",
-    price: 281,
-    rating: 4.8,
-    sold: 50,
-    image: "https://via.placeholder.com/150",
-  },
-  {
-    id: 5,
-    name: "拼接工裝褲",
-    price: 473,
-    rating: 5.0,
-    sold: 12,
-    image: "https://via.placeholder.com/150",
-  },
-  {
-    id: 5,
-    name: "拼接工裝褲",
-    price: 473,
-    rating: 5.0,
-    sold: 12,
-    image: "https://via.placeholder.com/150",
-  },
-]);
-=======
     loading.value = true;
     await fetchShopData();
     await checkOwner();
@@ -440,228 +556,335 @@ const products = ref([
   }
 );
 
-// 組件掛載時請求商店資訊 & 檢查擁有者 & 獲取商品列表
+// 監聽搜尋關鍵字變化
+watch(searchQuery, (newVal, oldVal) => {
+  if (newVal === "" && oldVal !== "") {
+    // 當清空搜尋框時自動刷新商品列表
+    fetchProducts();
+  }
+});
+
+const isProductActive = (product) => {
+  // 如果product為undefined或null，直接返回false
+  if (!product) {
+    return false;
+  }
+
+  return (
+    product.active === true ||
+    product.isActive === true ||
+    product.status === "ACTIVE" ||
+    (typeof product.active === "string" &&
+      product.active.toLowerCase() === "true")
+  );
+};
+
 onMounted(async () => {
   await fetchShopData();
   await checkOwner();
   await fetchProducts();
+  await fetchProductDetail();
+  await fetchReviews();
+  await fetchReplyThreads();
 });
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
 </script>
 
 <style scoped>
 /* 整體背景 */
 .shop-container {
-  background-color: #f7e9d2;
-  padding: 20px;
-<<<<<<< HEAD
-=======
+  background-color: #f9fafb;
+  padding: 24px;
   min-height: 100vh;
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
+  font-family: "Noto Sans TC", sans-serif;
+  color: #333;
 }
 
 /* 選單 */
 .shop-menu {
   display: flex;
   justify-content: center;
-  margin: 20px 0;
-  border-bottom: 2px solid #ddd;
+  margin: 32px 0;
+  border-radius: 16px;
+  padding: 8px;
+  background-color: white;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
 .shop-menu a {
-  padding: 10px 20px;
+  padding: 16px 28px;
   text-decoration: none;
-  color: #333;
+  color: #555;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  position: relative;
+  margin: 0;
+  border-radius: 10px;
+  font-size: 15px;
+}
+
+.shop-menu a:hover {
+  color: #ff6b6b;
+  background-color: rgba(255, 107, 107, 0.06);
 }
 
 .shop-menu .active {
-  color: #ff4757;
-  border-bottom: 3px solid #ff4757;
+  color: #ff6b6b;
+  font-weight: 600;
+  background-color: rgba(255, 107, 107, 0.08);
 }
 
-<<<<<<< HEAD
-=======
+.shop-menu .active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 32px;
+  height: 3px;
+  background-color: #ff6b6b;
+  border-radius: 3px;
+}
+
 /* 我的商品按鈕 */
 .my-products-section {
   display: flex;
   justify-content: center;
-  margin: 20px 0;
+  margin: 28px 0;
 }
 
 .btn-my-products {
-  background-color: #ff4757;
+  background-color: #ff6b6b;
   color: white;
-  padding: 10px 20px;
+  padding: 14px 32px;
   border: none;
-  border-radius: 5px;
+  border-radius: 50px;
   cursor: pointer;
   font-size: 16px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 18px rgba(255, 107, 107, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
-/* 商品列表 */
-.section-title {
-  margin: 20px 0;
+.btn-my-products:hover {
+  transform: translateY(-3px);
+  background-color: #ff5252;
+  box-shadow: 0 8px 24px rgba(255, 107, 107, 0.35);
+}
+
+.btn-my-products .icon {
   font-size: 18px;
 }
 
-.product-wrapper {
+/* 商品列表 */
+.product-section {
   max-width: 1600px;
   margin: 0 auto;
-  padding: 0 20px;
+  background-color: white;
+  border-radius: 20px;
+  padding: 36px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+  transition: all 0.3s ease;
+}
+
+.product-wrapper {
+  margin: 30px auto;
 }
 
 .product-list {
   display: grid;
-<<<<<<< HEAD
-  grid-template-columns: repeat(6, 1fr);
-=======
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
-  gap: 25px;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 28px;
 }
 
 .product-card {
   background: white;
-  border-radius: 8px;
-  padding: 15px;
-  text-align: center;
-  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease-in-out;
-<<<<<<< HEAD
-  width: 100%;
-  max-width: 220px;
-}
-
-.product-img {
-  width: 100%;
-  border-radius: 5px;
-}
-
-.product-title {
-  font-size: 14px;
-  color: #333;
-=======
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.04);
+  transition: all 0.4s ease;
   cursor: pointer;
+  position: relative;
+  border: 1px solid #f0f0f0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(0);
 }
 
 .product-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 2px 5px 15px rgba(0, 0, 0, 0.2);
+  transform: translateY(-8px);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.08);
+  border-color: #e8e8e8;
+}
+
+.image-container {
+  position: relative;
+  overflow: hidden;
+  height: 240px;
 }
 
 .product-img {
   width: 100%;
-  height: 180px;
+  height: 100%;
   object-fit: cover;
-  border-radius: 5px;
+  transition: transform 0.6s cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+
+.product-card:hover .product-img {
+  transform: scale(1.08);
+}
+
+.product-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background-color: rgba(255, 152, 0, 0.95);
+  color: white;
+  padding: 8px 14px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 600;
+  z-index: 2;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.product-info {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  justify-content: space-between;
 }
 
 .product-title {
-  font-size: 14px;
+  font-size: 16px;
   color: #333;
-  margin-top: 10px;
-  height: 40px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
+  margin: 0 0 12px 0;
+  font-weight: 500;
+  overflow: hidden;               
+  display: -webkit-box;           
+  -webkit-box-orient: vertical;   
+  -webkit-line-clamp: 2;          
+  line-clamp: 2;                  
+  line-height: 1.4;               
+  height: 2.8em;                  
 }
 
 .product-price {
-  font-size: 16px;
-  color: #e84118;
-  font-weight: bold;
-<<<<<<< HEAD
-=======
-  margin: 8px 0;
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
+  font-size: 22px;
+  color: #ff6b6b;
+  font-weight: 700;
+  margin: 10px 0;
+}
+
+.product-categories {
+  font-size: 13px;
+  color: #888;
+  margin: 10px 0;
+}
+
+.product-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 14px;
+  font-size: 13px;
+  color: #777;
 }
 
 .product-rating {
-  font-size: 12px;
-  color: #666;
-<<<<<<< HEAD
-=======
-  margin-bottom: 10px;
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
-}
-
-/* 上架商品按鈕 */
-.btn-add-product {
-  background-color: #2ecc71;
-  color: white;
-  padding: 8px 12px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-}
-<<<<<<< HEAD
-=======
-
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
-/* 編輯 & 刪除商品按鈕 */
-.product-actions {
   display: flex;
-  justify-content: space-around;
-  margin-top: 10px;
+  align-items: center;
+  gap: 6px;
 }
 
-.btn-edit {
-  background-color: #f1c40f;
-  color: black;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+
+.rating-icon {
+  color: #ffc107;
 }
 
-.btn-delete {
-  background-color: #e74c3c;
-  color: white;
-  padding: 6px 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
+.sold-count {
+  background-color: #f8f9fa;
+  padding: 6px 12px;
+  border-radius: 50px;
+  font-size: 12px;
+  font-weight: 500;
 }
 
+/* 搜尋區域 */
 .section-header {
   display: flex;
-<<<<<<< HEAD
-  justify-content: center; /* 讓搜尋欄置中 */
-=======
-  justify-content: center;
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
+  justify-content: space-between;
   align-items: center;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 24px;
+  margin-bottom: 30px;
   width: 100%;
-<<<<<<< HEAD
 }
 
-.search-bar {
-  flex-grow: 1;
-  max-width: 1000px; /* 控制最大寬度 */
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  font-size: 16px;
-}
-</style>
-=======
-}
-
-.search-bar {
+.search-container {
+  position: relative;
   flex-grow: 1;
   max-width: 1000px;
+}
+
+.search-bar {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
+  padding: 18px 24px 18px 56px;
+  border: 1px solid #eaeaea;
+  border-radius: 50px;
   font-size: 16px;
+  transition: all 0.4s ease;
+  background-color: #f9fafb;
+  color: #555;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.search-bar:focus {
+  outline: none;
+  border-color: #ff6b6b;
+  box-shadow: 0 0 0 4px rgba(255, 107, 107, 0.1);
+  background-color: white;
+}
+
+.search-icon {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  font-size: 18px;
+  pointer-events: none;
+}
+
+.btn-add-product {
+  background-color: #4bb543;
+  color: white;
+  padding: 16px 28px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 16px rgba(75, 181, 67, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.btn-add-product:hover {
+  background-color: #429e3a;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 20px rgba(75, 181, 67, 0.3);
+}
+
+.btn-add-product .icon {
+  font-size: 18px;
 }
 
 /* 載入動畫 */
@@ -670,24 +893,23 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 200px;
+  height: 320px;
 }
 
 .spinner {
-  border: 4px solid rgba(0, 0, 0, 0.1);
+  border: 5px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
-  border-top: 4px solid #3498db;
-  width: 40px;
-  height: 40px;
+  border-top: 5px solid #ff6b6b;
+  width: 56px;
+  height: 56px;
   animation: spin 1s linear infinite;
-  margin-bottom: 10px;
+  margin-bottom: 20px;
 }
 
 @keyframes spin {
   0% {
     transform: rotate(0deg);
   }
-
   100% {
     transform: rotate(360deg);
   }
@@ -699,29 +921,466 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 200px;
-  color: #777;
+  height: 320px;
+  color: #888;
+  text-align: center;
+  padding: 24px;
+}
+
+.no-products p {
+  font-size: 20px;
+  margin-bottom: 24px;
+  color: #666;
 }
 
 .btn-add-first {
   background-color: #3498db;
   color: white;
-  padding: 10px 15px;
+  padding: 16px 32px;
   border: none;
-  border-radius: 5px;
-  margin-top: 15px;
+  border-radius: 50px;
+  font-weight: 600;
   cursor: pointer;
+  transition: all 0.3s;
+  box-shadow: 0 6px 18px rgba(52, 152, 219, 0.3);
+  font-size: 15px;
 }
 
-/* 未上架標籤 */
-.not-active {
-  background-color: #f39c12;
+.btn-add-first:hover {
+  background-color: #2980b9;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(52, 152, 219, 0.4);
+}
+
+/* 分頁控制 */
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 48px;
+  padding: 12px 0;
+}
+
+.page-btn {
+  padding: 14px 28px;
+  background: #ff6b6b;
   color: white;
-  padding: 3px 8px;
-  border-radius: 12px;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  margin: 0 14px;
+  font-weight: 600;
+  transition: all 0.3s;
+  box-shadow: 0 6px 18px rgba(255, 107, 107, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.page-btn:hover:not(:disabled) {
+  background: #ff5252;
+  transform: translateY(-3px);
+  box-shadow: 0 10px 24px rgba(255, 107, 107, 0.3);
+}
+
+.page-btn:disabled {
+  background: #e0e0e0;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.page-icon {
   font-size: 12px;
-  display: inline-block;
-  margin-top: 5px;
+}
+
+.page-info {
+  font-size: 16px;
+  color: #555;
+  font-weight: 500;
+  background: #f8f9fa;
+  padding: 12px 28px;
+  border-radius: 50px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+}
+
+/* 增加響應式設計 */
+@media (max-width: 1600px) {
+  .product-list {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+
+  .product-section {
+    padding: 32px;
+  }
+}
+
+@media (max-width: 1600px) {
+  .product-list {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+  }
+
+  .product-section {
+    padding: 32px;
+  }
+}
+
+@media (max-width: 1200px) {
+  .product-list {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .shop-menu a {
+    padding: 14px 24px;
+    font-size: 14px;
+  }
+
+  .product-section {
+    padding: 28px;
+    border-radius: 16px;
+  }
+
+  .image-container {
+    height: 220px;
+  }
+}
+
+@media (max-width: 992px) {
+  .product-list {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .shop-menu {
+    flex-wrap: wrap;
+    justify-content: center;
+    padding: 6px;
+  }
+
+  .shop-menu a {
+    padding: 12px 18px;
+    margin: 4px;
+    font-size: 14px;
+  }
+
+  .shop-container {
+    padding: 16px;
+  }
+
+  .product-section {
+    padding: 24px;
+  }
+
+  .btn-my-products,
+  .btn-add-product {
+    padding: 12px 24px;
+    font-size: 14px;
+  }
+
+  .search-bar {
+    padding: 16px 20px 16px 50px;
+    font-size: 15px;
+  }
+
+  .search-icon {
+    left: 20px;
+  }
+
+  .product-title {
+    font-size: 15px;
+    height: 40px;
+  }
+
+  .product-price {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 24px;
+  }
+
+  .search-container {
+    width: 100%;
+  }
+
+  .btn-add-product {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .product-section {
+    padding: 20px;
+    border-radius: 14px;
+  }
+
+  .shop-menu {
+    margin: 24px 0;
+    padding: 4px;
+  }
+
+  .shop-menu a {
+    padding: 10px 14px;
+    font-size: 13px;
+    margin: 3px;
+  }
+
+  .pagination {
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 36px;
+  }
+
+  .page-btn {
+    padding: 12px 20px;
+    font-size: 14px;
+    margin: 0 10px;
+  }
+
+  .page-info {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .my-products-section {
+    margin: 20px 0;
+  }
+
+  .btn-my-products {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .product-wrapper {
+    margin: 20px auto;
+  }
+
+  .no-products p {
+    font-size: 18px;
+  }
+
+  .btn-add-first {
+    width: 100%;
+    padding: 14px 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .product-list {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .shop-menu a {
+    font-size: 12px;
+    padding: 8px 12px;
+    margin: 2px;
+  }
+
+  .product-section {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  .image-container {
+    height: 200px;
+  }
+
+  .shop-container {
+    padding: 12px;
+  }
+
+  .btn-my-products,
+  .btn-add-product,
+  .btn-add-first {
+    width: 100%;
+    justify-content: center;
+    padding: 12px 20px;
+    font-size: 14px;
+  }
+
+  .product-info {
+    padding: 16px;
+  }
+
+  .product-title {
+    font-size: 14px;
+    margin-bottom: 8px;
+  }
+
+  .product-price {
+    font-size: 18px;
+    margin: 8px 0;
+  }
+
+  .product-categories {
+    font-size: 12px;
+    margin: 8px 0;
+  }
+
+  .product-meta {
+    font-size: 12px;
+    margin-top: 10px;
+  }
+
+  .search-bar {
+    padding: 14px 16px 14px 44px;
+    font-size: 14px;
+  }
+
+  .search-icon {
+    left: 16px;
+    font-size: 16px;
+  }
+
+  .section-header {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .product-badge {
+    top: 10px;
+    right: 10px;
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .page-btn {
+    padding: 10px 16px;
+    font-size: 13px;
+    margin: 0 8px;
+  }
+
+  .page-info {
+    padding: 8px 16px;
+    font-size: 13px;
+  }
+
+  .loading-spinner {
+    height: 280px;
+  }
+
+  .spinner {
+    width: 48px;
+    height: 48px;
+  }
+
+  .no-products {
+    height: 260px;
+    padding: 20px;
+  }
+
+  .no-products p {
+    font-size: 16px;
+    margin-bottom: 20px;
+  }
+}
+
+/* 增強視覺效果 */
+.product-card {
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.product-card::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 18px;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.product-card:hover::after {
+  opacity: 1;
+}
+
+.shop-menu a::before {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  height: 2px;
+  background-color: #ff6b6b;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+  opacity: 0;
+}
+
+.shop-menu a:hover::before {
+  width: 30px;
+  opacity: 0.6;
+}
+
+.shop-menu .active::before {
+  opacity: 0;
+}
+
+/* 改善動畫效果 */
+.btn-my-products,
+.btn-add-product,
+.btn-add-first,
+.page-btn {
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.product-card {
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.search-bar {
+  transition: all 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+/* 交互反饋增強 */
+.btn-my-products:active,
+.btn-add-product:active,
+.btn-add-first:active,
+.page-btn:active:not(:disabled) {
+  transform: translateY(0);
+  transition: all 0.1s;
+}
+
+.search-bar:focus {
+  transition: all 0.25s;
+}
+
+/* 微妙陰影與深度 */
+.product-section {
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.03), 0 1px 1px rgba(0, 0, 0, 0.025);
+}
+
+.shop-menu {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04), 0 2px 2px rgba(0, 0, 0, 0.02);
+}
+
+.product-card {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.03), 0 2px 3px rgba(0, 0, 0, 0.01);
+}
+
+.buttons-container {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .buttons-container {
+    flex-direction: column;
+    gap: 15px;
+  }
 }
 </style>
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5

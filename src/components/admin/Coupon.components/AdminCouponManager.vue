@@ -4,10 +4,17 @@
             <h3>後台管理者優惠券管理</h3>
 
             <div class="row mb-4">
-                <div class="col-md-5 mb-2 mb-md-0">
-                    <button class="btn btn-secondary text-nowrap" @click="navigateToApplicationReview">
-                        <i class="bi bi-list-check"></i> 前往審核優惠券申請
-                    </button>
+                <div class="col-md-auto mb-2 mb-md-0">
+                    <div class="position-relative d-inline-block me-3"> <button class="btn btn-secondary text-nowrap"
+                            @click="navigateToApplicationReview">
+                            <i class="bi bi-list-check"></i> 前往審核優惠券申請
+                        </button>
+                        <span v-if="pendingCount > 0"
+                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                            {{ pendingCount }}
+                            <span class="visually-hidden">筆待審核申請</span>
+                        </span>
+                    </div>
 
                     <button class="btn btn-primary text-nowrap" style="margin-left:15px ;" @click="openModal('insert')">
                         <i class="bi bi-plus-lg"></i> 直接新增優惠券
@@ -21,7 +28,7 @@
                         @keyup.enter="callFind(0)" />
                 </div>
                 <div class="col-md-3 mb-2 mb-md-0">
-                    <button class="btn btn-info w-100" @click="callFind(0)"> <i class="bi bi-search"></i> 搜尋 </button>
+                    <button class="btn btn-info w-50" @click="callFind(0)"> <i class="bi bi-search"></i> 搜尋 </button>
                 </div>
                 <div class="col-md-4 text-nowrap px-0 text-md-end">
                     <CouponSelect :total="pagination.totalItems" :options="[4, 8, 12, 16]" v-model="pagination.size"
@@ -54,7 +61,12 @@
             </div>
 
             <nav v-if="pagination.totalPages > 1 && !isLoading" class="mt-4">
-                <ul class="pagination justify-content-center"> ... </ul>
+                <ul class="pagination justify-content-center">
+                    <li v-for="page in visiblePages" :key="page" class="page-item"
+                        :class="{ active: page === pagination.currentPage }">
+                        <a class="page-link" href="#" @click.prevent="callFind(page)">{{ page + 1 }}</a>
+                    </li>
+                </ul>
             </nav>
         </div>
 
@@ -63,16 +75,20 @@
     </div>
 </template>
 <script setup>
-import { ref, reactive, onMounted, computed } from "vue";
+import { ref, reactive, onMounted, watch } from "vue";
 import axiosapi from "@/plugins/axios"; // 假設這是你配置好的 axios 實例
 import Swal from "sweetalert2";
 import AdminCouponListItem from "./AdminCouponListItem.vue";
 import AdminCouponModal from "./AdminCouponModal.vue";
 import CouponSelect from "./CouponSelect.vue";
 import CouponChart from "./CouponChart.vue";
-// import { useRouter } from 'vue-router'; // 如果需要導航
+import { useRouter } from 'vue-router'; // 如果需要導航
+import { storeToRefs } from 'pinia'; // *** 匯入 storeToRefs ***
+import { useCouponApplicationStore } from '@/stores/couponApplicationStore';
 
-// const router = useRouter(); // 用於導航
+const router = useRouter(); // 用於導航
+const applicationStore = useCouponApplicationStore();
+const { pendingCount } = storeToRefs(applicationStore);
 
 // --- 狀態管理 ---
 const coupons = ref([]); // 儲存從後端獲取的優惠券列表 (AdminCouponDTO)
@@ -97,6 +113,7 @@ const monthlyStats = ref({ // 傳遞給圖表的數據結構
     newCounts: [], // 新增數量 [10, 15, ...]
     currentCounts: [] // 目前數量 [50, 60, ...]
 });
+
 
 // --- Modal 控制 ---
 function openModal(action, couponData = null) {
@@ -287,36 +304,54 @@ async function fetchMonthlyStats() {
 
 // --- 導航 ---
 function navigateToApplicationReview() {
-    // 使用 Vue Router 導航到審核頁面
-    // router.push({ name: 'AdminCouponApplicationReview' }); // 假設路由名稱
-    alert("導航到審核頁面 (待實現)");
+    router.push('/admin/coupon/applicationReview');
+
 }
 
 
 // --- 分頁計算 ---
-const visiblePages = computed(() => {
-    const total = pagination.totalPages;
-    const current = pagination.currentPage;
-    const maxVisible = 5; // 最多顯示 5 個頁碼按鈕
-    if (total <= maxVisible) {
-        return Array.from({ length: total }, (_, i) => i);
+// *** 用 ref 取代 computed ***
+const visiblePages = ref([]); // 初始化為空陣列
+
+// --- *** 使用 watch 監聽分頁數據變化，手動更新 visiblePages *** ---
+watch([() => pagination.totalPages, () => pagination.currentPage], ([newTotalPages, newCurrentPage]) => {
+    const total = Number(newTotalPages);
+    const current = Number(newCurrentPage);
+    const maxVisible = 5;
+    console.log(`WATCH triggered: total=${total}, current=${current}`);
+
+    let pages = [];
+
+    if (isNaN(total) || total <= 1) {
+        console.log('WATCH: Setting visiblePages to [] because total is NaN or <= 1');
+    } else if (total <= maxVisible) {
+        for (let i = 0; i < total; i++) {
+            pages.push(i);
+        }
+        console.log('WATCH: Setting visiblePages (<= maxVisible):', pages);
     } else {
         let startPage = Math.max(0, current - Math.floor(maxVisible / 2));
         let endPage = startPage + maxVisible - 1;
         if (endPage >= total) {
             endPage = total - 1;
-            startPage = endPage - maxVisible + 1;
+            startPage = Math.max(0, endPage - maxVisible + 1);
         }
-        return Array.from({ length: maxVisible }, (_, i) => startPage + i);
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(i);
+        }
+        console.log('WATCH: Setting visiblePages (> maxVisible):', pages);
     }
-});
+    visiblePages.value = pages; // *** 更新 ref 的值 ***
+}, { immediate: true }); // immediate: true 確保初始載入時也計算一次
+
 
 // --- 生命週期鉤子 ---
 onMounted(() => {
     callFind(0); // 初始載入第一頁
     fetchMonthlyStats(); // 初始載入圖表數據
+    applicationStore.fetchPendingCount(); // *** 載入待審核數量 ***
 });
-
+console.log('Visible Pages:', visiblePages.value);
 </script>
 
 <style scoped>
@@ -336,7 +371,7 @@ onMounted(() => {
 }
 
 .container-fluid {
-    padding-top: 60px;
+    padding-top: 0px;
 }
 
 
@@ -347,10 +382,10 @@ onMounted(() => {
     color: #495057;
 }
 
-/* 可選：為列表容器添加樣式 */
-.coupon-list-container {
-    max-height: 500px;
+/* 調整 Badge 位置可能需要微調 */
+.position-absolute.badge {
+    font-size: 0.7em;
+    padding: 0.25em 0.4em;
 
-    overflow-y: auto;
 }
 </style>

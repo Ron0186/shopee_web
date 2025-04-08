@@ -1,0 +1,1115 @@
+<template>
+  <div class="container mt-4">
+    <div class="row">
+      <!-- 左側：產品圖片 -->
+      <div class="col-md-6">
+        <div class="product-gallery">
+          <!-- 主圖顯示 -->
+          <div class="main-image mb-3">
+            <img
+              :src="selectedImage"
+              class="img-fluid rounded"
+              alt="商品主圖"
+              @error="handleImageError"
+            />
+          </div>
+          <!-- 縮圖列表 -->
+          <div class="thumbnails d-flex overflow-auto">
+            <div
+              v-for="(image, index) in allProductImages"
+              :key="index"
+              class="thumbnail-item me-2"
+              @click="selectedImageIndex = index"
+            >
+              <img
+                :src="getImageUrl(image)"
+                class="img-thumbnail"
+                :class="{ 'border-primary': selectedImageIndex === index }"
+                style="
+                  width: 80px;
+                  height: 80px;
+                  object-fit: cover;
+                  cursor: pointer;
+                "
+                alt="商品縮圖"
+                @error="handleImageError"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右側：產品資訊 -->
+      <div class="col-md-6">
+        <!-- 商品標題 -->
+        <h2 class="mb-2">{{ product.productName }}</h2>
+
+        <!-- 商品編號 -->
+        <!-- <p class="text-muted small mb-3">{{ product.productId }}</p> -->
+
+        <!-- 評分 -->
+<div class="mb-3 d-flex align-items-center">
+  <div class="me-2">
+    <i
+      v-for="n in 5"
+      :key="n"
+      class="bi"
+      :class="n <= Math.round(product.rating || 0) ? 'bi-star-fill' : 'bi-star'"
+      style="color: #ffd700"
+    ></i>
+  </div>
+  <a href="#reviews" class="text-decoration-none">
+    {{ product.reviewCount ?? 0 }} 評價
+  </a>
+</div>
+
+
+        <!-- 價格 -->
+        <div class="mb-4">
+          <h3 class="mb-1" v-html="priceDisplay"></h3>
+          <p
+            v-if="
+              selectedSku &&
+              product.originalPrice &&
+              product.originalPrice > currentPrice
+            "
+            class="text-muted"
+          >
+            <del>原價：NT${{ product.originalPrice }}</del>
+          </p>
+        </div>
+        <!-- 動態生成每種規格的選擇器 -->
+        <div v-for="(values, specName) in specs" :key="specName" class="mb-3">
+          <p class="mb-2">
+            {{ specName }}：{{ selectedSpecs[specName] || "請選擇" }}
+          </p>
+
+          <!-- 顏色規格改成文字顯示 -->
+          <div v-if="specName === '顏色'" class="d-flex flex-wrap">
+            <button
+              v-for="(item, index) in values"
+              :key="index"
+              type="button"
+              class="btn me-2 mb-2"
+              :class="
+                selectedSpecs[specName] === item.value
+                  ? 'btn-dark'
+                  : 'btn-outline-secondary'
+              "
+              :disabled="!isSpecValueAvailable(specName, item.value)"
+              style="min-width: 50px"
+              @click="selectSpec(specName, item.value)"
+            >
+              {{ item.value }}
+            </button>
+          </div>
+
+          <!-- 其他規格使用按鈕 -->
+          <div v-else class="d-flex flex-wrap">
+            <button
+              v-for="(item, index) in values"
+              :key="index"
+              type="button"
+              class="btn me-2 mb-2"
+              :class="
+                selectedSpecs[specName] === item.value
+                  ? 'btn-dark'
+                  : 'btn-outline-secondary'
+              "
+              :disabled="!isSpecValueAvailable(specName, item.value)"
+              style="min-width: 50px"
+              @click="selectSpec(specName, item.value)"
+            >
+              {{ item.value }}
+            </button>
+          </div>
+        </div>
+
+        <!-- 配送方式 -->
+        <div class="mb-4">
+          <p class="mb-2">配送方式</p>
+          <div class="form-check mb-2">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="shippingMethod"
+              id="homeDelivery"
+              value="homeDelivery"
+              v-model="shippingMethod"
+            />
+            <label class="form-check-label" for="homeDelivery">宅配配送</label>
+          </div>
+          <div class="form-check mb-2">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="shippingMethod"
+              id="convenience"
+              value="convenience"
+              v-model="shippingMethod"
+            />
+            <label class="form-check-label" for="convenience">超商取貨</label>
+          </div>
+          <div class="form-check mb-2">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="shippingMethod"
+              id="storePickup"
+              value="storePickup"
+              v-model="shippingMethod"
+            />
+            <label class="form-check-label" for="storePickup"
+              >實體店鋪取貨</label
+            >
+          </div>
+        </div>
+
+        <!-- 購買數量 -->
+        <div class="mb-4">
+          <div class="d-flex align-items-center">
+            <button
+              class="btn btn-outline-secondary"
+              @click="quantity > 1 ? quantity-- : null"
+              :disabled="quantity <= 1"
+            >
+              <i class="bi bi-dash"></i>
+            </button>
+            <input
+              type="number"
+              class="form-control text-center mx-2"
+              v-model="quantity"
+              min="1"
+              style="width: 80px"
+            />
+            <button
+              class="btn btn-outline-secondary"
+              @click="quantity++"
+              :disabled="quantity >= product.stock"
+            >
+              <i class="bi bi-plus"></i>
+            </button>
+            <span class="ms-3">{{ stockStatus }}</span>
+          </div>
+        </div>
+
+        <!-- 加入購物車和立即購買按鈕 -->
+        <div class="d-grid gap-2 d-flex">
+          <button
+            class="btn btn-outline-dark btn-lg py-3 flex-grow-1"
+            @click="addToCart"
+            :disabled="!canAddToCart"
+          >
+            <i class="bi bi-cart-plus me-2"></i>加入購物車
+          </button>
+
+          <button
+            class="btn btn-dark btn-lg py-3 flex-grow-1"
+            @click="buyNow"
+            :disabled="!canAddToCart"
+          >
+            <i class="bi bi-credit-card me-2"></i>立即購買
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 評價數星星數 -->
+    <div class="mb-3 d-flex align-items-center">
+    <div class="me-2">
+      <i
+        v-for="n in 5"
+        :key="n"
+        class="bi"
+        :class="n <= Math.round(product.rating) ? 'bi-star-fill' : 'bi-star'"
+        style="color: #ffd700"
+      ></i>
+    </div>
+    <a href="#reviews" class="text-decoration-none">
+      {{ product.reviewCount || 0 }} 評價
+    </a>
+  </div>
+
+    <!-- 商品詳情內容 -->
+    <div class="row mt-5">
+      <div class="col-12">
+        <ul class="nav nav-tabs" id="productTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="details-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#details"
+              type="button"
+              role="tab"
+            >
+              商品詳情
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="reviews-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#reviews"
+              type="button"
+              role="tab"
+            >
+              顧客評價
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="shipping-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#shipping"
+              type="button"
+              role="tab"
+            >
+              配送與退貨
+            </button>
+          </li>
+        </ul>
+        <div class="tab-content py-4" id="productTabsContent">
+          <div class="tab-pane fade show active" id="details" role="tabpanel">
+            <div class="p-3">
+              <h4>商品描述</h4>
+              <p>{{ product.description }}</p>
+            </div>
+          </div>
+          <!-- 顧客評價區塊 -->
+<div class="tab-pane fade" id="reviews" role="tabpanel">
+  <div class="p-3">
+    <h4>顧客評價</h4>
+
+    <!-- 無留言時提示 -->
+    <div v-if="reviews.length === 0">暫無評價</div>
+
+    <!-- 顧客留言 + 賣家回覆 -->
+    <div v-else>
+      <div
+        v-for="review in reviews"
+        :key="review.reviewId"
+        class="border rounded p-3 mb-4 bg-light-subtle"
+      >
+        <!-- 顧客基本資訊 -->
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <div>
+            <strong>{{ review.userName }}</strong>
+            <span class="ms-2 text-warning">⭐ {{ review.rating }}</span>
+          </div>
+          <small class="text-muted">
+            <i class="bi bi-clock"></i> {{ formatDate(review.createdAt) }}
+          </small>
+        </div>
+
+        <!-- 顧客留言內容 -->
+        <div class="mb-2">{{ review.content }}</div>
+
+        <!-- ✅ 若賣家已回覆，顯示回覆內容 -->
+        <div
+          v-if="review.replyContent"
+          class="border-start border-3 border-primary bg-white p-3 mb-2"
+        >
+          <div class="fw-bold text-primary mb-1">賣家回覆：</div>
+          <div class="mb-1">{{ review.replyContent }}</div>
+          <small class="text-muted">
+            <i class="bi bi-clock"></i> {{ formatDate(review.replyTime) }}
+          </small>
+        </div>
+
+        <!-- ✅ 若賣家尚未回覆，顯示輸入框（需是賣家身分） -->
+        <div
+          v-if="isSeller && !review.replyContent"
+          class="bg-light border rounded mt-3 p-3"
+        >
+          <div class="fw-bold text-primary mb-2">🔁 回覆買家</div>
+          <textarea
+            v-model="replyInputs[review.reviewId]"
+            class="form-control mb-2"
+            rows="3"
+            placeholder="輸入回覆內容..."
+          ></textarea>
+          <button
+            class="btn btn-outline-success btn-sm"
+            @click="submitReply(review.reviewId)"
+            :disabled="!replyInputs[review.reviewId]"
+          >
+            ✅ 送出回覆
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+          <div class="tab-pane fade" id="shipping" role="tabpanel">
+            <div class="p-3">
+              <h4>配送資訊</h4>
+              <p>全台配送，一般地區3-5個工作天到貨。</p>
+              <h4 class="mt-4">退換貨政策</h4>
+              <p>收到商品後七天內可申請退換貨。</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 尺寸指南 Modal -->
+    <div
+      class="modal fade"
+      id="sizeGuideModal"
+      tabindex="-1"
+      :class="{ show: showSizeGuide }"
+    >
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">尺寸指南</h5>
+            <button
+              type="button"
+              class="btn-close"
+              @click="showSizeGuide = false"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <h6>尺寸對照表</h6>
+            <table class="table table-bordered">
+              <thead>
+                <tr>
+                  <th>尺寸</th>
+                  <th>胸圍 (cm)</th>
+                  <th>肩寬 (cm)</th>
+                  <th>衣長 (cm)</th>
+                  <th>袖長 (cm)</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>XS</td>
+                  <td>96</td>
+                  <td>42</td>
+                  <td>65</td>
+                  <td>24</td>
+                </tr>
+                <tr>
+                  <td>S</td>
+                  <td>100</td>
+                  <td>44</td>
+                  <td>67</td>
+                  <td>25</td>
+                </tr>
+                <tr>
+                  <td>M</td>
+                  <td>104</td>
+                  <td>46</td>
+                  <td>69</td>
+                  <td>26</td>
+                </tr>
+                <tr>
+                  <td>L</td>
+                  <td>108</td>
+                  <td>48</td>
+                  <td>71</td>
+                  <td>27</td>
+                </tr>
+                <tr>
+                  <td>XL</td>
+                  <td>114</td>
+                  <td>50</td>
+                  <td>73</td>
+                  <td>28</td>
+                </tr>
+                <tr>
+                  <td>XXL</td>
+                  <td>120</td>
+                  <td>52</td>
+                  <td>75</td>
+                  <td>29</td>
+                </tr>
+                <tr>
+                  <td>3XL</td>
+                  <td>126</td>
+                  <td>54</td>
+                  <td>77</td>
+                  <td>30</td>
+                </tr>
+              </tbody>
+            </table>
+            <p class="mt-3">
+              測量說明：平放測量，單位為公分，誤差範圍±2cm屬正常。
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              @click="showSizeGuide = false"
+            >
+              關閉
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import axios from "@/plugins/axios";
+import Swal from "sweetalert2";
+import { useUserStore } from "@/stores/user";
+
+const route = useRoute();
+const router = useRouter();
+const productId = route.params.productId;
+const userStore = useUserStore();
+
+// 基礎 URL
+const baseUrl = ref(import.meta.env.VITE_API_URL || "");
+const defaultImage = "@/assets/default-image.png"; // 默認圖片路徑
+
+// 商品資料
+const product = ref({
+  productId: "",
+  productName: "",
+  description: "",
+  price: 0,
+  originalPrice: 0,
+  stock: 100,
+  rating: 0,
+  reviewCount: 0,
+});
+
+// 商品圖片
+const productImages = ref([]);
+const selectedImageIndex = ref(0);
+
+// 用戶選擇
+const selectedColor = ref("");
+const selectedSize = ref("");
+const quantity = ref(1);
+const shippingMethod = ref("homeDelivery");
+const showSizeGuide = ref(false);
+
+// 增強圖片處理邏輯
+// 從各種來源獲取所有商品圖片
+const allProductImages = computed(() => {
+  if (!product.value) return [];
+
+  // 如果有 productImages 數組，優先使用它
+  if (productImages.value && productImages.value.length > 0) {
+    return productImages.value.map((img) => {
+      // 處理不同格式的圖片物件
+      if (typeof img === "string") {
+        return { imagePath: img };
+      }
+      return img;
+    });
+  }
+
+  // 使用可能的其他圖片來源
+  const images = [];
+
+  // 檢查 primaryImageUrl
+  if (product.value.primaryImageUrl) {
+    images.push({
+      imagePath: product.value.primaryImageUrl,
+      isPrimary: true,
+    });
+  }
+
+  // 檢查 image
+  if (
+    product.value.image &&
+    product.value.image !== product.value.primaryImageUrl
+  ) {
+    images.push({
+      imagePath: product.value.image,
+      isPrimary: !product.value.primaryImageUrl,
+    });
+  }
+
+  // 如果仍然沒有圖片，使用預設圖片
+  if (images.length === 0) {
+    images.push({
+      imagePath: defaultImage,
+      isPrimary: true,
+    });
+  }
+
+  return images;
+});
+
+// 選中的圖片
+const selectedImage = computed(() => {
+  const images = allProductImages.value;
+  if (images.length === 0) return defaultImage;
+
+  if (
+    selectedImageIndex.value >= 0 &&
+    selectedImageIndex.value < images.length
+  ) {
+    return getImageUrl(images[selectedImageIndex.value]);
+  }
+
+  return getImageUrl(images[0]);
+});
+
+// 獲取圖片 URL
+const getImageUrl = (image) => {
+  if (!image) return defaultImage;
+
+  const imagePath = image.imagePath || image.path || image.url || image;
+  if (!imagePath) return defaultImage;
+
+  // 如果是完整 URL，直接返回
+  if (typeof imagePath === "string" && imagePath.startsWith("http")) {
+    return imagePath;
+  }
+
+  // 如果是相對路徑，加上基礎 URL
+  if (
+    typeof imagePath === "string" &&
+    baseUrl.value &&
+    !imagePath.startsWith("/assets")
+  ) {
+    return `${baseUrl.value}${imagePath}`;
+  }
+
+  // 如果是本地圖片路徑，直接返回
+  return imagePath;
+};
+
+// 處理圖片加載錯誤
+// const handleImageError = (e) => {
+//   console.log("圖片載入失敗，使用預設圖片");
+//   e.target.src = defaultImage;
+// };
+// 處理圖片加載錯誤，避免重複處理
+const handleImageError = (e) => {
+  // 確保只處理一次錯誤
+  if (!e.target.dataset.errorHandled) {
+    console.log("圖片載入失敗，使用預設圖片");
+    e.target.src = defaultImage;
+    e.target.dataset.errorHandled = true; // 標記已處理
+  }
+};
+
+// 價格計算
+const currentPrice = computed(() => {
+  // 如果有選中的SKU，返回SKU價格
+  if (selectedSku.value) {
+    return selectedSku.value.price;
+  }
+
+  // 否則返回商品基本價格
+  return product.value.price || 0;
+});
+
+// 新增價格顯示計算屬性
+const priceDisplay = computed(() => {
+  // 檢查是否所有規格都已選擇
+  const allSpecsSelected = Object.keys(specs.value).every(
+    (specName) => selectedSpecs.value[specName]
+  );
+
+  // 如果已選擇所有規格並找到對應SKU
+  if (allSpecsSelected && selectedSku.value) {
+    return `NT$${currentPrice.value}`;
+  }
+
+  // 否則顯示價格區間
+  if (product.value.priceRange) {
+    const { minPrice, maxPrice } = product.value.priceRange;
+    if (minPrice === maxPrice) {
+      return `NT$${minPrice}`;
+    } else {
+      return `NT$${minPrice} - NT$${maxPrice}`;
+    }
+  }
+
+  // 沒有價格區間數據時的備選方案
+  return `NT$${product.value.price || 0}`;
+});
+
+// 是否可以加入購物車
+const canAddToCart = computed(() => {
+  // 檢查是否所有規格都已選擇
+  const allSpecsSelected = Object.keys(specs.value).every(
+    (specName) => selectedSpecs.value[specName]
+  );
+  return allSpecsSelected && quantity.value > 0;
+});
+
+// 顧客評價顯示
+const reviews = ref([])
+
+const fetchReviews = async () => {
+  try {
+    const res = await axios.get(`/api/review/product/${productId}`)
+    reviews.value = res.data || []
+  } catch (error) {
+    console.warn("❌ 載入留言失敗", error)
+  }
+};
+
+// 回覆留言的輸入綁定
+const replyInputs = ref({})
+
+// 判斷是否為賣家
+const isSeller = computed(() => userStore.roles.includes("SELLER"))
+
+// 送出賣家回覆
+const submitReply = async (reviewId) => {
+  const replyContent = replyInputs.value[reviewId]
+  if (!replyContent) return
+
+  try {
+    await axios.put(`/api/review/${reviewId}/reply`, { replyContent })
+    Swal.fire("回覆成功", "", "success")
+    replyInputs.value[reviewId] = "" // 清空輸入框
+    fetchReviews() // 重新載入留言
+  } catch (error) {
+    console.error("❌ 回覆失敗", error)
+    Swal.fire("回覆失敗", "請稍後再試", "error")
+  }
+};
+
+//時間顯示
+const formatDate = (dateStr) => {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  return d.toLocaleString('zh-TW', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+};
+
+// 監聽 Modal 顯示
+watch(showSizeGuide, (newValue) => {
+  if (newValue) {
+    const modal = document.getElementById("sizeGuideModal");
+    if (modal) {
+      modal.classList.add("d-block");
+      modal.style.display = "block";
+      document.body.classList.add("modal-open");
+    }
+  } else {
+    const modal = document.getElementById("sizeGuideModal");
+    if (modal) {
+      modal.classList.remove("d-block");
+      modal.style.display = "none";
+      document.body.classList.remove("modal-open");
+    }
+  }
+});
+
+// 添加此方法来检查某个规格值在当前选择下是否可用
+const isSpecValueAvailable = (specName, value) => {
+  // 创建一个测试规格选择，包含当前已选规格加上要测试的规格
+  const testSelection = { ...selectedSpecs.value, [specName]: value };
+
+  // 检查是否有任何SKU匹配此规格组合
+  return skus.value.some((sku) => {
+    const specPairs = sku.specPairs || {};
+
+    // 检查已选择的每种规格是否与此SKU匹配
+    for (const [name, val] of Object.entries(testSelection)) {
+      if (val && specPairs[name] !== val) {
+        return false; // 如果有任何规格不匹配，此SKU不可用
+      }
+    }
+    return true; // 所有已选规格都匹配
+  });
+};
+
+// 選擇顏色
+const selectColor = (color) => {
+  selectedColor.value = color.name;
+};
+
+// 選擇尺寸
+const selectSize = (size) => {
+  selectedSize.value = size;
+};
+
+// 加入購物車
+const addToCart = async () => {
+  if (!canAddToCart.value) {
+    Swal.fire({
+      title: "請選擇規格",
+      text: "請先選擇所有必要的規格",
+      icon: "warning",
+    });
+    return;
+  }
+
+  // 檢查用戶是否登入
+  if (!userStore.isLoggedIn) {
+    Swal.fire({
+      title: "請先登入",
+      text: "加入購物車需要先登入",
+      icon: "info",
+      showCancelButton: true,
+      confirmButtonText: "前往登入",
+      cancelButtonText: "取消",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        router.push("/login");
+      }
+    });
+    return;
+  }
+
+  try {
+    // 取得當前選擇的SKU ID
+    const skuId = selectedSku.value?.skuId;
+    if (!skuId) {
+      Swal.fire("錯誤", "找不到可購買的 SKU，請稍後再試或聯絡客服", "error");
+      return;
+    }
+
+    const payload = {
+      userId: userStore.userId,
+      skuId,
+      quantity: quantity.value,
+    };
+
+    console.log("📦 加入購物車中...", payload);
+
+    // 發送API請求
+    await axios.post("/api/cart/add", payload, { withCredentials: true });
+
+    Swal.fire({
+      title: "成功",
+      text: `已添加 ${quantity.value} 件商品到購物車`,
+      icon: "success",
+      showConfirmButton: false,
+      timer: 1500,
+    });
+  } catch (error) {
+    console.error("❌ 加入購物車失敗:", error);
+    Swal.fire({
+      title: "加入失敗",
+      text: "請稍後再試",
+      icon: "error",
+    });
+  }
+};
+
+// 新增立即購買函數
+const buyNow = async () => {
+  if (!canAddToCart.value) {
+    Swal.fire({
+      title: "請選擇規格",
+      text: "請先選擇所有必要的規格",
+      icon: "warning",
+    });
+    return;
+  }
+
+  // 確認使用者是否登入
+  if (!userStore.isLoggedIn) {
+    Swal.fire({
+      title: "請先登入",
+      text: "您需要登入才能購買商品",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "前往登入",
+      cancelButtonText: "取消",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        localStorage.setItem("redirectAfterLogin", window.location.href);
+        router.push("/login");
+      }
+    });
+    return;
+  }
+
+  try {
+    // 先調用加入購物車方法
+    await addToCart();
+
+    // 如果加入購物車成功，跳轉到快速結帳頁面
+    const skuId = selectedSku.value?.skuId;
+    const qty = quantity.value;
+
+    if (skuId) {
+      router.push({
+        path: "/quick-checkout",
+        query: { skuId, qty },
+      });
+    }
+  } catch (error) {
+    console.error("❌ 立即購買失敗:", error);
+    Swal.fire({
+      title: "立即購買失敗",
+      text: "請稍後再試",
+      icon: "error",
+    });
+  }
+};
+
+// 獲取商品詳情
+const fetchProductDetail = async () => {
+  try {
+    console.log("獲取商品詳情, 商品ID:", productId);
+
+    const response = await axios.get(
+      `/api/products/${productId}/active-detail`
+    );
+
+    if (response.status === 200 && response.data) {
+      const productData = response.data.product;
+      console.log("商品詳情原始回應:", productData);
+      console.log("⭐ 星數:", productData.rating);
+      console.log("📝 評論數:", productData.reviewCount);
+
+      product.value = {
+        ...product.value,
+        ...productData,
+        rating: productData.rating || 0,
+        reviewCount: productData.reviewCount || 0,
+      };
+
+      skus.value = response.data.skus || [];
+
+      if (
+        productData.productImages &&
+        Array.isArray(productData.productImages) &&
+        productData.productImages.length > 0
+      ) {
+        productImages.value = productData.productImages.map((img) =>
+          typeof img === "string" ? { imagePath: img } : img
+        );
+        console.log("商品圖片數據:", productImages.value);
+      } else if (
+        productData.primaryImageUrl ||
+        productData.image
+      ) {
+        console.log("使用主圖/圖片字段:", {
+          primaryImageUrl: productData.primaryImageUrl,
+          image: productData.image,
+        });
+      }
+    }
+
+    processSpecifications(response.data.specifications);
+  } catch (error) {
+    console.error("獲取商品詳情失敗:", error);
+  }
+};
+
+const processSpecifications = (specifications) => {
+  if (!specifications || !Array.isArray(specifications)) return;
+
+  // 清空现有规格
+  specs.value = {};
+  selectedSpecs.value = {};
+
+  // 从SKU生成可用规格组合
+  const availableSpecs = {};
+
+  // 遍历所有有效SKU
+  skus.value.forEach((sku) => {
+    const specPairs = sku.specPairs || {};
+
+    // 收集每种规格的所有有效值
+    Object.entries(specPairs).forEach(([name, value]) => {
+      if (!availableSpecs[name]) {
+        availableSpecs[name] = new Set();
+      }
+      availableSpecs[name].add(value);
+    });
+  });
+
+  // 从specifications中只添加availableSpecs中存在的值
+  Object.keys(availableSpecs).forEach((specName) => {
+    // 查找对应的规格定义
+    const specDef = specifications.find((s) => s.specName === specName);
+
+    if (specDef && specDef.values) {
+      // 过滤掉不在可用组合中的值
+      specs.value[specName] = specDef.values
+        .filter((v) => availableSpecs[specName].has(v.value))
+        .map((v) => ({ value: v.value }));
+    }
+  });
+
+  console.log("處理後的可用規格:", specs.value);
+  console.log("從SKU中提取的可用規格集合:", availableSpecs);
+};
+
+const specs = ref({}); // 用於存儲所有類型的規格
+const selectedSpecs = ref({}); // 用於存儲用戶選擇的規格值
+const skus = ref([]);
+const selectedSku = ref(null);
+
+// 選擇規格
+const selectSpec = (specName, value) => {
+  selectedSpecs.value[specName] = value;
+  updateSelectedSku();
+};
+
+// 根據當前選擇的所有規格找到對應的SKU
+const findMatchingSku = () => {
+  // 檢查是否所有必要的規格都已選擇
+  const allSpecsSelected = Object.keys(specs.value).every(
+    (specName) => selectedSpecs.value[specName]
+  );
+
+  if (!allSpecsSelected || !skus.value.length) {
+    return null;
+  }
+
+  // 尋找匹配所有已選規格的SKU
+  return skus.value.find((sku) => {
+    const specPairs = sku.specPairs || {};
+    return Object.keys(selectedSpecs.value).every(
+      (specName) => specPairs[specName] === selectedSpecs.value[specName]
+    );
+  });
+};
+
+// 更新當前價格和庫存
+const updateSelectedSku = () => {
+  selectedSku.value = findMatchingSku();
+
+  if (selectedSku.value) {
+    // 更新價格
+    product.value.price = selectedSku.value.price;
+
+    // 更新庫存
+    const stockAvailable = selectedSku.value.stock || 0;
+    if (stockAvailable <= 0) {
+      stockStatus.value = "售罄";
+    } else {
+      stockStatus.value = `剩餘${stockAvailable}件`;
+    }
+
+    // 限制購買數量不超過庫存
+    if (quantity.value > stockAvailable) {
+      quantity.value = Math.max(1, stockAvailable);
+    }
+  }
+};
+
+// 監聽所有規格選擇的變化
+watch(
+  selectedSpecs,
+  () => {
+    updateSelectedSku();
+  },
+  { deep: true }
+);
+
+const stockStatus = ref("庫存充足");
+
+// 在元件掛載時獲取商品資訊
+onMounted(async () => {
+  await fetchProductDetail();
+  await fetchReviews();
+
+  // 初始化 Bootstrap 模態框
+  const bootstrap = window.bootstrap;
+  if (bootstrap && bootstrap.Modal) {
+    const modalElement = document.getElementById("sizeGuideModal");
+    if (modalElement) {
+      new bootstrap.Modal(modalElement);
+    }
+  }
+});
+</script>
+
+<style scoped>
+/* 禁用规格按钮样式 */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: #f0f0f0;
+  border-color: #e0e0e0;
+  color: #999;
+}
+
+.color-circle {
+  width: 35px;
+  height: 35px;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s;
+}
+
+.color-circle:hover {
+  transform: scale(1.1);
+}
+
+.thumbnail-item img {
+  transition: all 0.2s;
+}
+
+.thumbnail-item img:hover {
+  border-color: #007bff;
+}
+
+.modal.show {
+  display: block;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* 尺寸按鈕圓形樣式 */
+.btn-outline-secondary {
+  border-radius: 50%;
+  width: 45px;
+  height: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+
+/* 產品頁面基本樣式 */
+.product-gallery {
+  position: relative;
+}
+
+.main-image {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.main-image img {
+  width: 100%;
+  height: 500px;
+  object-fit: cover;
+}
+
+.thumbnails {
+  scrollbar-width: thin;
+}
+
+.thumbnails::-webkit-scrollbar {
+  height: 5px;
+}
+
+.thumbnails::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 10px;
+}
+
+/* 標籤頁樣式 */
+.nav-tabs .nav-link {
+  color: #212529;
+}
+
+.nav-tabs .nav-link.active {
+  font-weight: 500;
+  border-bottom: 2px solid #212529;
+}
+</style>

@@ -358,75 +358,91 @@
                     </span>
                   </td>
                   <td>
-                    <div class="d-flex justify-content-center">
-                      <button 
-                        class="btn btn-sm btn-outline-primary me-1" 
-                        @click="viewProductDetail(product)"
-                        title="查看詳情"
-                      >
-                        <i class="bi bi-eye"></i>
-                      </button>
-                      <button 
-                        class="btn btn-sm btn-success me-1" 
-                        @click="openReviewModal(product, true)"
-                        title="通過審核"
-                        :disabled="product.reviewStatus === true"
-                      >
-                        <i class="bi bi-check-lg"></i>
-                      </button>
-                      <button 
-                        class="btn btn-sm btn-danger" 
-                        @click="openReviewModal(product, false)"
-                        title="拒絕審核"
-                        :disabled="product.reviewStatus === false"
-                      >
-                        <i class="bi bi-x-lg"></i>
-                      </button>
-                    </div>
-                  </td>
+  <div class="d-flex gap-1 justify-content-center">
+    <!-- 查看詳情按鈕 -->
+    <button 
+      class="btn btn-sm btn-outline-primary action-btn" 
+      @click="viewProductDetail(product)"
+      title="查看詳情"
+    >
+      <i class="bi bi-eye"></i>
+    </button>
+    
+    <!-- 通過審核按鈕 -->
+    <button 
+      class="btn btn-sm btn-success action-btn" 
+      @click="openReviewModal(product, true)"
+      title="通過審核"
+      :disabled="product.reviewStatus === true"
+    >
+      <i class="bi bi-check-lg"></i>
+    </button>
+    
+    <!-- 拒絕審核按鈕 -->
+    <button 
+      class="btn btn-sm btn-danger action-btn" 
+      @click="openReviewModal(product, false)"
+      title="拒絕審核"
+      :disabled="product.reviewStatus === false"
+    >
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+</td>
                 </tr>
               </tbody>
             </table>
           </div>
         </div>
         
-        <!-- 分頁 -->
-        <div class="pagination-container mt-4" v-if="totalItems > 0">
-          <div class="d-flex justify-content-between align-items-center">
-            <div class="pagination-info">
-              顯示 {{ products.length }} 筆，共 {{ totalItems }} 筆商品
-            </div>
-            <nav>
-              <ul class="pagination">
-                <li class="page-item" :class="{ disabled: currentPage === 0 }">
-                  <a class="page-link" href="#" @click.prevent="goToPage(0)">
-                    <i class="fas fa-angle-double-left"></i>
-                  </a>
-                </li>
-                <li class="page-item" :class="{ disabled: currentPage === 0 }">
-                  <a class="page-link" href="#" @click.prevent="goToPage(currentPage - 1)">
-                    <i class="fas fa-angle-left"></i>
-                  </a>
-                </li>
-                <li class="page-item disabled">
-                  <span class="page-link">
-                    第 {{ currentPage + 1 }} 頁 / 共 {{ totalPages }} 頁
-                  </span>
-                </li>
-                <li class="page-item" :class="{ disabled: currentPage >= totalPages - 1 }">
-                  <a class="page-link" href="#" @click.prevent="goToPage(currentPage + 1)">
-                    <i class="fas fa-angle-right"></i>
-                  </a>
-                </li>
-                <li class="page-item" :class="{ disabled: currentPage >= totalPages - 1 }">
-                  <a class="page-link" href="#" @click.prevent="goToPage(totalPages - 1)">
-                    <i class="fas fa-angle-double-right"></i>
-                  </a>
-                </li>
-              </ul>
-            </nav>
-          </div>
-        </div>
+<!-- 分頁 -->
+<div class="pagination-container mt-4" v-if="totalItems > 0">
+  <div class="d-flex justify-content-between align-items-center">
+    <div class="pagination-info">
+      顯示 {{ products.length }} 筆，共 {{ totalItems }} 筆商品
+    </div>
+    <nav>
+      <ul class="pagination">
+        <!-- 第一頁按鈕 -->
+        <li class="page-item" :class="{ disabled: currentPage === 0 }">
+          <a class="page-link" href="#" @click.prevent="goToPage(0)" title="第一頁">
+            <i class="bi bi-chevron-double-left"></i>
+          </a>
+        </li>
+        
+        <!-- 上一頁按鈕 -->
+        <li class="page-item" :class="{ disabled: currentPage === 0 }">
+          <a class="page-link" href="#" @click.prevent="goToPage(currentPage - 1)">
+            <i class="bi bi-chevron-left"></i>
+          </a>
+        </li>
+        
+        <!-- 頁碼按鈕 -->
+        <template v-for="index in getPageNumbers()" :key="index">
+          <li class="page-item" :class="{ active: currentPage === index }">
+            <a class="page-link" href="#" @click.prevent="goToPage(index)">
+              {{ index + 1 }}
+            </a>
+          </li>
+        </template>
+        
+        <!-- 下一頁按鈕 -->
+        <li class="page-item" :class="{ disabled: currentPage >= totalPages - 1 }">
+          <a class="page-link" href="#" @click.prevent="goToPage(currentPage + 1)">
+            <i class="bi bi-chevron-right"></i>
+          </a>
+        </li>
+        
+        <!-- 最後一頁按鈕 -->
+        <li class="page-item" :class="{ disabled: currentPage >= totalPages - 1 }">
+          <a class="page-link" href="#" @click.prevent="goToPage(totalPages - 1)" title="最後一頁">
+            <i class="bi bi-chevron-double-right"></i>
+          </a>
+        </li>
+      </ul>
+    </nav>
+  </div>
+</div>
       </div>
     </div>
     
@@ -467,18 +483,21 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" @click="closeReviewModal">取消</button>
-            <button 
-              type="button" 
-              class="btn" 
-              :class="reviewData.isApproved ? 'btn-success' : 'btn-danger'"
-              @click="submitReview"
-              :disabled="reviewLoading"
-            >
-              <span v-if="reviewLoading" class="spinner-border spinner-border-sm me-1"></span>
-              {{ reviewData.isApproved ? '確認通過' : '確認拒絕' }}
-            </button>
-          </div>
+  <button type="button" class="btn btn-outline-secondary" @click="closeReviewModal">
+    <i class="bi bi-x me-1"></i>取消
+  </button>
+  <button 
+    type="button" 
+    class="btn" 
+    :class="reviewData.isApproved ? 'btn-success' : 'btn-danger'"
+    @click="submitReview"
+    :disabled="reviewLoading"
+  >
+    <span v-if="reviewLoading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+    <i v-else :class="reviewData.isApproved ? 'bi bi-check-lg me-1' : 'bi bi-x-lg me-1'"></i>
+    {{ reviewData.isApproved ? '確認通過' : '確認拒絕' }}
+  </button>
+</div>
         </div>
       </div>
     </div>
@@ -872,6 +891,36 @@ const validateDateRange = () => {
   return true;
 };
 
+// 新增一個最大顯示頁碼數量參數
+const maxDisplayedPages = ref(5);
+
+// 計算應該顯示哪些頁碼按鈕
+const getPageNumbers = () => {
+  if (totalPages.value <= 1) return [];
+  
+  // 如果總頁數小於等於最大顯示頁碼數，則顯示所有頁碼
+  if (totalPages.value <= maxDisplayedPages.value) {
+    return Array.from({ length: totalPages.value }, (_, i) => i);
+  }
+  
+  // 計算起始和結束頁碼
+  let start = Math.max(0, currentPage.value - Math.floor(maxDisplayedPages.value / 2));
+  let end = Math.min(totalPages.value - 1, start + maxDisplayedPages.value - 1);
+  
+  // 如果結束頁碼已經接近總頁數，則調整起始頁碼
+  if (end >= totalPages.value - 1) {
+    start = Math.max(0, totalPages.value - maxDisplayedPages.value);
+  }
+  
+  // 如果起始頁碼已經是 0，則調整結束頁碼
+  if (start === 0) {
+    end = Math.min(totalPages.value - 1, maxDisplayedPages.value - 1);
+  }
+  
+  // 生成頁碼陣列
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
+};
+
 // 修改搜尋商品方法，支持進階搜尋條件
 const searchProducts = async () => {
   loading.value = true;
@@ -1219,8 +1268,9 @@ onMounted(() => {
 
 <style scoped>
 .product-review-management {
-  background-color: #f8f9fc;
+  /* background-color: #f8f9fc; */
   min-height: 100vh;
+  font-size: 16px; /* 增加整體字體大小 */
 }
 
 .filter-section {
@@ -1228,6 +1278,7 @@ onMounted(() => {
   border-radius: 5px;
   padding: 15px;
   margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .table-container {
@@ -1254,6 +1305,7 @@ onMounted(() => {
   height: 80px;
   object-fit: cover;
   border-radius: 4px;
+  border: 1px solid #e3e6f0;
 }
 
 .no-image-placeholder {
@@ -1282,10 +1334,11 @@ onMounted(() => {
 .product-title {
   font-weight: 500;
   margin-bottom: 4px;
+  font-size: 1.05rem; /* 增加商品標題字體大小 */
 }
 
 .product-meta {
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
 .category-badges {
@@ -1302,13 +1355,15 @@ onMounted(() => {
 }
 
 .detail-label {
-  font-size: 0.875rem;
-  color: #6c757d;
+  font-size: 0.95rem; /* 增加標籤字體大小 */
+  color: #495057;
   margin-bottom: 2px;
+  font-weight: 500;
 }
 
 .detail-value {
   font-weight: 500;
+  font-size: 1rem; /* 增加值字體大小 */
 }
 
 .sku-list {
@@ -1381,15 +1436,17 @@ onMounted(() => {
 .advanced-search-container {
   background-color: #f8f9fa;
   border: 1px solid #dee2e6;
-  border-radius: 0.25rem;
+  border-radius: 0.5rem;
   transition: all 0.3s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.08);
+  padding: 1.25rem !important;
 }
 
 .active-filters {
-  background-color: #f8f9fa;
-  border: 1px dashed #dee2e6;
-  border-radius: 0.25rem;
+  background-color: #f0f7ff; /* 更改為淺藍色背景 */
+  border: 1px dashed #b8daff;
+  border-radius: 0.5rem;
+  padding: 0.75rem !important;
 }
 
 .search-results {
@@ -1410,14 +1467,46 @@ onMounted(() => {
 .search-results .list-group-item {
   padding: 0.5rem 1rem;
   cursor: pointer;
+  font-size: 0.95rem; /* 稍微增大搜尋結果字體 */
 }
 
 .search-results .list-group-item:hover {
   background-color: #f8f9fa;
 }
 
+/* 修改篩選條件標籤樣式 */
 .badge {
-  font-weight: normal;
+  font-weight: 500;
+  padding: 0.4em 0.75em; /* 增加內部間距 */
+  border-radius: 4px;
+  font-size: 0.85rem; /* 增大字體 */
+}
+
+/* 增加篩選條件的視覺區分 */
+.active-filters .badge.bg-light {
+  background-color: white !important;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-bottom: 0.3rem;
+  margin-right: 0.3rem;
+  padding: 0.4em 0.8em; /* 稍微增加水平間距 */
+}
+
+/* 區分不同類型的篩選條件 */
+.active-filters .badge.bg-light[class*="keyword"] {
+  border-left: 3px solid #4e73df; /* 關鍵字搜尋藍色標識 */
+}
+
+.active-filters .badge.bg-light:has(> .btn-close):nth-child(2n) {
+  border-left: 3px solid #36b9cc; /* 店鋪/分類青色標識 */
+}
+
+.active-filters .badge.bg-light:has(> .btn-close):nth-child(3n) {
+  border-left: 3px solid #1cc88a; /* 價格/狀態綠色標識 */
+}
+
+.active-filters .badge.bg-light:has(> .btn-close):nth-child(5n) {
+  border-left: 3px solid #f6c23e; /* 日期黃色標識 */
 }
 
 .badge .btn-close {
@@ -1428,20 +1517,50 @@ onMounted(() => {
 /* 增加表單元素間距 */
 .form-label {
   margin-bottom: 0.25rem;
-  font-size: 0.875rem;
+  font-size: 0.95rem; /* 增大標籤字體 */
   font-weight: 500;
   color: #495057;
 }
 
 /* 改善下拉選單和按鈕樣式 */
 .form-select, .form-control, .btn {
-  font-size: 0.875rem;
+  font-size: 0.925rem; /* 增大控制元件字體 */
 }
 
-/* 縮小按鈕內部間距 */
+/* 商品狀態和審核狀態按鈕組樣式改進 */
 .btn-group .btn {
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding-left: 0.6rem;
+  padding-right: 0.6rem;
+  font-weight: 500;
+}
+
+/* 審核狀態按鈕組 */
+.btn-group .btn-outline-info {
+  color: #17a2b8;
+  border-color: #17a2b8;
+}
+
+.btn-group .btn-info {
+  background-color: #17a2b8;
+  border-color: #17a2b8;
+}
+
+/* 上架狀態按鈕組 */
+.btn-group .btn-outline-primary {
+  color: #4e73df;
+  border-color: #4e73df;
+}
+
+.btn-group .btn-primary {
+  background-color: #4e73df;
+  border-color: #4e73df;
+}
+
+/* 搜尋按鈕強調 */
+.input-group .btn-primary {
+  font-weight: 500;
+  padding-left: 1rem;
+  padding-right: 1rem;
 }
 
 /* 添加滑鼠懸停效果 */
@@ -1456,8 +1575,14 @@ onMounted(() => {
 }
 
 /* 改善輸入框樣式 */
+.form-control, .form-select {
+  padding: 0.5rem 0.75rem; /* 稍微增加內部間距 */
+  border-color: #d1d3e2;
+}
+
 .form-control:focus, .form-select:focus {
   box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.15);
+  border-color: #adb5bd;
 }
 
 /* 避免進階搜尋和篩選條件顯示的跳動感 */
@@ -1477,5 +1602,307 @@ onMounted(() => {
 /* 讓標籤更緊湊 */
 .gap-1 {
   gap: 0.25rem !important;
+}
+
+/* === 新增的樣式 === */
+
+/* 改進按鈕樣式 */
+.action-btn {
+  width: 38px; /* 稍微增加按鈕大小 */
+  height: 38px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.action-btn i {
+  font-size: 1rem; /* 增大圖標 */
+}
+
+.action-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 5px rgba(0, 0, 0, 0.1);
+}
+
+.action-btn:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+/* 禁用狀態下的按鈕仍然保持合理的外觀 */
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 改進分頁樣式 */
+.pagination .page-item .page-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 38px;
+  height: 38px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.925rem; /* 增大頁碼字體 */
+  border-radius: 4px;
+  margin: 0 2px;
+}
+
+.pagination .page-item.active .page-link {
+  background-color: #4e73df;
+  border-color: #4e73df;
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 2px 5px rgba(78, 115, 223, 0.25);
+}
+
+.pagination .page-item .page-link:hover:not(.disabled) {
+  background-color: #eaecf4;
+  border-color: #d1d3e2;
+  color: #4e73df;
+}
+
+.pagination .page-item.disabled .page-link {
+  opacity: 0.5;
+  color: #858796;
+  pointer-events: none;
+}
+
+/* 表格樣式改進 */
+.table thead th {
+  font-size: 0.95rem; /* 增大表頭字體 */
+  font-weight: 600;
+  color: #4e73df;
+  border-bottom-width: 1px;
+  white-space: nowrap;
+  padding: 0.85rem 0.5rem;
+  background-color: #f8f9fc;
+}
+
+.table tbody td {
+  padding: 0.85rem 0.5rem; /* 增加行高 */
+  vertical-align: middle;
+  font-size: 0.95rem; /* 增大表格內容字體 */
+}
+
+.table-hover tbody tr:hover {
+  background-color: rgba(78, 115, 223, 0.05);
+}
+
+/* 修復 gap 在舊瀏覽器中的問題 */
+@supports not (gap: 0.25rem) {
+  .gap-1 > * {
+    margin-right: 0.25rem;
+  }
+  .gap-1 > *:last-child {
+    margin-right: 0;
+  }
+}
+
+/* 分頁信息樣式 */
+.pagination-info {
+  font-size: 0.95rem; /* 增大分頁資訊字體 */
+  color: #6c757d;
+}
+
+/* 改進模態框樣式 */
+.modal-body {
+  padding: 1.5rem;
+  font-size: 1rem; /* 增大模態框內容字體 */
+}
+
+.modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.modal-title {
+  font-weight: 600;
+  color: #4e73df;
+  font-size: 1.25rem; /* 增大模態框標題字體 */
+}
+
+/* 審核歷史記錄樣式 */
+.review-history .card {
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.review-history .card-body {
+  padding: 1.25rem;
+}
+
+.review-history .badge {
+  font-size: 0.85rem; /* 增大審核狀態徽章字體 */
+}
+
+/* 輪播圖控制按鈕樣式 */
+.carousel-control-prev, .carousel-control-next {
+  background-color: rgba(0, 0, 0, 0.3);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.7;
+}
+
+.carousel-control-prev {
+  left: 10px;
+}
+
+.carousel-control-next {
+  right: 10px;
+}
+
+.carousel-control-prev:hover, .carousel-control-next:hover {
+  opacity: 1;
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+/* 狀態徽章樣式增強 */
+.badge.bg-success, .badge.bg-danger, .badge.bg-warning, .badge.bg-info, .badge.bg-secondary {
+  font-size: 0.85rem; /* 增大狀態徽章字體 */
+  padding: 0.4em 0.7em; /* 增加徽章內部間距 */
+  font-weight: 500;
+}
+
+.badge.bg-warning.text-dark {
+  color: #856404 !important; /* 深化警告色彩 */
+}
+
+/* 簡化 max-width 讓頁面在不同尺寸裝置上更美觀 */
+@media (min-width: 1200px) {
+  .container-fluid {
+    max-width: 1400px;
+  }
+}
+/* 篩選條件整體區域樣式 */
+.active-filters {
+  background-color: #f0f7ff;
+  border: 1px solid #d1e6ff;
+  border-radius: 0.5rem;
+  padding: 1rem !important;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* 篩選條件標題行樣式 */
+.active-filters .d-flex.align-items-center {
+  margin-bottom: 0.75rem;
+  border-bottom: 1px dashed #d1e6ff;
+  padding-bottom: 0.5rem;
+}
+
+.active-filters small.text-muted {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #4e73df !important;
+}
+
+/* 清除全部按鈕樣式 */
+.active-filters .btn-link {
+  color: #dc3545;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.active-filters .btn-link:hover {
+  color: #c82333;
+  text-decoration: underline;
+}
+
+/* 篩選條件標籤基本樣式 */
+.active-filters .badge {
+  font-size: 0.9rem;
+  padding: 0.5em 0.75em;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  font-weight: 500;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: relative;
+  padding-left: 1rem;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* 關閉按鈕樣式 */
+.active-filters .badge .btn-close {
+  font-size: 0.6rem;
+  margin-left: 0.5rem;
+  opacity: 0.7;
+  transition: all 0.2s;
+}
+
+.active-filters .badge .btn-close:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* 一級分類標籤樣式 - 紫色主題 */
+.active-filters .badge:nth-of-type(1) {
+  background-color: #e8dbff;
+  color: #6f42c1;
+  border-left: 4px solid #6f42c1;
+}
+
+/* 二級分類標籤樣式 - 藍色主題 */
+.active-filters .badge:nth-of-type(2) {
+  background-color: #d4e5ff;
+  color: #0d6efd;
+  border-left: 4px solid #0d6efd;
+}
+
+/* 價格範圍標籤樣式 - 綠色主題 */
+.active-filters .badge:nth-of-type(3) {
+  background-color: #d7f5e8;
+  color: #198754;
+  border-left: 4px solid #198754;
+}
+
+/* 日期範圍標籤樣式 - 黃色主題 */
+.active-filters .badge:nth-of-type(4) {
+  background-color: #fff8d9;
+  color: #997404;
+  border-left: 4px solid #ffc107;
+}
+
+/* 上架狀態標籤樣式 - 紅色主題 */
+.active-filters .badge:nth-of-type(5) {
+  background-color: #ffe8e8;
+  color: #dc3545;
+  border-left: 4px solid #dc3545;
+}
+
+/* 審核狀態標籤樣式 - 青色主題 */
+.active-filters .badge:nth-of-type(6) {
+  background-color: #dbf9ff;
+  color: #0dcaf0;
+  border-left: 4px solid #0dcaf0;
+}
+
+/* 其他篩選條件標籤，循環使用以上顏色 */
+.active-filters .badge:nth-of-type(7) {
+  background-color: #e8dbff;
+  color: #6f42c1;
+  border-left: 4px solid #6f42c1;
+}
+
+.active-filters .badge:nth-of-type(8) {
+  background-color: #d4e5ff;
+  color: #0d6efd;
+  border-left: 4px solid #0d6efd;
+}
+
+/* 懸停效果 */
+.active-filters .badge:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 </style>

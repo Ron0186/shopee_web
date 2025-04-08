@@ -1,178 +1,179 @@
 <template>
     <div class="max-w-md mx-auto mt-10 p-6 bg-white shadow-lg rounded-lg container">
-        <h2 class="text-2xl font-semibold text-gray-700 mb-4">會員中心</h2>
-
-        <div v-if="loading" class="text-center text-gray-500">載入中...</div>
-        <div v-else-if="error" class="text-red-500">{{ error }}</div>
-        <div v-else>
-            <h4 class="text-2xl font-semibold text-gray-700 mb-4">Hi, {{
-                user?.username || '' }}</h4>
-            <div class="mb-4 flex items-center">
-                <label class="font-semibold">編輯個人資訊</label>
-                <div class="icon-group">
-                    <img src="@/assets/angle-small-right.png" class="icon ml-auto" @click="goToPage('/profile')" />
-                </div>
-            </div>
-
-            <div class="mb-4 flex items-center">
-                <label class="font-semibold">變更密碼</label>
-                <div class="icon-group">
-                    <img src="@/assets/angle-small-right.png" class="icon ml-auto"
-                        @click="goToPage('/changePassword')" />
-                </div>
-            </div>
-
-            <div class="mb-4 flex items-center">
-                <label class="font-semibold">配送資訊</label>
-                <div class="icon-group">
-                    <img src="@/assets/angle-small-right.png" class="icon ml-auto" @click="goToPage('/address')" />
-                </div>
-            </div>
-
-            <div class="mb-4 flex items-center">
-                <label class="font-semibold">購買清單</label>
-                <div class="icon-group">
-                    <img src="@/assets/angle-small-right.png" class="icon ml-auto" @click="goToPage('/user/orders')" />
-                </div>
-            </div>
-
-            <div class="mb-4 flex items-center">
-                <label class="font-semibold">我的優惠券</label>
-                <div class="icon-group">
-                    <img src="@/assets/angle-small-right.png" class="icon ml-auto"
-                        @click="goToPage('/MemberCoupons')" />
-                </div>
-            </div>
-
-            <!-- <div class="mb-4 flex items-center">
-                <label class="font-semibold">我的錢包</label>
-                <img src="@/assets/angle-small-right.png" class="icon ml-auto"
-                    @click="goToPage('/profile/wallet')" />
-            </div> -->
-
-            <button @click="logout" class="w-full bg-red-500 text-black py-2 rounded mt-4 hover:bg-red-600">
-                登出
-            </button>
+      <h1 class="text-4xl font-bold text-gray-700 mb-4">會員中心</h1>
+  
+      <div v-if="loading" class="text-center text-gray-500">載入中...</div>
+      <div v-else-if="error" class="text-red-500">{{ error }}</div>
+      <div v-else>
+        <h4 class="text-2xl font-semibold text-gray-700 mb-2">Hi, {{ user?.userName }}</h4>
+  
+        <!-- 功能選單卡片 -->
+        <div
+          class="mb-4 p-4 bg-gray-50 rounded shadow flex justify-between items-center hover:bg-gray-100 transition cursor-pointer"
+          @click="goToPage('/profile')"
+        >
+          <span class="font-semibold text-gray-700">編輯個人資訊</span>
+          <img src="@/assets/angle-small-right.png" class="icon" />
         </div>
+  
+        <div
+          class="mb-4 p-4 bg-gray-50 rounded shadow flex justify-between items-center hover:bg-gray-100 transition cursor-pointer"
+          @click="goToPage('/changePassword')"
+        >
+          <span class="font-semibold text-gray-700">變更密碼</span>
+          <img src="@/assets/angle-small-right.png" class="icon" />
+        </div>
+  
+        <div
+          class="mb-4 p-4 bg-gray-50 rounded shadow flex justify-between items-center hover:bg-gray-100 transition cursor-pointer"
+          @click="goToPage('/address')"
+        >
+          <span class="font-semibold text-gray-700">配送資訊</span>
+          <img src="@/assets/angle-small-right.png" class="icon" />
+        </div>
+  
+        <div
+          class="mb-4 p-4 bg-gray-50 rounded shadow flex justify-between items-center hover:bg-gray-100 transition cursor-pointer"
+          @click="goToPage('/user/orders')"
+        >
+          <span class="font-semibold text-gray-700">購買清單</span>
+          <img src="@/assets/angle-small-right.png" class="icon" />
+        </div>
+  
+        <div
+          class="mb-4 p-4 bg-gray-50 rounded shadow flex justify-between items-center hover:bg-gray-100 transition cursor-pointer"
+          @click="goToPage('/MemberCoupons')"
+        >
+          <span class="font-semibold text-gray-700">我的優惠券</span>
+          <img src="@/assets/angle-small-right.png" class="icon" />
+        </div>
+  
+        <!-- 註冊時間 -->
+        <p class="text-sm text-gray-500 mb-4">註冊時間：{{ formatDate(user.createdAt) }}</p>
+  
+        <!-- 登出按鈕 -->
+        <button @click="logout" class="w-full bg-red-500 text-black py-2 rounded mt-6 hover:bg-red-600">
+          登出
+        </button>
+      </div>
     </div>
-</template>
-
-<script setup>
-import { ref, onMounted } from 'vue';
-import axios from 'axios';
-import { useRouter } from 'vue-router';
-import { useUserStore } from '@/stores/user'
-import Swal from 'sweetalert2';
-import { jwtDecode } from 'jwt-decode';  // ✅ 確保已安裝 jwt-decode
-
-const user = ref(null);
-const loading = ref(true);
-const error = ref(null);
-const router = useRouter();
-const userStore = useUserStore()
-
-const fetchUserData = async () => {
+  </template>
+  
+  <script setup lang="ts">
+  import { ref, onMounted } from 'vue';
+  import { useRouter } from 'vue-router';
+  import axios from 'axios';
+  import Swal from 'sweetalert2';
+  import { jwtDecode } from 'jwt-decode';
+  import dayjs from 'dayjs';
+  import { useUserStore } from '@/stores/user';
+  
+  const router = useRouter();
+  const userStore = useUserStore();
+  const loading = ref(true);
+  const error = ref<string | null>(null);
+  
+  interface UserAddress {
+    userAddressId: number;
+    city: string;
+    district: string;
+    streetEtc: string;
+    zipCode: string;
+    recipientName: string;
+    recipientPhone: string;
+    addressType: string | null;
+  }
+  
+  interface UserProfile {
+    userId: number;
+    userName: string;
+    email: string;
+    phone: string;
+    createdAt: string;
+    userAddresses: UserAddress[];
+  }
+  
+  const user = ref<UserProfile | null>(null);
+  
+  const formatDate = (dateStr: string) => {
+    return dayjs(dateStr).format('YYYY 年 M 月 D 日');
+  };
+  
+  const fetchUserData = async () => {
     try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-            throw new Error("未登入");
-        }
-
-        // ✅ 解析 JWT 取得 userId
-        const decodedToken = jwtDecode(token);
-        const userId = decodedToken.userId;
-
-        if (!userId) {
-            throw new Error("無法取得用戶 ID");
-        }
-
-        // ✅ 改用 userId 取得使用者資訊
-        //http://localhost:8081設置?
-        const response = await axios.get(`http://localhost:8081/api/user/check/${userId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-
-
-        user.value = response.data;
-
-    } catch (err) {
-        error.value = "無法加載用戶資料，請稍後再試。";
-        Swal.fire({
-            title: "未登入",
-            text: "請先登入以查看會員資料",
-            icon: "warning",
-        }).then(() => {
-            router.push('/user/login'); // 導向登入頁面
-        });
+      const token = localStorage.getItem('token');
+      if (!token) throw new Error('未登入');
+  
+      const decoded = jwtDecode<{ userId: number }>(token);
+      const userId = decoded.userId;
+  
+      const response = await axios.get(`http://localhost:8081/api/user/membercenter/id/${userId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+  
+      user.value = response.data;
+    } catch (err: any) {
+      error.value = err?.response?.data?.message || '無法加載用戶資料';
+      Swal.fire({
+        title: '未登入',
+        text: '請先登入以查看會員資料',
+        icon: 'warning',
+      }).then(() => {
+        router.push('/user/login');
+      });
     } finally {
-        loading.value = false;
+      loading.value = false;
     }
-};
-
-async function logout() {
+  };
+  
+  const logout = async () => {
     try {
-        // 清除 localStorage & sessionStorage
-        localStorage.removeItem('username')
-        localStorage.removeItem('token')
-        sessionStorage.clear()
-
-        // 清除 Pinia 或 Vuex 的用戶資料
-        userStore.clearUserData()
-
-        // 使用 SweetAlert 提示登出成功
-        const response = await Swal.fire({
-            title: '您已成功登出',
-            icon: 'success',
-            confirmButtonText: 'OK',
-        })
-
-        // 跳轉回首頁或登入頁面
-        if (response.isConfirmed) {
-            router.push('/shop')
-        }
+      localStorage.removeItem('username');
+      localStorage.removeItem('token');
+      sessionStorage.clear();
+      userStore.clearUserData();
+  
+      const res = await Swal.fire({
+        title: '您已成功登出',
+        icon: 'success',
+        confirmButtonText: 'OK',
+      });
+  
+      if (res.isConfirmed) {
+        router.push('/shop');
+      }
     } catch (error) {
-        console.error('登出失敗', error)
-        Swal.fire({
-            title: '登出失敗，請稍後再試！',
-            icon: 'error',
-        })
+      Swal.fire({
+        title: '登出失敗，請稍後再試！',
+        icon: 'error',
+      });
     }
-}
-
-const goToPage = (path) => {
+  };
+  
+  const goToPage = (path: string) => {
     router.push(path);
-};
-
-onMounted(() => {
-    fetchUserData();
-});
-</script>
-
-<style scoped>
-body {
+  };
+  
+  onMounted(fetchUserData);
+  </script>
+  
+  <style scoped>
+  body {
     background-color: #f4f4f4;
-}
-
-.icon-group {
-    display: flex;
-    justify-content: flex-end;
-    /* 讓圖示靠右 */
-    gap: 10px;
-}
-
-.icon {
+  }
+  
+  .icon {
     width: 20px;
     height: 20px;
-    cursor: pointer;
-    transition: opacity 0.2s ease-in-out;
-
-}
-
-.icon:hover {
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .icon:hover {
     opacity: 0.7;
-}
-
-button {
+    transform: translateX(3px);
+  }
+  
+  button {
     display: inline-block;
     padding: 15px 25px;
     font-size: 24px;
@@ -186,15 +187,20 @@ button {
     border-radius: 15px;
     box-shadow: 0 9px #999;
     margin-bottom: 25px;
-}
-
-button:hover {
-    background-color: #3e8e41
-}
-
-button:active {
+  }
+  
+  button:hover {
+    background-color: #3e8e41;
+  }
+  
+  button:active {
     background-color: #3e8e41;
     box-shadow: 0 5px #666;
     transform: translateY(4px);
-}
-</style>
+  }
+  
+  .font-semibold {
+    font-size: 1.5rem;
+  }
+  </style>
+  

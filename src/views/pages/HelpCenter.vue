@@ -1,14 +1,16 @@
 <template>
-    <div class="container-fruid ">
-        <Search />
-    </div>
-    <div class="container ">
-        <div class="row ">
-            <div class="col-5 ">
-                <Sidebars />
-            </div>
-            <div class="col-6 ">
-                <Content />
+    <div>
+        <div class="container-fruid ">
+            <Search />
+        </div>
+        <div class="container ">
+            <div class="row ">
+                <div class="col-5 ">
+                    <Sidebars />
+                </div>
+                <div class="col-6 ">
+                    <Content />
+                </div>
             </div>
         </div>
     </div>

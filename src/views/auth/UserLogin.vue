@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-card">
       <h2 class="login-title">登入</h2>
-      
+
       <!-- reCAPTCHA 開關 -->
       <div class="recaptcha-toggle-container">
         <span>reCAPTCHA:</span>
@@ -12,7 +12,7 @@
         </label>
         <span>{{ enableRecaptcha ? '開啟' : '關閉' }}</span>
       </div>
-      
+
       <form @submit.prevent="login" class="login-form">
         <div class="form-group">
           <label for="username">使用者名稱</label>
@@ -45,11 +45,7 @@
 =======
         <!-- reCAPTCHA v2 勾選框，只有在啟用時顯示 -->
         <div v-if="enableRecaptcha" class="form-group recaptcha-container">
-          <div
-            ref="recaptchaContainer"
-            class="g-recaptcha"
-            :data-sitekey="recaptchaSiteKey"
-          ></div>
+          <div ref="recaptchaContainer" class="g-recaptcha" :data-sitekey="recaptchaSiteKey"></div>
           <div v-if="captchaError" class="captcha-error">
             請勾選「我不是機器人」
           </div>
@@ -88,11 +84,11 @@
         <div class="quick-login">
           <h3 class="quick-login-title">快速登入</h3>
           <div class="quick-login-buttons">
-            <button type="button" @click="quickLogin('Waylay')" class="quick-login-btn">
-              <i class="bi bi-lightning-charge"></i> Waylay
+            <button type="button" @click="quickLogin('買家')" class="quick-login-btn">
+              <i class="bi bi-lightning-charge"></i> 買家
             </button>
-            <button type="button" @click="quickLogin('Cypher')" class="quick-login-btn">
-              <i class="bi bi-shield-lock"></i> Cypher
+            <button type="button" @click="quickLogin('賣家')" class="quick-login-btn">
+              <i class="bi bi-shield-lock"></i> 賣家
             </button>
           </div>
         </div>
@@ -108,11 +104,12 @@ import Swal from "sweetalert2";
 import { useRouter, useRoute } from "vue-router";
 import { jwtDecode } from "jwt-decode";
 import { useUserStore } from "@/stores/user";
-<<<<<<< HEAD
-import GoogleLoginButton from "@/components/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
-=======
+
 import GoogleLoginButton from "@/components/auth/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
+
+import { useChatStore } from '@/stores/chatStore';
+import GoogleLoginButton from "@/components/auth/GoogleLoginButton.vue"; // 引入 Google 登入按鈕
+const SiteKey = import.meta.env.VITE_RECAPTCHA_V2_SITE_KEY;
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -123,6 +120,7 @@ const showPassword = ref(false); // 添加密碼顯示切換狀態
 const captchaError = ref(false);
 const recaptchaContainer = ref(null);
 const recaptchaLoaded = ref(false);
+const chatStore = useChatStore(); // <--- *** 2. 獲取 chatStore 實例 ***
 
 // 新增 reCAPTCHA 功能開關
 const enableRecaptcha = ref(false);
@@ -133,13 +131,23 @@ onMounted(() => {
   if (savedState !== null) {
     enableRecaptcha.value = savedState === 'true';
   }
+  const error = route.query.error; // 從路由物件獲取查詢參數
+  if (error === 'account_banned') {
+    Swal.fire({
+      icon: 'error', // 圖示 (error, warning, success, info, question)
+      title: '帳號狀態異常', // 標題
+      text: '您的帳號已被禁用，請聯繫客服。', // 提示文字
+      confirmButtonText: '確定' // 按鈕文字
+      // 您可以添加更多 SweetAlert2 的配置選項
+    });
+  }
 });
 
 // 處理 reCAPTCHA 切換開關
 function handleRecaptchaToggle() {
   // 保存開關狀態到 localStorage
   localStorage.setItem('recaptchaEnabled', enableRecaptcha.value);
-  
+
   if (enableRecaptcha.value) {
     // 如果開啟，則初始化 reCAPTCHA
     nextTick(() => {
@@ -157,7 +165,7 @@ function togglePasswordVisibility() {
 }
 
 // reCAPTCHA 網站金鑰 - 替換成你的 Site Key
-const recaptchaSiteKey = "6LdxawIrAAAAAHO4ioKiJ8BM20rteeaTjuLylhmT";
+const recaptchaSiteKey = SiteKey;
 
 // 載入 reCAPTCHA 腳本
 function loadRecaptchaScript() {
@@ -245,7 +253,7 @@ function validateRecaptcha() {
   if (!enableRecaptcha.value) {
     return true;
   }
-  
+
   if (window.grecaptcha) {
     const response = window.grecaptcha.getResponse();
     if (response.length === 0) {
@@ -303,13 +311,13 @@ async function login() {
 
   // 清除之前的 Authorization header (避免和其他登入狀態衝突)
   axios.defaults.headers.common["Authorization"] = ``;
-  
+
   try {
     // 根據 reCAPTCHA 狀態選擇不同的 API
-    const loginUrl = enableRecaptcha.value 
-      ? "/api/auth/login" 
+    const loginUrl = enableRecaptcha.value
+      ? "/api/auth/login"
       : "/api/auth/login/withoutReCaptcha";
-    
+
     const response = await axios.post(loginUrl, data);
 
     if (response.data.success) {
@@ -321,32 +329,56 @@ async function login() {
       localStorage.setItem("userId", decodedToken.userId);
       localStorage.setItem("username", decodedToken.sub);
 
-      const result = await Swal.fire({
-        title: response.data.message,
-        icon: "success",
-      });
-      axios.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${response.data.token}`;
+      // 設定 Authorization header
+      axios.defaults.headers.common["Authorization"] = `Bearer ${response.data.token}`;
 
-      //設定userStore
-      userStore.saveUserData(
-        decodedToken.sub,
-        decodedToken.userId,
-        response.data.token,
-        decodedToken.roles
-      );
-      console.log("[Login] 更新後 userStore 狀態:", { userId: userStore.userId, username: userStore.username, roles: JSON.stringify(userStore.roles), token: userStore.token });
-      // ** 檢查這裡的 userId 是否變成了 44 **
+      // 獲取使用者資料，包括頭像URL
+      try {
+        const profileResponse = await axios.get(`/api/user/profile`);
+        if (profileResponse.data) {
+          // 使用更新後的 saveUserData 方法，加入頭像參數
+          userStore.saveUserData(
+            decodedToken.sub,
+            decodedToken.userId,
+            response.data.token,
+            decodedToken.roles,
+            profileResponse.data.profilePhoto // 傳入頭像URL
+          );
+        } else {
+          // 如果無法獲取頭像，仍設定基本用戶資料
+          userStore.saveUserData(
+            decodedToken.sub,
+            decodedToken.userId,
+            response.data.token,
+            decodedToken.roles
+          );
+        }
+      } catch (profileError) {
+        console.error("獲取使用者資料失敗:", profileError);
+        // 即使獲取頭像失敗，仍設定基本用戶資料
+        userStore.saveUserData(
+          decodedToken.sub,
+          decodedToken.userId,
+          response.data.token,
+          decodedToken.roles
+        );
+      }
+
+      console.log("[Login] 更新後 userStore 狀態:", {
+        userId: userStore.userId,
+        username: userStore.username,
+        roles: JSON.stringify(userStore.roles),
+        token: userStore.token,
+        profilePhoto: userStore.profilePhoto // 記錄頭像URL
+      });
+
       // 如果用戶是賣家，獲取他們的商店 ID
       if (decodedToken.roles && decodedToken.roles.includes("SELLER")) {
         try {
-          // 調用新增的 API 獲取商店 ID
           const shopResponse = await axios.get(
             `/api/user/${decodedToken.userId}/shop`
           );
           if (shopResponse.data && shopResponse.data.shopId) {
-            // 將 shopId 轉換為字符串並更新到 UserStore
             userStore.updateShopId(shopResponse.data.shopId.toString());
             console.log("成功獲取商店 ID:", shopResponse.data.shopId);
           }
@@ -354,6 +386,23 @@ async function login() {
           console.error("獲取商店 ID 失敗:", shopError);
         }
       }
+
+      const result = await Swal.fire({
+        title: response.data.message,
+        icon: "success",
+      });
+      // --- *** 3. 在設置完用戶數據後，頁面跳轉前，連接 WebSocket *** ---
+      console.log("[Login Success] 嘗試連接 WebSocket...");
+      const connected = await chatStore.connectWebSocket(); // <--- *** 加入呼叫 ***
+      if (connected) {
+        console.log("[Login Success] WebSocket 連接成功。");
+      } else {
+        console.error("[Login Success] WebSocket 連接失敗。");
+        await Swal.fire("提示", "聊天服務連線失敗，部分功能可能無法使用。", "warning"); // 改為 await
+      }
+      // --- WebSocket 連接結束 ---
+
+
 
 
       if (result.isConfirmed) {
@@ -399,10 +448,10 @@ async function login() {
 async function quickLogin(user) {
   // 快速登入的邏輯
   let userData = {};
-  if (user === "Waylay") {
-    userData = { username: "Waylay", password: "Test" };
-  } else if (user === "Cypher") {
-    userData = { username: "Cypher", password: "Test" };
+  if (user === "買家") {
+    userData = { username: "買家", password: "Test" };
+  } else if (user === "賣家") {
+    userData = { username: "賣家", password: "Test" };
   } else {
     return; // 未知的用戶
   }
@@ -462,11 +511,13 @@ window.addEventListener("storage", (event) => {
 
 .login-card {
   width: 100%;
-  max-width: 500px; /* 稍微加寬 */
+  max-width: 500px;
+  /* 稍微加寬 */
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0 1px 8px rgba(0, 0, 0, 0.08);
-  padding: 25px; /* 稍微增加內邊距 */
+  padding: 25px;
+  /* 稍微增加內邊距 */
   border: 1px solid #e8e8e8;
 }
 
@@ -475,13 +526,15 @@ window.addEventListener("storage", (event) => {
   margin-bottom: 16px;
   color: #ff9b20;
   font-weight: 600;
-  font-size: 1.5rem; /* 增大標題 */
+  font-size: 1.5rem;
+  /* 增大標題 */
 }
 
 .login-form {
   display: flex;
   flex-direction: column;
-  gap: 14px; /* 增加間距 */
+  gap: 14px;
+  /* 增加間距 */
 }
 
 /* reCAPTCHA 開關樣式 */
@@ -491,15 +544,18 @@ window.addEventListener("storage", (event) => {
   justify-content: flex-end;
   margin-bottom: 12px;
   gap: 8px;
-  font-size: 14px; /* 增大字體 */
+  font-size: 14px;
+  /* 增大字體 */
   color: #555;
 }
 
 .toggle-switch {
   position: relative;
   display: inline-block;
-  width: 48px; /* 稍微放大 */
-  height: 24px; /* 稍微放大 */
+  width: 48px;
+  /* 稍微放大 */
+  height: 24px;
+  /* 稍微放大 */
 }
 
 .toggle-switch input {
@@ -523,8 +579,10 @@ window.addEventListener("storage", (event) => {
 .toggle-slider:before {
   position: absolute;
   content: "";
-  height: 18px; /* 調整大小 */
-  width: 18px; /* 調整大小 */
+  height: 18px;
+  /* 調整大小 */
+  width: 18px;
+  /* 調整大小 */
   left: 3px;
   bottom: 3px;
   background-color: white;
@@ -532,15 +590,15 @@ window.addEventListener("storage", (event) => {
   border-radius: 50%;
 }
 
-input:checked + .toggle-slider {
+input:checked+.toggle-slider {
   background-color: #ff9b20;
 }
 
-input:focus + .toggle-slider {
+input:focus+.toggle-slider {
   box-shadow: 0 0 1px #ff9b20;
 }
 
-input:checked + .toggle-slider:before {
+input:checked+.toggle-slider:before {
   transform: translateX(24px);
 }
 
@@ -552,10 +610,12 @@ input:checked + .toggle-slider:before {
 
 .form-input {
   width: 100%;
-  padding: 9px 12px; /* 增加內邊距 */
+  padding: 9px 12px;
+  /* 增加內邊距 */
   border: 1px solid #ddd;
   border-radius: 4px;
-  font-size: 15px; /* 增大字體 */
+  font-size: 15px;
+  /* 增大字體 */
   transition: border-color 0.2s ease;
 }
 
@@ -567,10 +627,12 @@ input:checked + .toggle-slider:before {
 
 .form-group label {
   display: block;
-  margin-bottom: 5px; /* 增加下邊距 */
+  margin-bottom: 5px;
+  /* 增加下邊距 */
   font-weight: 500;
   color: #333;
-  font-size: 15px; /* 增大字體 */
+  font-size: 15px;
+  /* 增大字體 */
 }
 
 /* 密碼容器相關樣式 */
@@ -581,12 +643,14 @@ input:checked + .toggle-slider:before {
 
 .password-container input {
   width: 100%;
-  padding-right: 38px; /* 調整右內邊距 */
+  padding-right: 38px;
+  /* 調整右內邊距 */
 }
 
 .eye-icon {
   position: absolute;
-  right: 10px; /* 調整位置 */
+  right: 10px;
+  /* 調整位置 */
   top: 50%;
   transform: translateY(-50%);
   cursor: pointer;
@@ -605,13 +669,16 @@ input:checked + .toggle-slider:before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  margin: 8px 0; /* 增加間距 */
+  margin: 8px 0;
+  /* 增加間距 */
 }
 
 .captcha-error {
   color: #dc3545;
-  font-size: 12px; /* 增大字體 */
-  margin-top: 3px; /* 增加上邊距 */
+  font-size: 12px;
+  /* 增大字體 */
+  margin-top: 3px;
+  /* 增加上邊距 */
 }
 
 /* 按鈕樣式 */
@@ -620,15 +687,18 @@ input:checked + .toggle-slider:before {
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 10px 14px; /* 增加內邊距 */
-  font-size: 16px; /* 增大字體 */
+  padding: 10px 14px;
+  /* 增加內邊距 */
+  font-size: 16px;
+  /* 增大字體 */
   font-weight: 500;
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px; /* 增加間距 */
+  gap: 8px;
+  /* 增加間距 */
   width: 100%;
 }
 
@@ -657,10 +727,12 @@ input:checked + .toggle-slider:before {
 .form-links a {
   color: #ff9b20;
   text-decoration: none;
-  font-size: 14px; /* 增大字體 */
+  font-size: 14px;
+  /* 增大字體 */
   display: inline-flex;
   align-items: center;
-  gap: 5px; /* 增加間距 */
+  gap: 5px;
+  /* 增加間距 */
   transition: color 0.2s;
 }
 
@@ -673,7 +745,8 @@ input:checked + .toggle-slider:before {
 .divider {
   position: relative;
   text-align: center;
-  margin: 14px 0; /* 增加上下邊距 */
+  margin: 14px 0;
+  /* 增加上下邊距 */
 }
 
 .divider::before {
@@ -689,10 +762,13 @@ input:checked + .toggle-slider:before {
 .divider span {
   position: relative;
   background-color: #fff;
-  padding: 0 10px; /* 增加左右內邊距 */
+  padding: 0 10px;
+  /* 增加左右內邊距 */
   color: #888;
-  font-size: 14px; /* 增大字體 */
-  padding: 0 15px; /* 增加左右內邊距 */
+  font-size: 14px;
+  /* 增大字體 */
+  padding: 0 15px;
+  /* 增加左右內邊距 */
 
 }
 
@@ -700,31 +776,38 @@ input:checked + .toggle-slider:before {
 .social-login {
   display: flex;
   justify-content: center;
-  margin-bottom: 10px; /* 增加下邊距 */
+  margin-bottom: 10px;
+  /* 增加下邊距 */
 }
 
 /* 快速登入區塊 */
 .quick-login {
-  margin-top: 14px; /* 增加上邊距 */
+  margin-top: 14px;
+  /* 增加上邊距 */
   border-top: 1px solid #eee;
-  padding-top: 14px; /* 增加上內邊距 */
+  padding-top: 14px;
+  /* 增加上內邊距 */
   background-color: #f9f9f9;
   border-radius: 4px;
-  padding: 12px; /* 增加內邊距 */
+  padding: 12px;
+  /* 增加內邊距 */
 }
 
 .quick-login-title {
-  font-size: 15px; /* 增大字體 */
+  font-size: 15px;
+  /* 增大字體 */
   font-weight: 600;
   color: #444;
-  margin-bottom: 10px; /* 增加下邊距 */
+  margin-bottom: 10px;
+  /* 增加下邊距 */
   text-align: center;
 }
 
 .quick-login-buttons {
   display: flex;
   justify-content: center;
-  gap: 20px; /* 增加按鈕之間的間距 */
+  gap: 20px;
+  /* 增加按鈕之間的間距 */
 }
 
 
@@ -733,13 +816,16 @@ input:checked + .toggle-slider:before {
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 8px 12px; /* 增加內邊距 */
-  font-size: 14px; /* 增大字體 */
+  padding: 8px 12px;
+  /* 增加內邊距 */
+  font-size: 14px;
+  /* 增大字體 */
   cursor: pointer;
   transition: background-color 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 6px; /* 增加間距 */
+  gap: 6px;
+  /* 增加間距 */
 }
 
 .quick-login-btn:hover {
@@ -748,14 +834,16 @@ input:checked + .toggle-slider:before {
 
 .register-link {
   justify-content: center;
-  margin-top: 8px; /* 增加上邊距 */
+  margin-top: 8px;
+  /* 增加上邊距 */
 }
 
 /* 響應式設計 */
 @media (max-width: 768px) {
   .login-card {
     max-width: 95%;
-    padding: 20px; /* 增加內邊距 */
+    padding: 20px;
+    /* 增加內邊距 */
   }
 
   .quick-login-buttons {

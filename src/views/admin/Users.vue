@@ -83,6 +83,15 @@
          ]">
       </i>
     </th>
+    <th class="sortable" style="width: 120px;" @click="toggleSort('status')">
+      帳號狀態
+      <i v-if="sortField === 'status'" 
+         :class="[
+           'bi ms-1', 
+           sortDirection === 'asc' ? 'bi-sort-alpha-down' : 'bi-sort-alpha-down-alt'
+         ]">
+      </i>
+    </th>
     <th class="sortable" style="width: 120px;" @click="toggleSort('shopIsActive')">
       商店狀態
       <i v-if="sortField === 'shopIsActive'" 
@@ -96,89 +105,120 @@
     <th class="text-center" style="width: 210px;">操作</th>
   </tr>
 </thead>
-              <tbody>
-                <tr v-if="users.length > 0" v-for="user in users" :key="user.userId">
-                  <td class="text-center">{{ user.userId }}</td>
-                  <td>
-                    <div class="d-flex align-items-center">
-                      <div class="user-avatar me-2">
-                        {{ getInitials(user.userName) }}
-                      </div>
-                      {{ user.userName }}
-                    </div>
-                  </td>
-                  <td>{{ user.email }}</td>
-                  <td>{{ user.phone || '無' }}</td>
-                  <td>
-                    <span v-if="user.shopIsActive === true" class="badge bg-success">
-                      <i class="bi bi-check-circle-fill me-1"></i> 已啟用
-                    </span>
-                    <span v-else-if="user.shopIsActive === false" class="badge bg-danger">
-                      <i class="bi bi-x-circle-fill me-1"></i> 已停用
-                    </span>
-                    <span v-else class="badge bg-warning text-dark">
-                      <i class="bi bi-exclamation-triangle me-1"></i> 無商店
-                    </span>
-                  </td>
-                  <td>
-                    <span 
-                      v-for="(role, index) in user.roles" 
-                      :key="index" 
-                      class="badge me-1 mb-1"
-                      :class="getRoleBadgeClass(role)"
-                    >
-                      {{ role }}
-                    </span>
-                  </td>
-                  <td class="text-center">
-                    <div class="btn-group">
-                      <button class="btn btn-outline-primary btn-sm" @click="openEditModal(user)" title="編輯資料">
-                        <i class="bi bi-pencil-square"></i>
-                      </button>
-                      <button class="btn btn-outline-info btn-sm" @click="openModal(user)" title="編輯權限">
-                        <i class="bi bi-key"></i>
-                      </button>
-                      <button class="btn btn-outline-danger btn-sm" @click="deleteUser(user.userId)" title="刪除用戶">
-                        <i class="bi bi-trash"></i>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-                <tr v-else>
-                  <td colspan="7" class="text-center py-4">
-                    <div class="empty-state">
-                      <i class="bi bi-search fa-3x text-muted mb-3"></i>
-                      <p>查無使用者資料</p>
-                    </div>
-                  </td>
-                </tr>
-              </tbody>
+<tbody>
+  <tr v-if="users.length > 0" v-for="user in users" :key="user.userId">
+    <td class="text-center">{{ user.userId }}</td>
+    <td>
+      <div class="d-flex align-items-center">
+        <div class="user-avatar me-2">
+          {{ getInitials(user.userName) }}
+        </div>
+        {{ user.userName }}
+      </div>
+    </td>
+    <td>{{ user.email }}</td>
+    <td>{{ user.phone || '無' }}</td>
+    <td>
+      <span :class="getStatusBadgeClass(user.status)">
+        <i :class="getStatusIconClass(user.status)"></i>
+        {{ getStatusText(user.status) }}
+      </span>
+    </td>
+    <td>
+      <span v-if="user.shopIsActive === true" class="badge bg-success">
+        <i class="bi bi-check-circle-fill me-1"></i> 已啟用
+      </span>
+      <span v-else-if="user.shopIsActive === false" class="badge bg-danger">
+        <i class="bi bi-x-circle-fill me-1"></i> 已停用
+      </span>
+      <span v-else class="badge bg-warning text-dark">
+        <i class="bi bi-exclamation-triangle me-1"></i> 無商店
+      </span>
+    </td>
+    <td>
+      <span 
+  v-for="(role, index) in user.roles" 
+  :key="index" 
+  class="badge me-1 mb-1"
+  :class="getRoleBadgeClass(role)"
+>
+  {{ getRoleDisplayName(role) }}
+</span>
+    </td>
+    <td class="text-center">
+      <div class="btn-group">
+        <button class="btn btn-outline-primary btn-sm" @click="openEditModal(user)" title="編輯資料">
+          <i class="bi bi-pencil-square"></i>
+        </button>
+        <button class="btn btn-outline-info btn-sm" @click="openModal(user)" title="編輯權限">
+          <i class="bi bi-key"></i>
+        </button>
+        <button 
+          class="btn btn-sm" 
+          :class="user.status === 'ACTIVE' ? 'btn-outline-warning' : 'btn-outline-success'"
+          @click="toggleUserStatus(user)" 
+          :title="user.status === 'ACTIVE' ? '禁用帳號' : '啟用帳號'">
+          <i :class="user.status === 'ACTIVE' ? 'bi bi-slash-circle' : 'bi bi-check-circle'"></i>
+        </button>
+        <button class="btn btn-outline-danger btn-sm" @click="deleteUser(user.userId)" title="刪除用戶">
+          <i class="bi bi-trash"></i>
+        </button>
+      </div>
+    </td>
+  </tr>
+  <tr v-else>
+    <td colspan="8" class="text-center py-4">
+      <div class="empty-state">
+        <i class="bi bi-search fa-3x text-muted mb-3"></i>
+        <p>查無使用者資料</p>
+      </div>
+    </td>
+  </tr>
+</tbody>
             </table>
           </div>
         </div>
 
         <nav v-if="users.length > 0" class="mt-4">
-          <ul class="pagination justify-content-center">
-            <li class="page-item" :class="{ disabled: currentPage === 0 }">
-              <button class="page-link" @click="fetchUsers(0)" title="第一頁">
-                <i class="bi bi-chevron-double-left"></i>
-              </button>
-            </li>
-            <li class="page-item" :class="{ disabled: currentPage === 0 }">
-              <button class="page-link" @click="prevPage">
-                <i class="bi bi-chevron-left"></i> 上一頁
-              </button>
-            </li>
-            <li class="page-item disabled">
-              <span class="page-link">第 {{ currentPage + 1 }} 頁 / 共 {{ totalPages }} 頁</span>
-            </li>
-            <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
-              <button class="page-link" @click="nextPage">
-                下一頁 <i class="bi bi-chevron-right"></i>
-              </button>
-            </li>
-          </ul>
-        </nav>
+  <ul class="pagination justify-content-center">
+    <!-- 第一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: currentPage === 0 }">
+      <button class="page-link" @click="fetchUsers(0)" title="第一頁">
+        <i class="bi bi-chevron-double-left"></i>
+      </button>
+    </li>
+    
+    <!-- 上一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: currentPage === 0 }">
+      <button class="page-link" @click="prevPage">
+        <i class="bi bi-chevron-left"></i>
+      </button>
+    </li>
+    
+    <!-- 頁碼按鈕 -->
+    <template v-for="index in getPageNumbers()" :key="index">
+      <li class="page-item" :class="{ active: currentPage === index }">
+        <button class="page-link" @click="fetchUsers(index)">
+          {{ index + 1 }}
+        </button>
+      </li>
+    </template>
+    
+    <!-- 下一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
+      <button class="page-link" @click="nextPage">
+        <i class="bi bi-chevron-right"></i>
+      </button>
+    </li>
+    
+    <!-- 最後一頁按鈕 -->
+    <li class="page-item" :class="{ disabled: currentPage === totalPages - 1 }">
+      <button class="page-link" @click="fetchUsers(totalPages - 1)" title="最後一頁">
+        <i class="bi bi-chevron-double-right"></i>
+      </button>
+    </li>
+  </ul>
+</nav>
       </div>
     </div>
 
@@ -349,6 +389,35 @@ const handleSaveRoles = async (updatedUserData) => {
   } finally {
     loading.value = false;
   }
+};
+// 在 data 中添加
+const maxDisplayedPages = ref(5); // 最多顯示的頁碼數量
+
+// 添加頁碼計算方法
+const getPageNumbers = () => {
+  if (totalPages.value <= 1) return [];
+  
+  // 如果總頁數小於等於最大顯示頁碼數，則顯示所有頁碼
+  if (totalPages.value <= maxDisplayedPages.value) {
+    return Array.from({ length: totalPages.value }, (_, i) => i);
+  }
+  
+  // 計算起始和結束頁碼
+  let start = Math.max(0, currentPage.value - Math.floor(maxDisplayedPages.value / 2));
+  let end = Math.min(totalPages.value - 1, start + maxDisplayedPages.value - 1);
+  
+  // 如果結束頁碼已經接近總頁數，則調整起始頁碼
+  if (end >= totalPages.value - 1) {
+    start = Math.max(0, totalPages.value - maxDisplayedPages.value);
+  }
+  
+  // 如果起始頁碼已經是 0，則調整結束頁碼
+  if (start === 0) {
+    end = Math.min(totalPages.value - 1, maxDisplayedPages.value - 1);
+  }
+  
+  // 生成頁碼陣列
+  return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 };
 
 const fetchUsers = async (page = 0, name = searchName.value) => {
@@ -543,6 +612,97 @@ const showErrorNotification = (title, error) => {
     text: typeof error === 'string' ? error : error.message || "發生未知錯誤",
     icon: "error",
   });
+};
+
+// 處理用戶狀態相關方法
+const getStatusBadgeClass = (status) => {
+  switch (status) {
+    case 'ACTIVE':
+      return 'badge bg-success';
+    case 'BANNED':
+      return 'badge bg-danger';
+    default:
+      return 'badge bg-secondary';
+  }
+};
+
+const getRoleDisplayName = (role) => {
+  switch (role) {
+    case 'USER':
+      return '買家';
+    case 'SELLER':
+      return '賣家';
+    case 'ADMIN':
+      return '管理員';
+    case 'SUPER_ADMIN':
+      return '超級管理員';
+    default:
+      return role;
+  }
+};
+
+const getStatusIconClass = (status) => {
+  switch (status) {
+    case 'ACTIVE':
+      return 'bi bi-person-check-fill me-1';
+    case 'BANNED':
+      return 'bi bi-person-x-fill me-1';
+    default:
+      return 'bi bi-question-circle-fill me-1';
+  }
+};
+
+const getStatusText = (status) => {
+  switch (status) {
+    case 'ACTIVE':
+      return '正常';
+    case 'BANNED':
+      return '已禁用';
+    default:
+      return '未知狀態';
+  }
+};
+
+// 切換用戶狀態
+const toggleUserStatus = async (user) => {
+  try {
+    const result = await Swal.fire({
+      title: user.status === 'ACTIVE' 
+        ? `確定要禁用 ${user.userName} 的帳號嗎？` 
+        : `確定要啟用 ${user.userName} 的帳號嗎？`,
+      text: user.status === 'ACTIVE' 
+        ? "禁用後，該用戶將無法登入系統" 
+        : "啟用後，該用戶將可以正常登入系統",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: user.status === 'ACTIVE' ? "#d33" : "#3085d6",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: user.status === 'ACTIVE' ? "確定禁用" : "確定啟用",
+      cancelButtonText: "取消",
+    });
+
+    if (result.isConfirmed) {
+      loading.value = true;
+      const newStatus = user.status === 'ACTIVE' ? 'BANNED' : 'ACTIVE';
+      const response = await axios.put(`/api/admin/user/status/${user.userId}`, {
+        status: newStatus
+      });
+      
+      if (response.data.success) {
+        showSuccessNotification(
+          user.status === 'ACTIVE' ? "帳號已禁用" : "帳號已啟用", 
+          response.data.message || (user.status === 'ACTIVE' ? "使用者帳號已成功禁用" : "使用者帳號已成功啟用")
+        );
+        await fetchUsers(currentPage.value);
+      } else {
+        showErrorNotification("操作失敗", response.data.message || "無法更新使用者狀態");
+      }
+    }
+  } catch (error) {
+    showErrorNotification("錯誤", error.response?.data?.message || "無法更新使用者狀態");
+  } finally {
+    loading.value = false;
+  }
 };
 
 // 頁面載入時獲取資料

@@ -17,7 +17,7 @@
   const route = useRoute();
   const userStore = useUserStore();
   
-  onMounted(() => {
+  onMounted(async () => {
     const token = route.query.token;
     
     if (token) {
@@ -30,6 +30,23 @@
       // 使用 Pinia store 保存用戶數據
       userStore.saveUserData(decodedToken.sub, decodedToken.userId, token, decodedToken.roles);
       userStore.reloadUserData();
+
+      if (decodedToken.roles && decodedToken.roles.includes("SELLER")) {
+        try {
+          // 調用新增的 API 獲取商店 ID
+          const shopResponse = await axios.get(
+            `/api/user/${decodedToken.userId}/shop`
+          );
+          if (shopResponse.data && shopResponse.data.shopId) {
+            // 將 shopId 轉換為字符串並更新到 UserStore
+            userStore.updateShopId(shopResponse.data.shopId.toString());
+            userStore.reloadUserData();
+            console.log("成功獲取商店 ID:", shopResponse.data.shopId);
+          }
+        } catch (shopError) {
+          console.error("獲取商店 ID 失敗:", shopError);
+        }
+      }
       
       // 顯示成功訊息
       Swal.fire({

@@ -50,19 +50,20 @@
                         <img src="@/assets/trash.png" class="icon" title="刪除地址"
                             @click="deleteAddress(address.userAddressId)" />
                     </div>
-                    <p><strong>地址：</strong>{{ address.city }}{{ address.district
-                        }}{{ address.streetEtc }}</p>
-                    <p><strong>郵遞區號：</strong>{{ address.zipCode }}</p>
+                    <p><strong>地址：</strong>
+                        <!-- {{ address.city }}{{ address.district }} -->
+                        {{ address.streetEtc }}</p>
+                    <!-- <p><strong>郵遞區號：</strong>{{ address.zipCode }}</p> -->
                     <p><strong>收件人：</strong>{{ address.recipientName }}</p>
                     <p><strong>電話：</strong>{{ address.recipientPhone }}</p>
-                    <p>
+                    <!-- <p>
                         <strong>預設：</strong>
                         <span v-if="address.isDefault">✅ 是</span>
-                        <span v-else>
-                            <button
-                                @click="confirmSetDefault(address.userAddressId, 2)">設為預設</button>
-                        </span>
-                    </p>
+                        <span v-else> -->
+                            <!-- <button
+                                @click="confirmSetDefault(address.userAddressId, 2)">設為預設</button> -->
+                        <!-- </span>
+                    </p> -->
                 </div>
             </div>
             <button type="submit" class="func"

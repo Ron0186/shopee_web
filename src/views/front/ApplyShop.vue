@@ -1,60 +1,4 @@
 <template>
-<<<<<<< HEAD
-  <div class="container mt-5">
-    <h2 class="mb-4">申請成為賣家</h2>
-    <form @submit.prevent="submitApplication">
-      <div class="mb-3">
-        <label class="form-label">商店名稱</label>
-        <input v-model="form.shopName" type="text" class="form-control" placeholder="請輸入商店名稱" required />
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">商店分類</label>
-        <select v-model="form.shopCategory" class="form-select" required>
-          <option value="" disabled>請選擇商店分類</option>
-          <option v-for="category in shopCategories" :key="category" :value="category">
-            {{ category }}
-          </option>
-        </select>
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">退貨地址 - 城市</label>
-        <input v-model="form.returnCity" type="text" class="form-control" placeholder="請輸入城市" required />
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">退貨地址 - 區域</label>
-        <input v-model="form.returnDistrict" type="text" class="form-control" placeholder="請輸入區域" required />
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">退貨地址 - 郵遞區號</label>
-        <input v-model="form.returnZipCode" type="text" class="form-control" placeholder="請輸入郵遞區號" required />
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">退貨地址 - 詳細地址</label>
-        <input v-model="form.returnStreetEtc" type="text" class="form-control" placeholder="請輸入詳細地址" />
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">收件人姓名</label>
-        <input v-model="form.returnRecipientName" type="text" class="form-control" placeholder="請輸入收件人姓名" required />
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">收件人電話</label>
-        <input v-model="form.returnRecipientPhone" type="text" class="form-control" placeholder="請輸入收件人電話" required />
-      </div>
-
-      <div class="mb-3">
-        <label class="form-label">商店描述</label>
-        <textarea v-model="form.description" class="form-control" rows="3" placeholder="請輸入商店描述"></textarea>
-      </div>
-
-      <button type="submit" class="btn btn-primary">提交申請</button>
-=======
   <div class="container mt-3">
     <h2 class="mb-3 h3">申請成為賣家</h2>
     <!-- 新增一鍵帶入按鈕 -->
@@ -161,19 +105,14 @@
       <div class="d-grid">
         <button type="submit" class="btn btn-primary">提交申請</button>
       </div>
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
     </form>
   </div>
 </template>
 
 <script>
 import axios from "@/plugins/axios";
-<<<<<<< HEAD
-import Swal from "sweetalert2"; // 引入 SweetAlert2
-=======
 import Swal from "sweetalert2";
 import { taiwanCities } from "@/utils/taiwanAddressData"; // 引入台灣縣市資料
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
 
 export default {
   data() {
@@ -181,17 +120,19 @@ export default {
       form: {
         shopName: "",
         shopCategory: "",
-<<<<<<< HEAD
-        returnCity: "",
-=======
         returnCity: "", // 新增城市欄位
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
         returnDistrict: "",
         returnZipCode: "",
         returnStreetEtc: "",
         returnRecipientName: "",
         returnRecipientPhone: "",
         description: "",
+        applicationStatus: null, // 申請狀態
+    applicationId: null, // 申請ID
+    adminComment: null, // 管理員評論 (如果被拒絕)
+    isLoadingApplication: true, // 加載申請數據中的標誌
+    hasApplication: false, // 是否有現有申請
+    isSeller: false, // 是否已是賣家
       },
 <<<<<<< HEAD
       userId: localStorage.getItem("userId"), // 假設這裡是目前登入的用戶 ID，之後可改為從 Vuex / Pinia 取得
@@ -266,6 +207,8 @@ export default {
   created() {
     // 在組件創建時獲取使用者資料
     this.fetchUserData();
+    this.fetchApplicationData();
+
   },
   methods: {
     // 獲取使用者資料
@@ -363,7 +306,115 @@ export default {
           confirmButtonText: "確定",
         });
       }
-    },
+    },  // 獲取用戶的申請資料
+  async fetchApplicationData() {
+    try {
+      this.isLoadingApplication = true;
+      const response = await axios.get(`/api/shop/application/user/${this.userId}`);
+      
+      if (response.data.isSeller) {
+        this.isSeller = true;
+        Swal.fire({
+          icon: "info",
+          title: "提示",
+          text: "您已經是賣家，無需申請",
+          confirmButtonText: "確定",
+        }).then(() => {
+          this.$router.push("/");
+        });
+        return;
+      }
+      
+      if (response.data.hasApplication) {
+        this.hasApplication = true;
+        this.applicationStatus = response.data.status;
+        this.applicationId = response.data.applicationId;
+        
+        if (response.data.adminComment) {
+          this.adminComment = response.data.adminComment;
+        }
+        
+        // 填充表單數據
+        const appData = response.data.applicationData;
+        this.form.shopName = appData.shopName;
+        this.form.shopCategory = appData.shopCategory;
+        this.selectedCity = appData.returnCity;
+        this.updateDistricts(); // 更新可用區域
+        
+        // 用 nextTick 確保在 updateDistricts 後更新區域
+        this.$nextTick(() => {
+          this.form.returnDistrict = appData.returnDistrict;
+          this.form.returnZipCode = appData.returnZipCode;
+          this.form.returnStreetEtc = appData.returnStreetEtc;
+          this.form.returnRecipientName = appData.returnRecipientName;
+          this.form.returnRecipientPhone = appData.returnRecipientPhone;
+          this.form.description = appData.description;
+        });
+        
+        // 根據申請狀態顯示提示
+        this.showApplicationStatusInfo();
+      }
+    } catch (error) {
+      console.error("獲取申請資料失敗:", error);
+      Swal.fire({
+        icon: "error",
+        title: "錯誤",
+        text: "獲取申請資料時發生錯誤",
+        confirmButtonText: "確定",
+      });
+    } finally {
+      this.isLoadingApplication = false;
+    }
+  },
+  
+  // 根據申請狀態顯示提示
+  showApplicationStatusInfo() {
+    if (!this.hasApplication) return;
+    
+    switch (this.applicationStatus) {
+      case "PENDING":
+        Swal.fire({
+          icon: "info",
+          title: "審核中",
+          text: "您的申請正在審核中，請耐心等待。",
+          confirmButtonText: "確定",
+        });
+        this.disableForm(); // 禁用表單
+        break;
+      case "APPROVED":
+        Swal.fire({
+          icon: "success",
+          title: "已核准",
+          text: "您的申請已經被核准，您已成為賣家！",
+          confirmButtonText: "確定",
+        }).then(() => {
+          this.$router.push("/");
+        });
+        break;
+      case "REJECTED":
+        Swal.fire({
+          icon: "warning",
+          title: "申請被拒絕",
+          html: `您的申請已被拒絕。<br><b>原因：</b> ${this.adminComment || "未提供原因"}<br>您可以修改後重新提交。`,
+          confirmButtonText: "確定",
+        });
+        break;
+    }
+  },
+  
+  // 禁用表單輸入框
+  disableForm() {
+    const formElements = document.querySelectorAll("input, select, textarea, button[type='submit']");
+    formElements.forEach(element => {
+      element.disabled = true;
+    });
+    
+    // 或者添加一個覆蓋層
+    const overlay = document.createElement("div");
+    overlay.classList.add("form-overlay");
+    overlay.innerHTML = '<div class="overlay-content">申請審核中，暫時無法修改</div>';
+    document.querySelector("form").appendChild(overlay);
+  }
 >>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
   },
 };
@@ -371,11 +422,6 @@ export default {
 
 <style scoped>
 .container {
-<<<<<<< HEAD
-  max-width: 600px;
-}
-</style>
-=======
   max-width: 800px;
 }
 
@@ -393,4 +439,3 @@ export default {
   border-color: #dae0e5;
 }
 </style>
->>>>>>> 263836fe10eaad330bbe61b454a707949420e8e5
