@@ -7,7 +7,12 @@
     <!-- 搜索和篩選區域 -->
     <div class="filters">
       <div class="search-box">
-        <input type="text" v-model="searchQuery" placeholder="搜尋商品或訂單號碼" @input="filterOrders" />
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="搜尋商品或訂單號碼"
+          @input="filterOrders"
+        />
       </div>
       <div class="filter-controls">
         <select v-model="statusFilter" @change="filterOrders">
@@ -36,8 +41,12 @@
 
     <!-- 訂單列表區域 -->
     <div v-else class="orders-container">
-      <div v-for="order in displayedOrders" :key="order.orderId" class="order-card"
-        :class="{ expanded: expandedOrderId === order.orderId }">
+      <div
+        v-for="order in displayedOrders"
+        :key="order.orderId"
+        class="order-card"
+        :class="{ expanded: expandedOrderId === order.orderId }"
+      >
         <!-- 訂單基本資訊區塊 -->
         <div class="order-header" @click="toggleOrderDetails(order.orderId)">
           <div class="order-summary">
@@ -45,10 +54,12 @@
               <span class="order-id">訂單編號: {{ order.orderId }}</span>
               <span class="created-at">{{ formatDate(order.createdAt) }}</span>
             </div>
-            <div class="order-status" :class="getStatusClass(translateStatus(order.status))">
+            <div
+              class="order-status"
+              :class="getStatusClass(translateStatus(order.status))"
+            >
               {{ translateStatus(order.status) }}
             </div>
-
           </div>
           <div class="order-brief">
             <span class="items-count">{{ getTotalItems(order) }}件商品</span>
@@ -67,14 +78,22 @@
           <div class="products-section">
             <h3>商品明細</h3>
             <div class="product-items">
-              <div v-for="item in order.items" :key="item.productId" class="product-item">
+              <div
+                v-for="item in order.items"
+                :key="item.productId"
+                class="product-item"
+              >
                 <div class="product-image">
-                  <img :src="getProductImageUrl(item)" :alt="item.productName" style="
+                  <img
+                    :src="getProductImageUrl(item)"
+                    :alt="item.productName"
+                    style="
                       width: 100%;
                       height: 100%;
                       object-fit: cover;
                       display: block;
-                    " />
+                    "
+                  />
                 </div>
                 <div class="product-info">
                   <div class="product-name">{{ item.productName }}</div>
@@ -129,11 +148,13 @@
                 <span>總金額:</span>
                 <span>NT${{ order.totalPrice.toLocaleString() }}</span>
               </div>
-              <div v-if="order.paymentMethod" class="summary-row payment-method">
+              <div
+                v-if="order.paymentMethod"
+                class="summary-row payment-method"
+              >
                 <span>付款方式:</span>
                 <span>{{ translatePaymentMethod(order.paymentMethod) }}</span>
               </div>
-
             </div>
 
             <div v-if="order.shipping" class="delivery-info">
@@ -162,11 +183,18 @@
           </div>
 
           <!-- 訂單時間軌跡 -->
-          <div v-if="order.statusHistory && order.statusHistory.length" class="order-timeline">
+          <div
+            v-if="order.statusHistory && order.statusHistory.length"
+            class="order-timeline"
+          >
             <h3>訂單狀態追蹤</h3>
             <div class="timeline">
-              <div v-for="(status, index) in order.statusHistory" :key="index" class="timeline-item"
-                :class="{ current: status.status === order.status }">
+              <div
+                v-for="(status, index) in order.statusHistory"
+                :key="index"
+                class="timeline-item"
+                :class="{ current: status.status === order.status }"
+              >
                 <div class="timeline-dot"></div>
                 <div class="timeline-content">
                   <div class="timeline-status">{{ status.status }}</div>
@@ -178,24 +206,42 @@
 
           <!-- 可執行的動作按鈕 -->
           <div class="order-actions">
-            <button v-if="canRepurchase(order)" @click="repurchaseOrder(order.orderId)"
-              class="action-btn repurchase-btn">
+            <button
+              v-if="canRepurchase(order)"
+              @click="repurchaseOrder(order.orderId)"
+              class="action-btn repurchase-btn"
+            >
               再次購買
             </button>
-            <button v-if="canCancel(order)" @click="cancelOrder(order.orderId)" class="action-btn cancel-btn">
+            <button
+              v-if="canCancel(order)"
+              @click="cancelOrder(order.orderId)"
+              class="action-btn cancel-btn"
+            >
               取消訂單
             </button>
 
-            <button @click="directPayOrder(order.orderId)" class="action-btn pay-btn" v-if="order.status === '未付款'">
+            <button
+              @click="directPayOrder(order.orderId)"
+              class="action-btn pay-btn"
+              v-if="order.status === '未付款'"
+            >
               立即付款
             </button>
-            <button v-if="canReview(order)" @click="reviewOrder(order.orderId)" class="action-btn review-btn">
+            <button
+              v-if="canReview(order)"
+              @click="reviewOrder(order.orderId)"
+              class="action-btn review-btn"
+            >
               評價商品
             </button>
-            <button v-if="canTrack(order)" @click="trackOrder(order.orderId)" class="action-btn track-btn">
+            <button
+              v-if="canTrack(order)"
+              @click="trackOrder(order.orderId)"
+              class="action-btn track-btn"
+            >
               追蹤訂單
             </button>
-
           </div>
         </div>
       </div>
@@ -203,16 +249,29 @@
 
     <!-- 分頁控制 -->
     <div v-if="totalPages > 1" class="pagination">
-      <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1" class="page-btn">
+      <button
+        @click="changePage(currentPage - 1)"
+        :disabled="currentPage === 1"
+        class="page-btn"
+      >
         上一頁
       </button>
       <div class="page-numbers">
-        <button v-for="page in displayedPages" :key="page" @click="changePage(page)" class="page-number"
-          :class="{ active: currentPage === page }">
+        <button
+          v-for="page in displayedPages"
+          :key="page"
+          @click="changePage(page)"
+          class="page-number"
+          :class="{ active: currentPage === page }"
+        >
           {{ page }}
         </button>
       </div>
-      <button @click="changePage(currentPage + 1)" :disabled="currentPage === totalPages" class="page-btn">
+      <button
+        @click="changePage(currentPage + 1)"
+        :disabled="currentPage === totalPages"
+        class="page-btn"
+      >
         下一頁
       </button>
     </div>
@@ -282,7 +341,6 @@ const getProductImageUrl = (item) => {
   // ✅ 最後預設圖
   return "/assets/image.png";
 };
-
 
 const displayedPages = computed(() => {
   const pages = [];
@@ -358,11 +416,11 @@ const translateStatus = (status) => {
     COMPLETED: "已完成",
     CANCELED: "已取消",
     // 加入已知中文也可映射
-    "待付款": "待付款",
-    "處理中": "處理中",
-    "已出貨": "已出貨",
-    "已完成": "已完成",
-    "已取消": "已取消",
+    待付款: "待付款",
+    處理中: "處理中",
+    已出貨: "已出貨",
+    已完成: "已完成",
+    已取消: "已取消",
   };
   return map[status?.toUpperCase()] || status;
 };
@@ -554,8 +612,12 @@ const payOrder = async (orderId) => {
   }
 };
 
+// const reviewOrder = (orderId) => {
+//   window.location.href = `/review/order/${orderId}`;
+// };
+
 const reviewOrder = (orderId) => {
-  window.location.href = `/review/order/${orderId}`;
+  router.push(`/submitReview?orderId=${orderId}`);
 };
 
 const trackOrder = (orderId) => {
@@ -655,8 +717,8 @@ const fetchOrders = async () => {
             typeof item.price === "number" && item.price > 0
               ? item.price
               : typeof item.unitPrice === "number"
-                ? item.unitPrice
-                : 0,
+              ? item.unitPrice
+              : 0,
           quantity:
             typeof item.quantity === "number"
               ? item.quantity
@@ -686,8 +748,9 @@ const fetchOrders = async () => {
       console.error(`服務器錯誤(${statusCode}):`, responseData);
 
       if (statusCode === 403) {
-        error.value = `權限不足，您沒有權限查看這些訂單 (角色: ${userStore.roles?.join(", ") || "無"
-          })`;
+        error.value = `權限不足，您沒有權限查看這些訂單 (角色: ${
+          userStore.roles?.join(", ") || "無"
+        })`;
       } else if (statusCode === 401) {
         error.value = "登入已過期，請重新登入";
         // 可能需要重新導向到登入頁面
@@ -1197,7 +1260,6 @@ h3 {
 
 /* 響應式設計 */
 @media (max-width: 768px) {
-
   .order-summary,
   .order-brief {
     flex-direction: column;

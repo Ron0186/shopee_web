@@ -358,15 +358,6 @@
               </span>
               SKU 列表
             </h4>
-            <div>
-              <button
-                class="btn btn-success px-4 py-2 rounded-pill shadow-sm d-flex align-items-center gap-2"
-                @click="showAddModal = true"
-              >
-                <i class="bi bi-plus-lg"></i>
-                <span>新增 SKU</span>
-              </button>
-            </div>
           </div>
 
           <!-- Filter and Page Size Control -->
