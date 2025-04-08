@@ -507,6 +507,12 @@ const router = createRouter({
           component: () => import("@/views/admin/AdminProfile.vue"),
         },
         {
+          // 管理員個人資料頁面
+          path: "analytics/user-analytics",
+          name: "UserAnalytics",
+          component: () => import("@/views/admin/UserAnalyticsPage.vue"),
+        },
+        {
           // 分類管理頁面
           path: "category-management",
           name: "categoryManagement",
