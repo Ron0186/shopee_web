@@ -48,21 +48,24 @@
         <!-- <p class="text-muted small mb-3">{{ product.productId }}</p> -->
 
         <!-- 評分 -->
-<div class="mb-3 d-flex align-items-center">
-  <div class="me-2">
-    <i
-      v-for="n in 5"
-      :key="n"
-      class="bi"
-      :class="n <= Math.round(product.rating || 0) ? 'bi-star-fill' : 'bi-star'"
-      style="color: #ffd700"
-    ></i>
-  </div>
-  <a href="#reviews" class="text-decoration-none">
-    {{ product.reviewCount ?? 0 }} 評價
-  </a>
-</div>
-
+        <div class="mb-3 d-flex align-items-center">
+          <div class="me-2">
+            <i
+              v-for="n in 5"
+              :key="n"
+              class="bi"
+              :class="
+                n <= Math.round(product.rating || 0)
+                  ? 'bi-star-fill'
+                  : 'bi-star'
+              "
+              style="color: #ffd700"
+            ></i>
+          </div>
+          <a href="#reviews" class="text-decoration-none">
+            {{ product.reviewCount ?? 0 }} 評價
+          </a>
+        </div>
 
         <!-- 價格 -->
         <div class="mb-4">
@@ -216,19 +219,19 @@
 
     <!-- 評價數星星數 -->
     <div class="mb-3 d-flex align-items-center">
-    <div class="me-2">
-      <i
-        v-for="n in 5"
-        :key="n"
-        class="bi"
-        :class="n <= Math.round(product.rating) ? 'bi-star-fill' : 'bi-star'"
-        style="color: #ffd700"
-      ></i>
+      <div class="me-2">
+        <i
+          v-for="n in 5"
+          :key="n"
+          class="bi"
+          :class="n <= Math.round(product.rating) ? 'bi-star-fill' : 'bi-star'"
+          style="color: #ffd700"
+        ></i>
+      </div>
+      <a href="#reviews" class="text-decoration-none">
+        {{ product.reviewCount || 0 }} 評價
+      </a>
     </div>
-    <a href="#reviews" class="text-decoration-none">
-      {{ product.reviewCount || 0 }} 評價
-    </a>
-  </div>
 
     <!-- 商品詳情內容 -->
     <div class="row mt-5">
@@ -279,180 +282,186 @@
             </div>
           </div>
           <!-- 顧客評價區塊 -->
-<div class="tab-pane fade" id="reviews" role="tabpanel">
-  <div class="p-3">
-    <h4>顧客評價</h4>
+          <div class="tab-pane fade" id="reviews" role="tabpanel">
+            <div class="p-3">
+              <h4>顧客評價</h4>
 
-    <!-- 無留言時提示 -->
-    <div v-if="reviews.length === 0">暫無評價</div>
+              <!-- 無留言時提示 -->
+              <div v-if="reviews.length === 0">暫無評價</div>
 
-    <!-- 顧客留言 + 賣家回覆 -->
-    <div v-else>
-      <div
-        v-for="review in reviews"
-        :key="review.reviewId"
-        class="border rounded p-3 mb-4 bg-light-subtle"
-      >
-        <!-- 顧客基本資訊 -->
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <div>
-            <strong>{{ review.userName }}</strong>
-            <span class="ms-2 text-warning">⭐ {{ review.rating }}</span>
+              <!-- 顧客留言 + 賣家回覆 -->
+              <div v-else>
+                <div
+                  v-for="review in reviews"
+                  :key="review.reviewId"
+                  class="border rounded p-3 mb-4 bg-light-subtle"
+                >
+                  <!-- 顧客基本資訊 -->
+                  <div
+                    class="d-flex justify-content-between align-items-center mb-2"
+                  >
+                    <div>
+                      <strong>{{ review.userName }}</strong>
+                      <span class="ms-2 text-warning"
+                        >⭐ {{ review.rating }}</span
+                      >
+                    </div>
+                    <small class="text-muted">
+                      <i class="bi bi-clock"></i>
+                      {{ formatDate(review.createdAt) }}
+                    </small>
+                  </div>
+
+                  <!-- 顧客留言內容 -->
+                  <div class="mb-2">{{ review.content }}</div>
+
+                  <!-- ✅ 若賣家已回覆，顯示回覆內容 -->
+                  <div
+                    v-if="review.replyContent"
+                    class="border-start border-3 border-primary bg-white p-3 mb-2"
+                  >
+                    <div class="fw-bold text-primary mb-1">賣家回覆：</div>
+                    <div class="mb-1">{{ review.replyContent }}</div>
+                    <small class="text-muted">
+                      <i class="bi bi-clock"></i>
+                      {{ formatDate(review.replyTime) }}
+                    </small>
+                  </div>
+
+                  <!-- ✅ 若賣家尚未回覆，顯示輸入框（需是賣家身分） -->
+                  <div
+                    v-if="isSeller && !review.replyContent"
+                    class="bg-light border rounded mt-3 p-3"
+                  >
+                    <div class="fw-bold text-primary mb-2">🔁 回覆買家</div>
+                    <textarea
+                      v-model="replyInputs[review.reviewId]"
+                      class="form-control mb-2"
+                      rows="3"
+                      placeholder="輸入回覆內容..."
+                    ></textarea>
+                    <button
+                      class="btn btn-outline-success btn-sm"
+                      @click="submitReply(review.reviewId)"
+                      :disabled="!replyInputs[review.reviewId]"
+                    >
+                      ✅ 送出回覆
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <small class="text-muted">
-            <i class="bi bi-clock"></i> {{ formatDate(review.createdAt) }}
-          </small>
         </div>
-
-        <!-- 顧客留言內容 -->
-        <div class="mb-2">{{ review.content }}</div>
-
-        <!-- ✅ 若賣家已回覆，顯示回覆內容 -->
-        <div
-          v-if="review.replyContent"
-          class="border-start border-3 border-primary bg-white p-3 mb-2"
-        >
-          <div class="fw-bold text-primary mb-1">賣家回覆：</div>
-          <div class="mb-1">{{ review.replyContent }}</div>
-          <small class="text-muted">
-            <i class="bi bi-clock"></i> {{ formatDate(review.replyTime) }}
-          </small>
+        <div class="tab-pane fade" id="shipping" role="tabpanel">
+          <div class="p-3">
+            <h4>配送資訊</h4>
+            <p>全台配送，一般地區3-5個工作天到貨。</p>
+            <h4 class="mt-4">退換貨政策</h4>
+            <p>收到商品後七天內可申請退換貨。</p>
+          </div>
         </div>
+      </div>
+    </div>
+  </div>
 
-        <!-- ✅ 若賣家尚未回覆，顯示輸入框（需是賣家身分） -->
-        <div
-          v-if="isSeller && !review.replyContent"
-          class="bg-light border rounded mt-3 p-3"
-        >
-          <div class="fw-bold text-primary mb-2">🔁 回覆買家</div>
-          <textarea
-            v-model="replyInputs[review.reviewId]"
-            class="form-control mb-2"
-            rows="3"
-            placeholder="輸入回覆內容..."
-          ></textarea>
+  <!-- 尺寸指南 Modal -->
+  <div
+    class="modal fade"
+    id="sizeGuideModal"
+    tabindex="-1"
+    :class="{ show: showSizeGuide }"
+  >
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">尺寸指南</h5>
           <button
-            class="btn btn-outline-success btn-sm"
-            @click="submitReply(review.reviewId)"
-            :disabled="!replyInputs[review.reviewId]"
+            type="button"
+            class="btn-close"
+            @click="showSizeGuide = false"
+          ></button>
+        </div>
+        <div class="modal-body">
+          <h6>尺寸對照表</h6>
+          <table class="table table-bordered">
+            <thead>
+              <tr>
+                <th>尺寸</th>
+                <th>胸圍 (cm)</th>
+                <th>肩寬 (cm)</th>
+                <th>衣長 (cm)</th>
+                <th>袖長 (cm)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>XS</td>
+                <td>96</td>
+                <td>42</td>
+                <td>65</td>
+                <td>24</td>
+              </tr>
+              <tr>
+                <td>S</td>
+                <td>100</td>
+                <td>44</td>
+                <td>67</td>
+                <td>25</td>
+              </tr>
+              <tr>
+                <td>M</td>
+                <td>104</td>
+                <td>46</td>
+                <td>69</td>
+                <td>26</td>
+              </tr>
+              <tr>
+                <td>L</td>
+                <td>108</td>
+                <td>48</td>
+                <td>71</td>
+                <td>27</td>
+              </tr>
+              <tr>
+                <td>XL</td>
+                <td>114</td>
+                <td>50</td>
+                <td>73</td>
+                <td>28</td>
+              </tr>
+              <tr>
+                <td>XXL</td>
+                <td>120</td>
+                <td>52</td>
+                <td>75</td>
+                <td>29</td>
+              </tr>
+              <tr>
+                <td>3XL</td>
+                <td>126</td>
+                <td>54</td>
+                <td>77</td>
+                <td>30</td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="mt-3">
+            測量說明：平放測量，單位為公分，誤差範圍±2cm屬正常。
+          </p>
+        </div>
+        <div class="modal-footer">
+          <button
+            type="button"
+            class="btn btn-secondary"
+            @click="showSizeGuide = false"
           >
-            ✅ 送出回覆
+            關閉
           </button>
         </div>
       </div>
     </div>
   </div>
-</div>
-</div>
-          <div class="tab-pane fade" id="shipping" role="tabpanel">
-            <div class="p-3">
-              <h4>配送資訊</h4>
-              <p>全台配送，一般地區3-5個工作天到貨。</p>
-              <h4 class="mt-4">退換貨政策</h4>
-              <p>收到商品後七天內可申請退換貨。</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- 尺寸指南 Modal -->
-    <div
-      class="modal fade"
-      id="sizeGuideModal"
-      tabindex="-1"
-      :class="{ show: showSizeGuide }"
-    >
-      <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">尺寸指南</h5>
-            <button
-              type="button"
-              class="btn-close"
-              @click="showSizeGuide = false"
-            ></button>
-          </div>
-          <div class="modal-body">
-            <h6>尺寸對照表</h6>
-            <table class="table table-bordered">
-              <thead>
-                <tr>
-                  <th>尺寸</th>
-                  <th>胸圍 (cm)</th>
-                  <th>肩寬 (cm)</th>
-                  <th>衣長 (cm)</th>
-                  <th>袖長 (cm)</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <td>XS</td>
-                  <td>96</td>
-                  <td>42</td>
-                  <td>65</td>
-                  <td>24</td>
-                </tr>
-                <tr>
-                  <td>S</td>
-                  <td>100</td>
-                  <td>44</td>
-                  <td>67</td>
-                  <td>25</td>
-                </tr>
-                <tr>
-                  <td>M</td>
-                  <td>104</td>
-                  <td>46</td>
-                  <td>69</td>
-                  <td>26</td>
-                </tr>
-                <tr>
-                  <td>L</td>
-                  <td>108</td>
-                  <td>48</td>
-                  <td>71</td>
-                  <td>27</td>
-                </tr>
-                <tr>
-                  <td>XL</td>
-                  <td>114</td>
-                  <td>50</td>
-                  <td>73</td>
-                  <td>28</td>
-                </tr>
-                <tr>
-                  <td>XXL</td>
-                  <td>120</td>
-                  <td>52</td>
-                  <td>75</td>
-                  <td>29</td>
-                </tr>
-                <tr>
-                  <td>3XL</td>
-                  <td>126</td>
-                  <td>54</td>
-                  <td>77</td>
-                  <td>30</td>
-                </tr>
-              </tbody>
-            </table>
-            <p class="mt-3">
-              測量說明：平放測量，單位為公分，誤差範圍±2cm屬正常。
-            </p>
-          </div>
-          <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              @click="showSizeGuide = false"
-            >
-              關閉
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
 </template>
 
 <script setup>
@@ -645,50 +654,50 @@ const canAddToCart = computed(() => {
 });
 
 // 顧客評價顯示
-const reviews = ref([])
+const reviews = ref([]);
 
 const fetchReviews = async () => {
   try {
-    const res = await axios.get(`/api/review/product/${productId}`)
-    reviews.value = res.data || []
+    const res = await axios.get(`/api/review/product/${productId}`);
+    reviews.value = res.data || [];
   } catch (error) {
-    console.warn("❌ 載入留言失敗", error)
+    console.warn("❌ 載入留言失敗", error);
   }
 };
 
 // 回覆留言的輸入綁定
-const replyInputs = ref({})
+const replyInputs = ref({});
 
 // 判斷是否為賣家
-const isSeller = computed(() => userStore.roles.includes("SELLER"))
+const isSeller = computed(() => userStore.roles.includes("SELLER"));
 
 // 送出賣家回覆
 const submitReply = async (reviewId) => {
-  const replyContent = replyInputs.value[reviewId]
-  if (!replyContent) return
+  const replyContent = replyInputs.value[reviewId];
+  if (!replyContent) return;
 
   try {
-    await axios.put(`/api/review/${reviewId}/reply`, { replyContent })
-    Swal.fire("回覆成功", "", "success")
-    replyInputs.value[reviewId] = "" // 清空輸入框
-    fetchReviews() // 重新載入留言
+    await axios.put(`/api/review/${reviewId}/reply`, { replyContent });
+    Swal.fire("回覆成功", "", "success");
+    replyInputs.value[reviewId] = ""; // 清空輸入框
+    fetchReviews(); // 重新載入留言
   } catch (error) {
-    console.error("❌ 回覆失敗", error)
-    Swal.fire("回覆失敗", "請稍後再試", "error")
+    console.error("❌ 回覆失敗", error);
+    Swal.fire("回覆失敗", "請稍後再試", "error");
   }
 };
 
 //時間顯示
 const formatDate = (dateStr) => {
-  if (!dateStr) return ''
-  const d = new Date(dateStr)
-  return d.toLocaleString('zh-TW', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  return d.toLocaleString("zh-TW", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 // 監聽 Modal 顯示
@@ -803,7 +812,7 @@ const addToCart = async () => {
   }
 };
 
-// 新增立即購買函數
+// 修改立即購買函數 - 導向購物車而非直接結帳
 const buyNow = async () => {
   if (!canAddToCart.value) {
     Swal.fire({
@@ -833,24 +842,44 @@ const buyNow = async () => {
   }
 
   try {
-    // 先調用加入購物車方法
-    await addToCart();
-
-    // 如果加入購物車成功，跳轉到快速結帳頁面
+    // 取得 SKU ID 和數量
     const skuId = selectedSku.value?.skuId;
     const qty = quantity.value;
 
-    if (skuId) {
-      router.push({
-        path: "/quick-checkout",
-        query: { skuId, qty },
-      });
+    if (!skuId) {
+      Swal.fire("錯誤", "找不到可購買的 SKU，請稍後再試或聯絡客服", "error");
+      return;
     }
-  } catch (error) {
-    console.error("❌ 立即購買失敗:", error);
+
+    // 加入購物車
+    const payload = {
+      userId: userStore.userId,
+      skuId,
+      quantity: qty,
+    };
+
+    console.log("📦 加入購物車中...", payload);
+    await axios.post("/api/cart/add", payload, { withCredentials: true });
+
+    // 顯示成功訊息並詢問是否前往購物車
     Swal.fire({
-      title: "立即購買失敗",
-      text: "請稍後再試",
+      title: "已加入購物車",
+      text: "商品已加入購物車，是否前往購物車頁面？",
+      icon: "success",
+      showCancelButton: true,
+      confirmButtonText: "前往購物車",
+      cancelButtonText: "繼續購物",
+    }).then((result) => {
+      if (result.isConfirmed) {
+        // 前往購物車頁面
+        window.location.href = `${window.location.origin}/cart`;
+      }
+    });
+  } catch (error) {
+    console.error("❌ 加入購物車失敗:", error);
+    Swal.fire({
+      title: "加入購物車失敗",
+      text: error.response?.data || "請稍後再試",
       icon: "error",
     });
   }
@@ -889,10 +918,7 @@ const fetchProductDetail = async () => {
           typeof img === "string" ? { imagePath: img } : img
         );
         console.log("商品圖片數據:", productImages.value);
-      } else if (
-        productData.primaryImageUrl ||
-        productData.image
-      ) {
+      } else if (productData.primaryImageUrl || productData.image) {
         console.log("使用主圖/圖片字段:", {
           primaryImageUrl: productData.primaryImageUrl,
           image: productData.image,

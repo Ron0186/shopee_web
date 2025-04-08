@@ -1,85 +1,106 @@
 <template>
-  <div class="cart-container">
-    <h1>🛒 購物車</h1>
+  <div>
+    <div class="cart-container">
+      <h1>🛒 購物車</h1>
 
-    <!-- 購物車為空顯示 -->
-    <div v-if="isLoading" class="loading">載入中...</div>
-    <div v-else-if="cartItems.length === 0" class="empty-cart">
-      <p>你的購物車是空的</p>
-      <button class="continue-shopping" @click="$router.push('/shop')">
-        繼續購物
-      </button>
-    </div>
-
-    <!-- 購物車有商品時顯示 -->
-    <div v-else>
-      <table>
-        <thead>
-          <tr>
-            <th width="40%">商品資訊</th>
-            <th width="15%">規格</th>
-            <th width="10%">單價</th>
-            <th width="15%">數量</th>
-            <th width="10%">小計</th>
-            <th width="10%">操作</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in cartItems" :key="item.cartId">
-            <td class="product-info">
-              <div class="product-image">
-                <img :src="getImageUrl(item.image)" alt="商品圖片" @error="handleImageError" />
-              </div>
-              <div class="product-details">
-                <div class="product-name">{{ item.name }}</div>
-                <div class="shop-name">賣家: {{ item.shopName }}</div>
-              </div>
-            </td>
-            <td class="specs">
-              <div v-if="item.specInfo && Object.keys(item.specInfo).length > 0">
-                <div v-for="(value, key) in item.specInfo" :key="key" class="spec-item">
-                  {{ key }}: {{ value }}
-                </div>
-              </div>
-              <div v-else class="no-specs">無規格</div>
-            </td>
-            <td>{{ item.price.toLocaleString() }} 元</td>
-            <td>
-              <div class="quantity-controls">
-                <button @click="updateQuantity(item.cartId, item.quantity - 1)" :disabled="item.quantity <= 1"
-                  class="quantity-btn">
-                  ➖
-                </button>
-                <span class="quantity">{{ item.quantity }}</span>
-                <button @click="updateQuantity(item.cartId, item.quantity + 1)" :disabled="item.quantity >= item.stock"
-                  class="quantity-btn">
-                  ➕
-                </button>
-              </div>
-              <div v-if="item.stock <= 5" class="stock-warning">
-                剩餘庫存: {{ item.stock }}
-              </div>
-            </td>
-            <td>{{ (item.quantity * item.price).toLocaleString() }} 元</td>
-            <td>
-              <button @click="removeFromCart(item.cartId, item.skuId)" class="delete-btn">
-                刪除
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-
-      <!-- 總計及結帳按鈕 -->
-      <div class="summary">
-        <h3>總計：{{ totalPrice.toLocaleString() }} 元</h3>
-        <button class="checkout-btn" @click="checkout">前往結帳</button>
+      <!-- 購物車為空顯示 -->
+      <div v-if="isLoading" class="loading">載入中...</div>
+      <div v-else-if="cartItems.length === 0" class="empty-cart">
+        <p>你的購物車是空的</p>
+        <button class="continue-shopping" @click="$router.push('/shop')">
+          繼續購物
+        </button>
       </div>
-    </div>
 
-    <!-- 錯誤訊息顯示 -->
-    <div v-if="errorMessage" class="error-message">
-      {{ errorMessage }}
+      <!-- 購物車有商品時顯示 -->
+      <div v-else>
+        <table>
+          <thead>
+            <tr>
+              <th width="40%">商品資訊</th>
+              <th width="15%">規格</th>
+              <th width="10%">單價</th>
+              <th width="15%">數量</th>
+              <th width="10%">小計</th>
+              <th width="10%">操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in cartItems" :key="item.cartId">
+              <td class="product-info">
+                <div class="product-image">
+                  <img
+                    :src="getImageUrl(item.imageUrl)"
+                    alt="商品圖片"
+                    @error="handleImageError"
+                  />
+                </div>
+                <div class="product-details">
+                  <div class="product-name">{{ item.name }}</div>
+                  <div class="shop-name">賣家: {{ item.shopName }}</div>
+                </div>
+              </td>
+              <td class="specs">
+                <div
+                  v-if="item.specInfo && Object.keys(item.specInfo).length > 0"
+                >
+                  <div
+                    v-for="(value, key) in item.specInfo"
+                    :key="key"
+                    class="spec-item"
+                  >
+                    {{ key }}: {{ value }}
+                  </div>
+                </div>
+                <div v-else class="no-specs">無規格</div>
+              </td>
+              <td>{{ item.price.toLocaleString() }} 元</td>
+              <td>
+                <div class="quantity-controls">
+                  <button
+                    @click="updateQuantity(item.cartId, item.quantity - 1)"
+                    :disabled="item.quantity <= 1"
+                    class="quantity-btn"
+                  >
+                    ➖
+                  </button>
+                  <span class="quantity">{{ item.quantity }}</span>
+                  <button
+                    @click="updateQuantity(item.cartId, item.quantity + 1)"
+                    :disabled="item.quantity >= item.stock"
+                    class="quantity-btn"
+                  >
+                    ➕
+                  </button>
+                </div>
+                <div v-if="item.stock <= 5" class="stock-warning">
+                  剩餘庫存: {{ item.stock }}
+                </div>
+              </td>
+              <td>{{ (item.quantity * item.price).toLocaleString() }} 元</td>
+              <td>
+                <button
+                  @click="removeFromCart(item.cartId, item.skuId)"
+                  class="delete-btn"
+                >
+                  刪除
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- 總計及結帳按鈕 -->
+        <div class="summary">
+          <h3>總計：{{ totalPrice.toLocaleString() }} 元</h3>
+          <button class="checkout-btn" @click="checkout">前往結帳</button>
+        </div>
+      </div>
+
+      <!-- 錯誤訊息顯示 -->
+      <div v-if="errorMessage" class="error-message">
+        {{ errorMessage }}
+      </div>
     </div>
   </div>
 </template>
@@ -101,24 +122,40 @@ const userId = ref(userStore.userId);
 const isLoading = ref(true);
 const errorMessage = ref("");
 
-const getImageUrl = (image) => {
-  if (!image) return "/img/default-product.png";
+// const getImageUrl = (image) => {
+//   if (!image) return "/img/default-product.png";
 
-  const imagePath = image.imagePath || image.path || image.url || image;
+//   const imagePath = image.imagePath || image.path || image.url || image;
+//   if (!imagePath) return "/img/default-product.png";
+
+//   // 如果是完整 URL，直接返回
+//   if (typeof imagePath === "string" && imagePath.startsWith("http")) {
+//     return imagePath;
+//   }
+
+//   // 如果是相對路徑，加上基礎 URL
+//   if (typeof imagePath === "string" && baseUrl.value) {
+//     return `${baseUrl.value}${imagePath}`;
+//   }
+
+//   // 如果是本地圖片路徑，直接返回
+//   return imagePath;
+// };
+const getImageUrl = (imagePath) => {
   if (!imagePath) return "/img/default-product.png";
 
+  console.log("原始圖片路徑:", imagePath);
+
   // 如果是完整 URL，直接返回
-  if (typeof imagePath === "string" && imagePath.startsWith("http")) {
-    return imagePath;
-  }
+  if (imagePath.startsWith("http")) return imagePath;
 
-  // 如果是相對路徑，加上基礎 URL
-  if (typeof imagePath === "string" && baseUrl.value) {
-    return `${baseUrl.value}${imagePath}`;
-  }
+  // Spring Boot 靜態資源路徑修正
+  // 確保路徑正確指向 localhost:8081 而不是前端的 localhost:5173
+  const apiBaseUrl = "http://localhost:8081"; // 這裡使用你的後端 API 地址
+  const absolutePath = apiBaseUrl + imagePath;
+  console.log("修正後的圖片路徑:", absolutePath);
 
-  // 如果是本地圖片路徑，直接返回
-  return imagePath;
+  return absolutePath;
 };
 
 const handleImageError = (event) => {
