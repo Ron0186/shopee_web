@@ -1,8 +1,10 @@
 <template>
+
     <div v-if="selectedArticle">
         <h3 class="fw-bold">{{ selectedArticle.question }}</h3>
         <p class="lead">{{ selectedArticle.answer }}</p>
     </div>
+
     <div class="container my-4 help-center">
         <div v-if="!route.params.id" class="text-center mb-5">
             <h6 class="display-5 fw-bold">
@@ -41,7 +43,8 @@
                                 class="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                                 @click.prevent="goToChat(conversation.chatRoomId)">
                                 <div>
-                                    <h5 v-if="isSeller" class="mb-1">與 {{ conversation.buyerName || '未知買家' }} 的對話</h5>
+                                    <h5 v-if="isSeller" class="mb-1">與 {{ conversation.buyerName || '未知買家' }} 的對話
+                                    </h5>
                                     <h5 v-else class="mb-1">與 {{ conversation.sellerName || conversation.shopName ||
                                         '未知賣家' }} 的對話</h5>
                                     <small v-if="isSeller">商店: {{ conversation.shopName || 'N/A' }}</small>
@@ -63,6 +66,7 @@
             </div>
         </div>
     </div>
+
 </template>
 
 <script setup>
