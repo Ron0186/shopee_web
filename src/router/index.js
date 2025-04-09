@@ -64,13 +64,7 @@ const router = createRouter({
           name: "help-center",
           component: () => import("@/views/pages/HelpCenter.vue"),
         },
-        // 幫助中心搜尋內容頁面 留哪個自己判斷~
-        // {
-        //   path: "/search",
-        //   name: "search-link",
-        //   component: SearchResult,
-        //   props: (route) => ({ query: route.query.q }),
-        // },
+
         {
           path: "/search",
           name: "search-link",
@@ -224,6 +218,11 @@ const router = createRouter({
           name: "QuickCheckout",
           component: () => import("@/views/pages/QuickCheckout.vue"),
           meta: { requiresAuth: true },
+        },
+        {
+          path: "/order/success/:orderId",
+          name: "OrderSuccess",
+          component: () => import("@/views/OrderSuccess.vue"),
         },
 
         //評價頁面
