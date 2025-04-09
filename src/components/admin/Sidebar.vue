@@ -50,19 +50,19 @@ const isRouteActive = (route) => {
 <template>
   <div class="sidebar">
     <div class="sidebar-content">
-      <!-- 儀表板/個人資料折疊區 (移除儀錶板) -->
+      <!-- 儀表板/個人資料折疊區 -->
       <div class="section">
         <div class="section-header" @click="toggleSection('dashboard')">
           <div class="header-content">
-            <i class="icon fas fa-tachometer-alt"></i>
+            <i class="bi bi-speedometer2"></i>
             <span>儀表板管理</span>
           </div>
           <i
-            class="fas"
+            class="bi"
             :class="
               expandedSections.dashboard
-                ? 'fa-chevron-down'
-                : 'fa-chevron-right'
+                ? 'bi-chevron-down'
+                : 'bi-chevron-right'
             "
           ></i>
         </div>
@@ -72,7 +72,7 @@ const isRouteActive = (route) => {
             class="nav-subitem"
             :class="{ active: isRouteActive('/admin/profile') }"
           >
-            <i class="icon fas fa-id-card"></i>
+            <i class="bi bi-person-badge"></i>
             <span>個人資料</span>
           </router-link>
         </div>
@@ -82,13 +82,13 @@ const isRouteActive = (route) => {
       <div class="section">
         <div class="section-header" @click="toggleSection('orders')">
           <div class="header-content">
-            <i class="icon fas fa-shopping-cart"></i>
+            <i class="bi bi-cart"></i>
             <span>訂單與物流管理</span>
           </div>
           <i
-            class="fas"
+            class="bi"
             :class="
-              expandedSections.orders ? 'fa-chevron-down' : 'fa-chevron-right'
+              expandedSections.orders ? 'bi-chevron-down' : 'bi-chevron-right'
             "
           ></i>
         </div>
@@ -98,7 +98,7 @@ const isRouteActive = (route) => {
             class="nav-subitem"
             :class="{ active: isRouteActive('/admin/orders') }"
           >
-            <i class="icon fas fa-shopping-cart"></i>
+            <i class="bi bi-cart"></i>
             <span>訂單管理</span>
           </router-link>
           <router-link
@@ -106,23 +106,23 @@ const isRouteActive = (route) => {
             class="nav-subitem"
             :class="{ active: isRouteActive('/admin/integrated-management') }"
           >
-            <i class="icon fas fa-truck"></i>
+            <i class="bi bi-truck"></i>
             <span>物流/支付系統</span>
           </router-link>
         </div>
       </div>
 
-      <!-- 產品管理折疊區 (移除商品標籤) -->
+      <!-- 產品管理折疊區 -->
       <div class="section">
         <div class="section-header" @click="toggleSection('products')">
           <div class="header-content">
-            <i class="icon fas fa-box"></i>
+            <i class="bi bi-box"></i>
             <span>產品管理</span>
           </div>
           <i
-            class="fas"
+            class="bi"
             :class="
-              expandedSections.products ? 'fa-chevron-down' : 'fa-chevron-right'
+              expandedSections.products ? 'bi-chevron-down' : 'bi-chevron-right'
             "
           ></i>
         </div>
@@ -131,20 +131,33 @@ const isRouteActive = (route) => {
             to="/admin/product-review"
             class="nav-subitem"
             v-if="hasPermission('PRODUCT_MANAGER')"
+            :class="{ active: isRouteActive('/admin/product-review') }"
           >
-            <i class="icon fas fa-clipboard-check"></i>
+            <i class="bi bi-clipboard-check"></i>
             <span>商品審核</span>
           </router-link>
-          <router-link to="/admin/category-management" class="nav-subitem">
-            <i class="icon fas fa-tags"></i>
+          <router-link
+            to="/admin/category-management"
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/category-management') }"
+          >
+            <i class="bi bi-tags"></i>
             <span>商品分類</span>
           </router-link>
-          <router-link to="/admin/shop/review" class="nav-subitem">
-            <i class="icon fas fa-store"></i>
+          <router-link
+            to="/admin/shop/review"
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/shop/review') }"
+          >
+            <i class="bi bi-shop"></i>
             <span>商店申請審核</span>
           </router-link>
-          <router-link to="/admin/reviews" class="nav-subitem">
-            <i class="icon fas fa-star"></i>
+          <router-link
+            to="/admin/reviews"
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/admin/reviews') }"
+          >
+            <i class="bi bi-star"></i>
             <span>評價管理</span>
           </router-link>
         </div>
@@ -154,13 +167,13 @@ const isRouteActive = (route) => {
       <div class="section">
         <div class="section-header" @click="toggleSection('users')">
           <div class="header-content">
-            <i class="icon fas fa-users"></i>
+            <i class="bi bi-people"></i>
             <span>用戶管理</span>
           </div>
           <i
-            class="fas"
+            class="bi"
             :class="
-              expandedSections.users ? 'fa-chevron-down' : 'fa-chevron-right'
+              expandedSections.users ? 'bi-chevron-down' : 'bi-chevron-right'
             "
           ></i>
         </div>
@@ -169,16 +182,18 @@ const isRouteActive = (route) => {
             to="/admin/users"
             class="nav-subitem"
             v-if="hasPermission('ACCOUNT_MANAGER')"
+            :class="{ active: isRouteActive('/admin/users') }"
           >
-            <i class="icon fas fa-user"></i>
+            <i class="bi bi-person"></i>
             <span>會員管理</span>
           </router-link>
           <router-link
             to="/admin/administrators"
             class="nav-subitem"
             v-if="userStore.roles.includes('SUPER_ADMIN')"
+            :class="{ active: isRouteActive('/admin/administrators') }"
           >
-            <i class="icon fas fa-user-shield"></i>
+            <i class="bi bi-person-badge-fill"></i>
             <span>管理員管理</span>
           </router-link>
         </div>
@@ -188,69 +203,79 @@ const isRouteActive = (route) => {
       <div class="section">
         <div class="section-header" @click="toggleSection('coupons')">
           <div class="header-content">
-            <i class="icon fas fa-ticket-alt"></i>
+            <i class="bi bi-ticket"></i>
             <span>優惠券</span>
           </div>
           <i
-            class="fas"
+            class="bi"
             :class="
-              expandedSections.coupons ? 'fa-chevron-down' : 'fa-chevron-right'
+              expandedSections.coupons ? 'bi-chevron-down' : 'bi-chevron-right'
             "
           ></i>
         </div>
         <div class="section-content" v-show="expandedSections.coupons">
-          <router-link to="/coupon/adminCouponManager" class="nav-subitem">
-            <i class="icon fas fa-ticket-alt"></i>
+          <router-link
+            to="/coupon/adminCouponManager"
+            class="nav-subitem"
+            :class="{ active: isRouteActive('/coupon/adminCouponManager') }"
+          >
+            <i class="bi bi-ticket"></i>
             <span>優惠券管理</span>
           </router-link>
         </div>
       </div>
 
-      <!-- 數據分析折疊區 (移除總攬分析和銷售報告) -->
+      <!-- 數據分析折疊區 -->
       <div class="section">
         <div class="section-header" @click="toggleSection('analytics')">
           <div class="header-content">
-            <i class="icon fas fa-chart-line"></i>
+            <i class="bi bi-graph-up"></i>
             <span>數據分析</span>
           </div>
           <i
-            class="fas"
+            class="bi"
             :class="
               expandedSections.analytics
-                ? 'fa-chevron-down'
-                : 'fa-chevron-right'
+                ? 'bi-chevron-down'
+                : 'bi-chevron-right'
             "
           ></i>
         </div>
         <div class="section-content" v-show="expandedSections.analytics">
-          <router-link to="/admin/analytics/user-analytics" class="nav-subitem">
-            <i class="icon fas fa-users-cog"></i>
+          <router-link
+            to="/admin/analytics/user-analytics"
+            class="nav-subitem"
+            :class="{
+              active: isRouteActive('/admin/analytics/user-analytics'),
+            }"
+          >
+            <i class="bi bi-people"></i>
             <span>用戶分析</span>
           </router-link>
         </div>
       </div>
 
-      <!-- 設定折疊區 (移除管理員帳號) -->
+      <!-- 設定折疊區 -->
       <div class="section">
         <div class="section-header" @click="toggleSection('settings')">
           <div class="header-content">
-            <i class="icon fas fa-cog"></i>
+            <i class="bi bi-gear"></i>
             <span>系統設定</span>
           </div>
           <i
-            class="fas"
+            class="bi"
             :class="
-              expandedSections.settings ? 'fa-chevron-down' : 'fa-chevron-right'
+              expandedSections.settings ? 'bi-chevron-down' : 'bi-chevron-right'
             "
           ></i>
         </div>
         <div class="section-content" v-show="expandedSections.settings">
           <router-link to="/admin/settings" class="nav-subitem">
-            <i class="icon fas fa-sliders-h"></i>
+            <i class="bi bi-sliders"></i>
             <span>一般設定</span>
           </router-link>
           <router-link to="/admin/settings/platform" class="nav-subitem">
-            <i class="icon fas fa-tools"></i>
+            <i class="bi bi-tools"></i>
             <span>平台設定</span>
           </router-link>
         </div>
@@ -258,7 +283,7 @@ const isRouteActive = (route) => {
 
       <!-- 登出按鈕 -->
       <button @click="logout" class="logout-btn">
-        <i class="icon fas fa-sign-out-alt"></i>
+        <i class="bi bi-box-arrow-right"></i>
         <span>登出系統</span>
       </button>
     </div>
@@ -298,7 +323,11 @@ const isRouteActive = (route) => {
   position: relative;
   font-size: 14px;
   margin: 2px 0;
-  text-align: left;
+  /* text-align: left; */
+}
+
+.nav-subitem {
+  gap: 6px;
 }
 
 .section-header {
@@ -320,7 +349,8 @@ const isRouteActive = (route) => {
 .header-content {
   display: flex;
   align-items: center;
-  text-align: left;
+  justify-items: flex-start;
+  gap: 6px;
 }
 
 .nav-item:hover,
@@ -393,6 +423,7 @@ const isRouteActive = (route) => {
   transition: all 0.2s ease;
   font-size: 14px;
   text-align: left;
+  gap: 6px;
 }
 
 .logout-btn:hover {
