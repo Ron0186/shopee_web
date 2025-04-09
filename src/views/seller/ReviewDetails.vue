@@ -67,7 +67,7 @@
         <button @click="nextPage" :disabled="currentPage === totalPages">下一頁</button>
       </div>
   
-      <button @click="goBack" class="back-btn">返回上一頁</button>
+      <button @click="goBack" class="back-btn">返回</button>
     </div>
   </template>
   

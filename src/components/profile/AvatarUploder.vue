@@ -4,8 +4,8 @@
   :src="previewUrl"
   alt="頭像"
   :style="`width: ${avatarSize}px; height: ${avatarSize}px;`"
-  class="rounded-full object-cover border-2 border-gray-300 shadow-md cursor-pointer hover:opacity-70 hover:scale-105 transition"
-  @click="openCropperWindow"
+  class="rounded-full object-cover border-2 border-gray-300 shadow-md cursor-pointer hover:opacity-70 hover:scale-105 transition photo"
+  @click="openCropperWindow" title="點擊以變更個人照片"
 />
     </div>
   </template>
@@ -53,4 +53,8 @@ const avatarSize = computed(() => props.size || 128); // 預設 64px
   });
   </script>
   
-  <style scoped></style>
+  <style scoped>
+.photo{
+  cursor: pointer;
+}
+</style>

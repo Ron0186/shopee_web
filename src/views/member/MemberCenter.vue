@@ -9,7 +9,7 @@
 
       <!-- 頭像顯示與上傳 -->
       <!-- 頭像顯示與上傳 -->
-<div class="flex justify-end mb-4 pPhoto">
+<div class="flex justify-end mb-4 pPhoto" >
   <AvatarUploader
   :avatarUrl="userStore.getProfilePhoto"
   @upload-success="uploadAvatar"
@@ -57,9 +57,9 @@
         <img src="@/assets/angle-small-right.png" class="icon" />
       </div>
 
-      <p class="text-sm text-gray-500 mb-4">註冊時間：{{ formatDate(user.createdAt) }}</p>
+      <p class="text-sm text-gray-500 mb-4">您在{{ formatDate(user.createdAt) }}加入購了沒大家庭</p>
 
-      <button @click="logout" class="w-full bg-red-500 text-black py-2 rounded mt-6 hover:bg-red-600">
+      <button @click="logout" class="w-full bg-red-500 text-white py-2 rounded mt-6 hover:bg-red-600">
         登出
       </button>
     </div>
