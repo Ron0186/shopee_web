@@ -94,14 +94,18 @@
                     </td>
                     <td>
                       <span
-                        class="badge"
+                        class="badge px-3 py-2 fw-semibold"
                         :class="{
+                          'bg-secondary text-white': order.status === '未付款',
                           'bg-warning text-dark': order.status === '處理中',
-                          'bg-success': order.status === '已完成',
-                          'bg-danger': order.status === '已取消',
+                          'bg-success text-white':
+                            order.status === '已完成' ||
+                            order.status === '已付款' ||
+                            order.status === '已出貨',
+                          'bg-danger text-white': order.status === '已取消',
                         }"
                       >
-                        {{ order.status }}
+                        {{ order.status || "未提供" }}
                       </span>
                     </td>
                     <td>
@@ -292,11 +296,15 @@
                   <table class="table table-bordered">
                     <tr>
                       <th class="bg-light">付款方式</th>
-                      <td>{{ selectedOrder.paymentMethod || "未提供" }}</td>
+                      <td>
+                        {{ formatPaymentMethod(selectedOrder.paymentMethod) }}
+                      </td>
                     </tr>
                     <tr>
                       <th class="bg-light">付款狀態</th>
-                      <td>{{ selectedOrder.paymentStatus || "未提供" }}</td>
+                      <td>
+                        {{ formatPaymentStatus(selectedOrder.paymentStatus) }}
+                      </td>
                     </tr>
                   </table>
                 </div>
@@ -670,6 +678,47 @@ const isSeller = computed(() => {
   console.log("當前角色:", userStore.roles);
   return userStore.roles?.includes("SELLER");
 });
+const formatPaymentMethod = (method) => {
+  switch (method) {
+    case "CASH_ON_DELIVERY":
+    case "貨到付款":
+      return "貨到付款";
+    case "CREDIT_CARD":
+    case "CREDIT":
+    case "信用卡":
+      return "信用卡";
+    case "BANK_TRANSFER":
+    case "銀行轉帳":
+      return "銀行轉帳";
+    case "CVS":
+    case "超商付款":
+      return "超商付款";
+    case "":
+    case null:
+    case undefined:
+      return "未提供";
+    default:
+      return method;
+  }
+};
+const paymentMethodMap = {
+  CASH_ON_DELIVERY: "貨到付款",
+  CREDIT_CARD: "信用卡",
+  CREDIT: "信用卡",
+  BANK_TRANSFER: "銀行轉帳",
+  CVS: "超商付款",
+};
+
+const formatPaymentStatus = (status) => {
+  return paymentStatusMap[status] || status || "未提供";
+};
+const paymentStatusMap = {
+  PAID: "已付款",
+  UNPAID: "未付款",
+  REFUNDED: "已退款",
+  PROCESSING: "處理中",
+  "": "未提供",
+};
 
 const orders = ref([]);
 const selectedOrder = ref({});
@@ -1245,5 +1294,9 @@ th i.bi {
 .modal-dialog .modal-content {
   max-height: 90vh;
   overflow-y: auto;
+}
+.badge {
+  font-size: 0.85rem;
+  border-radius: 1rem;
 }
 </style>
