@@ -13,12 +13,6 @@
           placeholder="搜尋商品或訂單號碼"
           @input="filterOrders"
         />
-        <input
-          type="text"
-          v-model="searchQuery"
-          placeholder="搜尋商品或訂單號碼"
-          @input="filterOrders"
-        />
       </div>
       <div class="filter-controls">
         <select v-model="statusFilter" @change="filterOrders">

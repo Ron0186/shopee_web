@@ -242,16 +242,31 @@ const isCouponValid = (coupon) => {
   const now = new Date();
   const start = new Date(coupon.startDate);
   const end = new Date(coupon.endDate);
+
+  // 增加調試日誌
+  console.log("優惠券驗證:", {
+    now: now,
+    start: start,
+    end: end,
+    isValid: now >= start && now <= end,
+  });
+
   return now >= start && now <= end;
 };
 
 const formatDate = (dateStr) => {
-  const date = new Date(dateStr);
-  return date.toLocaleDateString("zh-TW", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
+  if (!dateStr) return "未設定";
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("zh-TW", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  } catch (error) {
+    console.error("日期轉換錯誤:", dateStr);
+    return "日期無效";
+  }
 };
 
 // 狀態與資料
@@ -343,7 +358,18 @@ const fetchAvailableCoupons = async () => {
         shopId: cartItems.value[0]?.shopId,
       },
     });
-    availableCoupons.value = res.data;
+
+    // 增加日誌輸出
+    console.log("可用優惠券原始數據:", res.data);
+
+    // 篩選有效優惠券
+    availableCoupons.value = res.data.filter((coupon) => {
+      const isValid = isCouponValid(coupon);
+      console.log(`優惠券 ${coupon.couponName} 是否有效:`, isValid);
+      return isValid;
+    });
+
+    console.log("過濾後的可用優惠券:", availableCoupons.value);
   } catch (err) {
     console.error("❌ 無法取得可用優惠券", err);
   }

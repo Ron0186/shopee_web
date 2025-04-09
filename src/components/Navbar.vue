@@ -4,32 +4,78 @@
     <button class="menu-btn btn" @click="toggleDrawer">☰</button>
 
     <!-- 回首頁 -->
-    <h1 class="title" style="margin: 0; position: relative; text-align: center; display: flex; align-items: center; justify-content: center;">
-  <router-link to="/shop" style="color: #404040; text-decoration: none; font-weight: 700; font-size: 1.8rem; letter-spacing: 1px; transition: all 0.3s ease; display: flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 8px;">
-    <!-- 直接內嵌SVG以確保它能顯示並控制大小 -->
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" style="width: 65px; height: 65px; margin-right: 15px;">
+    <h1
+      class="title"
+      style="
+        margin: 0;
+        position: relative;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      "
+    >
+      <router-link
+        to="/shop"
+        style="
+          color: #404040;
+          text-decoration: none;
+          font-weight: 700;
+          font-size: 1.8rem;
+          letter-spacing: 1px;
+          transition: all 0.3s ease;
+          display: flex;
+          align-items: center;
+          padding: 0.2rem 0.6rem;
+          border-radius: 8px;
+        "
+      >
+        <!-- 直接內嵌SVG以確保它能顯示並控制大小 -->
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 120 120"
+          style="width: 65px; height: 65px; margin-right: 15px"
+        >
+          <!-- 購物車主體 -->
+          <path
+            d="M20 30 L35 30 L50 75 L85 75 L95 40 L40 40"
+            fill="none"
+            stroke="#ff9b20"
+            stroke-width="8"
+            stroke-linejoin="round"
+          />
 
+          <!-- 購物車輪子 -->
+          <circle
+            cx="45"
+            cy="90"
+            r="10"
+            fill="#ffad4d"
+            stroke="#ff9b20"
+            stroke-width="3"
+          />
+          <circle cx="45" cy="90" r="4" fill="#ff9b20" />
 
-<!-- 購物車主體 -->
-      <path d="M20 30 L35 30 L50 75 L85 75 L95 40 L40 40" fill="none" stroke="#ff9b20" stroke-width="8" stroke-linejoin="round" />
-      
-      <!-- 購物車輪子 -->
-      <circle cx="45" cy="90" r="10" fill="#ffad4d" stroke="#ff9b20" stroke-width="3" />
-      <circle cx="45" cy="90" r="4" fill="#ff9b20" />
-      
-      <circle cx="80" cy="90" r="10" fill="#ffad4d" stroke="#ff9b20" stroke-width="3" />
-      <circle cx="80" cy="90" r="4" fill="#ff9b20" />
-      
-      <!-- 購物車中的物品 -->
-      <rect x="55" y="45" width="15" height="20" rx="2" fill="#ffad4d" />
-      <rect x="65" y="50" width="10" height="15" rx="2" fill="#ffad4d" />
-      
-      <!-- 閃亮效果 -->
-      <circle cx="85" cy="45" r="5" fill="white" opacity="0.7" />
-    </svg>
-    購了沒
-  </router-link>
-</h1>
+          <circle
+            cx="80"
+            cy="90"
+            r="10"
+            fill="#ffad4d"
+            stroke="#ff9b20"
+            stroke-width="3"
+          />
+          <circle cx="80" cy="90" r="4" fill="#ff9b20" />
+
+          <!-- 購物車中的物品 -->
+          <rect x="55" y="45" width="15" height="20" rx="2" fill="#ffad4d" />
+          <rect x="65" y="50" width="10" height="15" rx="2" fill="#ffad4d" />
+
+          <!-- 閃亮效果 -->
+          <circle cx="85" cy="45" r="5" fill="white" opacity="0.7" />
+        </svg>
+        購了沒
+      </router-link>
+    </h1>
 
     <!-- 會員中心按鈕 -->
     <div class="nav-icons">
@@ -431,7 +477,7 @@ async function logout() {
     confirmButtonText: "OK",
   });
   if (response.isConfirmed) {
-    router.push("/shop");
+    router.push("/user/login");
   }
 }
 
@@ -484,7 +530,6 @@ async function logoutToAdmin() {
   align-items: center;
   justify-content: center;
   font-size: 1.8rem; /* 增大字體 */
-
 }
 
 .title > a {
@@ -972,7 +1017,7 @@ async function logoutToAdmin() {
   .title > a {
     font-size: 1.4rem;
   }
-  
+
   .site-logo {
     width: 28px;
     height: 28px;
