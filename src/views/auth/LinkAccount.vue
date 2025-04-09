@@ -8,10 +8,30 @@
 
     <div v-else-if="error" class="error-container">
       <div class="error-icon">
-        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#FF6B6B" stroke-width="2" />
-          <path d="M15 9L9 15" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round" />
-          <path d="M9 9L15 15" stroke="#FF6B6B" stroke-width="2" stroke-linecap="round" />
+        <svg
+          width="64"
+          height="64"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z"
+            stroke="#FF6B6B"
+            stroke-width="2"
+          />
+          <path
+            d="M15 9L9 15"
+            stroke="#FF6B6B"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
+          <path
+            d="M9 9L15 15"
+            stroke="#FF6B6B"
+            stroke-width="2"
+            stroke-linecap="round"
+          />
         </svg>
       </div>
       <h2>發生錯誤</h2>
@@ -21,15 +41,18 @@
 
     <div v-else class="content-container">
       <h1>連結帳號</h1>
-      
+
       <div class="google-info">
         <div class="profile-image">
-          <img :src="googlePicture || 'https://via.placeholder.com/80'" alt="Google Profile" />
+          <!-- Fix: Add debug log and ensure proper fallback -->
+          <img :src="decodedGooglePicture" alt="Google Profile" />
         </div>
         <p class="info-text">
-         您的 Google 帳號 <strong>{{ googleInfo.email }}</strong> 與系統中的一個現有帳號使用相同的電子郵件。
-         為避免重複帳號，您只能將此 Google 帳號綁定到現有帳號。
-       </p>
+          您的 Google 帳號
+          <strong>{{ googleInfo.email }}</strong>
+          與系統中的一個現有帳號使用相同的電子郵件。 為避免重複帳號，您只能將此
+          Google 帳號綁定到現有帳號。
+        </p>
       </div>
 
       <div class="account-info">
@@ -38,32 +61,32 @@
           <p><span>用戶名:</span> {{ existingAccount.username }}</p>
           <p><span>電子郵件:</span> {{ existingAccount.email }}</p>
           <p><span>電話:</span> {{ maskPhoneNumber(existingAccount.phone) }}</p>
-          <p><span>註冊時間:</span> {{ formatDate(existingAccount.createdAt) }}</p>
+          <p>
+            <span>註冊時間:</span> {{ formatDate(existingAccount.createdAt) }}
+          </p>
         </div>
       </div>
 
       <div class="options">
         <p class="question">您想要如何處理這個帳號？</p>
-        
+
         <button @click="linkAccount" class="btn-primary">
           <span v-if="linking">處理中...</span>
           <span v-else>綁定到現有帳號</span>
         </button>
-        
-        <button @click="goToLogin" class="btn-text">
-          返回登入頁面
-        </button>
+
+        <button @click="goToLogin" class="btn-text">返回登入頁面</button>
       </div>
     </div>
   </div>
 </template>
 
 <script>
-import axios from '@/plugins/axios';
-import Swal from 'sweetalert2';
+import axios from "@/plugins/axios";
+import Swal from "sweetalert2";
 
 export default {
-  name: 'LinkAccount',
+  name: "LinkAccount",
   data() {
     return {
       loading: true,
@@ -71,18 +94,37 @@ export default {
       googleInfo: null,
       existingAccount: null,
       token: null,
-      googlePicture: null, // 新增GooglePicture屬性
-      linking: false
+      googlePicture: null,
+      linking: false,
     };
+  },
+  computed: {
+    // Add a computed property to handle potential URL encoding issues
+    decodedGooglePicture() {
+      if (!this.googlePicture) {
+        return "https://via.placeholder.com/80";
+      }
+
+      try {
+        // Try to decode the URL in case it was encoded
+        return decodeURIComponent(this.googlePicture);
+      } catch (error) {
+        console.error("Error decoding Google picture URL:", error);
+        return this.googlePicture || "https://via.placeholder.com/80";
+      }
+    },
   },
   created() {
     // 從 URL 獲取 token 和 picture
     const urlParams = new URLSearchParams(window.location.search);
-    this.token = urlParams.get('token');
-    this.googlePicture = urlParams.get('picture'); // 獲取URL中的picture參數
+    this.token = urlParams.get("token");
+    this.googlePicture = urlParams.get("picture");
+
+    // Add debugging for picture URL
+    console.log("Google Picture URL:", this.googlePicture);
 
     if (!this.token) {
-      this.error = '找不到令牌。請重新登入。';
+      this.error = "找不到令牌。請重新登入。";
       this.loading = false;
       return;
     }
@@ -92,21 +134,34 @@ export default {
   methods: {
     async fetchTokenInfo() {
       try {
-        const response = await axios.get('/api/auth/token-info', {
+        const response = await axios.get("/api/auth/token-info", {
           headers: {
-            Authorization: `Bearer ${this.token}`
-          }
+            Authorization: `Bearer ${this.token}`,
+          },
         });
 
         if (response.data.success) {
           this.googleInfo = response.data.googleInfo;
           this.existingAccount = response.data.existingAccount;
+
+          // If picture wasn't in URL params, try to get it from the token info
+          if (
+            !this.googlePicture &&
+            response.data.googleInfo &&
+            response.data.googleInfo.picture
+          ) {
+            this.googlePicture = response.data.googleInfo.picture;
+            console.log(
+              "Retrieved picture from token info:",
+              this.googlePicture
+            );
+          }
         } else {
-          this.error = response.data.message || '無法載入帳號資訊';
+          this.error = response.data.message || "無法載入帳號資訊";
         }
       } catch (err) {
-        console.error('Error fetching token info:', err);
-        this.error = err.response?.data?.message || '發生錯誤，請稍後再試';
+        console.error("Error fetching token info:", err);
+        this.error = err.response?.data?.message || "發生錯誤，請稍後再試";
       } finally {
         this.loading = false;
       }
@@ -114,27 +169,31 @@ export default {
     async linkAccount() {
       try {
         this.linking = true;
-        const response = await axios.post('/api/auth/link-google-account', {}, {
-          headers: {
-            Authorization: `Bearer ${this.token}`
+        const response = await axios.post(
+          "/api/auth/link-google-account",
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${this.token}`,
+            },
           }
-        });
+        );
 
         if (response.data.success) {
           Swal.fire({
-              title: '綁定成功！',
-              text: '您的 Google 帳號已成功綁定到現有帳號，請重新使用 Google 登入',
-              icon: 'success',
-              confirmButtonText: '前往登入'
+            title: "綁定成功！",
+            text: "您的 Google 帳號已成功綁定到現有帳號，請重新使用 Google 登入",
+            icon: "success",
+            confirmButtonText: "前往登入",
           }).then(() => {
-              this.$router.push('/user/login');
+            this.$router.push("/user/login");
           });
-          } else {
-          this.error = response.data.message || '無法綁定帳號';
+        } else {
+          this.error = response.data.message || "無法綁定帳號";
         }
       } catch (err) {
-        console.error('Error linking account:', err);
-        this.error = err.response?.data?.message || '處理請求時發生錯誤';
+        console.error("Error linking account:", err);
+        this.error = err.response?.data?.message || "處理請求時發生錯誤";
       } finally {
         this.linking = false;
       }
@@ -144,34 +203,34 @@ export default {
       this.$router.push(`/fill-phone?token=${this.token}`);
     },
     goToLogin() {
-      this.$router.push('/user/login');
+      this.$router.push("/user/login");
     },
     formatDate(dateString) {
-      if (!dateString) return '無資料';
-      
+      if (!dateString) return "無資料";
+
       const date = new Date(dateString);
-      return new Intl.DateTimeFormat('zh-TW', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
+      return new Intl.DateTimeFormat("zh-TW", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
       }).format(date);
     },
     maskPhoneNumber(phone) {
-      if (!phone) return '無資料';
-      
+      if (!phone) return "無資料";
+
       // 確保至少有4個字符才進行遮罩
       if (phone.length <= 4) return phone;
-      
+
       // 取前4碼
       const firstFour = phone.substring(0, 4);
       // 剩餘部分全部用*取代
-      const stars = '*'.repeat(phone.length - 4);
-      
+      const stars = "*".repeat(phone.length - 4);
+
       return firstFour + stars;
-    }
-  }
+    },
+  },
 };
 </script>
 
@@ -180,7 +239,7 @@ export default {
   max-width: 600px;
   margin: 0 auto;
   padding: 2rem;
-  font-family: 'Noto Sans TC', sans-serif;
+  font-family: "Noto Sans TC", sans-serif;
 }
 
 h1 {
@@ -215,7 +274,9 @@ h2 {
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .error-container {
@@ -252,6 +313,7 @@ h2 {
   overflow: hidden;
   border-radius: 50%;
   margin-bottom: 1rem;
+  border: 1px solid #eee; /* Add border to make the image area visible */
 }
 
 .profile-image img {

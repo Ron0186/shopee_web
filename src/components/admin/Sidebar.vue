@@ -282,7 +282,6 @@ async function logoutToFrontend() {
             class="nav-subitem"
             :class="{ active: isRouteActive('/admin/administrators') }"
             v-if="userStore.roles.includes('SUPER_ADMIN')"
-            :class="{ active: isRouteActive('/admin/administrators') }"
           >
             <i class="bi bi-person-badge-fill"></i>
             <span>管理員管理</span>
