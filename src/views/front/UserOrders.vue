@@ -13,6 +13,12 @@
           placeholder="搜尋商品或訂單號碼"
           @input="filterOrders"
         />
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="搜尋商品或訂單號碼"
+          @input="filterOrders"
+        />
       </div>
       <div class="filter-controls">
         <select v-model="statusFilter" @change="filterOrders">
@@ -85,8 +91,7 @@
               >
                 <div class="product-image">
                   <img
-                    :src="getProductImageUrl(item)"
-                    :alt="item.productName"
+                    :src="getFullImageUrl(item.imageUrl)"
                     style="
                       width: 100%;
                       height: 100%;
@@ -287,6 +292,9 @@ import { useRouter } from "vue-router";
 
 // 在 setup 函數中定義
 const router = useRouter();
+
+const BASE_IMAGE_URL = "http://localhost:8081"; // 或部署後的網址
+const getFullImageUrl = (url) => `${BASE_IMAGE_URL}${url}`;
 
 const directPayOrder = (orderId) => {
   router.push(`/checkout/pay/${orderId}`);

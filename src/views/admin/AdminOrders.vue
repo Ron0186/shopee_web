@@ -999,7 +999,7 @@ const formatPrice = (price) => {
 /* 訂單管理頁面全局樣式 */
 .admin-orders {
   padding: 20px;
-  max-width: 1400px;
+  max-width: 1700px;
   margin: 0 auto;
   font-family: "Noto Sans TC", sans-serif;
 }
@@ -1116,69 +1116,70 @@ const formatPrice = (price) => {
 }
 
 .order-table {
-  width: 100%;
+  width: 1680px;
   border-collapse: collapse;
   font-size: 14px;
   table-layout: fixed; /* 固定表格布局，防止跑版 */
+  overflow-x: auto;
 }
 
 /* 定義每列的寬度 */
 .order-table th:nth-child(1),
 .order-table td:nth-child(1) {
-  width: 5%; /* 訂單編號列 */
+  width: 8%; /* 訂單編號列 */
   text-align: center;
 }
 
 .order-table th:nth-child(2),
 .order-table td:nth-child(2) {
-  width: 10%; /* 用戶列 */
+  width: 8%; /* 用戶列 */
 }
 
 .order-table th:nth-child(3),
 .order-table td:nth-child(3) {
-  width: 10%; /* 總金額列 */
+  width: 8%; /* 總金額列 */
   text-align: right;
 }
 
 .order-table th:nth-child(4),
 .order-table td:nth-child(4) {
-  width: 10%; /* 訂單狀態列 */
+  width: 8%; /* 訂單狀態列 */
   text-align: center;
 }
 
 .order-table th:nth-child(5),
 .order-table td:nth-child(5) {
-  width: 10%; /* 付款方式列 */
+  width: 8%; /* 付款方式列 */
   text-align: center;
 }
 
 .order-table th:nth-child(6),
 .order-table td:nth-child(6) {
-  width: 10%; /* 付款狀態列 */
+  width: 8%; /* 付款狀態列 */
   text-align: center;
 }
 
 .order-table th:nth-child(7),
 .order-table td:nth-child(7) {
-  width: 10%; /* 運送狀態列 */
+  width: 8%; /* 運送狀態列 */
   text-align: center;
 }
 
 .order-table th:nth-child(8),
 .order-table td:nth-child(8) {
-  width: 5%; /* 商品數量列 */
+  width: 8%; /* 商品數量列 */
   text-align: center;
 }
 
 .order-table th:nth-child(9),
 .order-table td:nth-child(9) {
-  width: 15%; /* 成立時間列 */
+  width: 14%; /* 成立時間列 */
   text-align: center;
 }
 
 .order-table th:nth-child(10),
 .order-table td:nth-child(10) {
-  width: 15%; /* 操作列 */
+  width: 14%; /* 操作列 */
   text-align: center;
 }
 
