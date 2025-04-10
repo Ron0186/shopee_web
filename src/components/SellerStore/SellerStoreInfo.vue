@@ -27,12 +27,12 @@
     </div>
 
     <!-- 編輯按鈕 (右側) -->
-    <button
+    <!-- <button
       class="btn btn-edit-shop"
       :style="{ visibility: isOwner ? 'visible' : 'hidden' }"
     >
       ⚙️ 編輯賣場資訊
-    </button>
+    </button> -->
   </div>
 </template>
 

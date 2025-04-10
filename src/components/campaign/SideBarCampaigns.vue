@@ -1,14 +1,17 @@
 <template>
   <div class="side-campaigns-container" :class="{ expanded: isExpanded }">
-    <!-- 折疊/展開按鈕 -->
-    <button class="toggle-btn" @click="toggleExpand">
-      <span class="toggle-text">{{ isExpanded ? "收起" : "優惠" }}</span>
-      <span class="toggle-icon">{{ isExpanded ? "»" : "«" }}</span>
+    <!-- 未展開時只顯示的按鈕 -->
+    <button v-if="!isExpanded" class="expand-btn" @click="toggleExpand">
+      <span class="marketing-icon">&#9733;</span>
+      <span class="marketing-text">優惠</span>
     </button>
 
-    <!-- 活動內容區域 -->
-    <div class="campaigns-content">
-      <h2 class="campaigns-title">店家活動</h2>
+    <!-- 展開後的內容 -->
+    <div class="campaigns-content" v-if="isExpanded">
+      <div class="header">
+        <h2 class="campaigns-title">店家活動</h2>
+        <button class="close-btn" @click="toggleExpand">&times;</button>
+      </div>
 
       <div v-if="loadingCampaigns" class="loading-spinner">
         <div class="spinner"></div>
@@ -94,7 +97,9 @@
                   <span v-if="coupon.redeemedByCurrentUser">已領取</span>
                   <span v-else-if="coupon.remainingQuantity <= 0">已領完</span>
                   <span v-else-if="!isLoggedIn">請先登入</span>
-                  <span v-else-if="!isCampaignStarted(campaign)">未開始</span>
+                  <span v-else-if="!isCampaignStarted(campaign)"
+                    >活動尚未開始</span
+                  >
                   <span v-else>立即領取</span>
                 </button>
               </div>
@@ -112,8 +117,8 @@
     </div>
 
     <!-- 活動詳情彈窗 -->
-    <div v-if="showModal" class="campaign-modal">
-      <div class="campaign-modal-content">
+    <div v-if="showModal" class="campaign-modal" @click="closeModal">
+      <div class="campaign-modal-content" @click.stop>
         <span class="close-btn" @click="showModal = false">&times;</span>
 
         <h2>{{ selectedCampaign.campaignName }}</h2>
@@ -252,6 +257,11 @@ const isLoggedIn = computed(() => {
 // 切換側邊欄顯示狀態
 const toggleExpand = () => {
   isExpanded.value = !isExpanded.value;
+
+  // 如果是展開狀態，則自動獲取活動
+  if (isExpanded.value && campaigns.value.length === 0) {
+    fetchCampaigns();
+  }
 };
 
 // 獲取商店的所有活動
@@ -311,6 +321,11 @@ const showCampaignDetail = (campaign) => {
   showModal.value = true;
 };
 
+// 關閉模態窗
+const closeModal = () => {
+  showModal.value = false;
+};
+
 // 修改 getImageUrl 函數
 const getImageUrl = (path) => {
   if (!path) return "";
@@ -347,7 +362,6 @@ const redeemCoupon = async (campaign, coupon) => {
     return;
   }
 
-  // 如果用戶未登入，提示登入
   // 如果用戶未登入，提示登入
   if (!isLoggedIn.value) {
     Swal.fire({
@@ -419,152 +433,115 @@ const formatDiscount = (type, value) => {
   }
 };
 
-// 自動展開設置 - 根據存在的活動數量決定是否自動展開
-const autoExpandIfActiveCampaigns = () => {
-  // 如果有活動且包含可領取的優惠券，可以選擇自動展開
-  if (campaigns.value.length > 0) {
-    // 檢查是否有活動包含未領取的優惠券
-    const hasAvailableCoupons = campaigns.value.some((campaign) => {
-      const coupons = getCampaignCoupons(campaign.campaignId);
-      return coupons.some(
-        (coupon) =>
-          !coupon.redeemedByCurrentUser &&
-          coupon.remainingQuantity > 0 &&
-          isCampaignStarted(campaign)
-      );
-    });
-
-    if (hasAvailableCoupons) {
-      // 有未領取的優惠券時自動展開
-      // isExpanded.value = true; // 取消註釋以啟用自動展開
-    }
-  }
-};
-
-// 監聽路由變化時關閉側邊欄
-if (router) {
-  router.afterEach(() => {
-    isExpanded.value = false;
-  });
-}
-
+// 只在用戶點擊展開按鈕時才加載活動數據
 onMounted(() => {
-  fetchCampaigns().then(() => {
-    autoExpandIfActiveCampaigns();
-  });
+  // 不再自動加載數據
+  // fetchCampaigns();
 });
 </script>
 
 <style scoped>
-/* 側邊欄容器 */
 .side-campaigns-container {
   position: fixed;
   right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 44px;
-  height: auto;
-  background-color: white;
-  box-shadow: -2px 0 15px rgba(0, 0, 0, 0.1);
-  border-radius: 10px 0 0 10px;
-  z-index: 1000;
-  transition: all 0.3s ease-in-out;
-  overflow: hidden;
-  border: 1px solid #eee;
-  border-right: none;
-  border-left: 3px solid #ff6b6b; /* 使用邊框替代偽元素 */
-}
-
-.side-campaigns-container.expanded {
-  width: 320px;
-  max-height: 80vh;
-  overflow-y: auto;
-}
-
-/* 切換按鈕 */
-.toggle-btn {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100px;
-  background-color: #ff6b6b;
-  color: white;
-  border: none;
-  cursor: pointer;
-  font-weight: 600;
-  white-space: nowrap;
+  top: 40%;
+  z-index: 100;
   transition: all 0.3s ease;
-  z-index: 10;
+}
+
+/* 未展開時的按鈕樣式 */
+.expand-btn {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  letter-spacing: 2px;
-  font-size: 16px;
+  width: 60px;
+  height: 70px;
+  background-color: #ff6b6b;
+  color: white;
+  border: none;
+  border-radius: 8px 0 0 8px;
+  cursor: pointer;
+  box-shadow: -2px 2px 10px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
 }
 
-.toggle-btn:hover {
+.expand-btn:hover {
   background-color: #ff5252;
+  width: 65px;
 }
 
-.toggle-text {
-  display: block;
+.marketing-icon {
+  font-size: 24px;
   margin-bottom: 5px;
 }
 
-.toggle-icon {
-  font-size: 18px;
+.marketing-text {
+  font-size: 14px;
   font-weight: bold;
 }
 
-/* 活動內容區 */
-.campaigns-content {
-  padding: 15px;
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  visibility: hidden;
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  margin-top: 100px; /* 為頂部按鈕留出空間 */
+/* 展開後的側邊欄樣式 */
+.side-campaigns-container.expanded {
+  width: 350px;
+  max-height: 80vh;
+  background-color: white;
+  border-radius: 10px 0 0 10px;
+  box-shadow: -3px 0 15px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  overflow-y: auto;
 }
 
-.expanded .campaigns-content {
-  visibility: visible;
-  opacity: 1;
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px;
+  background-color: #ff6b6b;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 10;
 }
 
 .campaigns-title {
-  font-size: 20px;
-  margin-bottom: 15px;
-  color: #333;
-  text-align: center;
-  font-weight: 600;
+  margin: 0;
+  font-size: 18px;
 }
 
-/* 活動列表 */
+.close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0 5px;
+}
+
+/* 活動內容樣式 */
+.campaigns-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
 .campaign-list {
   display: flex;
   flex-direction: column;
   gap: 15px;
+  padding: 15px;
 }
 
 .campaign-card {
   background: white;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  border: 1px solid #f0f0f0;
+  transition: transform 0.2s ease;
 }
 
 .campaign-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
 .campaign-img {
@@ -574,14 +551,13 @@ onMounted(() => {
 }
 
 .campaign-info {
-  padding: 15px;
+  padding: 12px;
 }
 
 .campaign-name {
   font-size: 16px;
   margin-bottom: 8px;
   color: #333;
-  font-weight: 600;
 }
 
 .campaign-date {
@@ -591,7 +567,7 @@ onMounted(() => {
 }
 
 .campaign-description {
-  font-size: 14px;
+  font-size: 13px;
   color: #666;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -602,15 +578,15 @@ onMounted(() => {
   max-height: 2.6em;
 }
 
-/* 優惠券區域 */
+/* 活動卡片中直接顯示的優惠券 */
 .campaign-coupons {
-  padding: 10px 15px 15px;
-  border-top: 1px dashed #eee;
+  padding: 8px 12px 12px;
+  border-top: 1px dashed #ddd;
   background-color: #f9f9f9;
 }
 
 .coupon-list-compact {
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 .coupon-compact {
@@ -619,9 +595,9 @@ onMounted(() => {
   align-items: center;
   background-color: white;
   border: 1px dashed #ddd;
-  border-radius: 8px;
-  padding: 10px;
-  margin-bottom: 10px;
+  border-radius: 5px;
+  padding: 8px;
+  margin-bottom: 8px;
 }
 
 .coupon-info-compact {
@@ -629,35 +605,32 @@ onMounted(() => {
 }
 
 .coupon-name-compact {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: bold;
   color: #333;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .coupon-discount-compact {
-  font-size: 16px;
+  font-size: 14px;
   color: #e84118;
-  font-weight: 600;
 }
 
 .redeem-btn-compact {
   background-color: #4caf50;
   color: white;
   border: none;
-  border-radius: 6px;
-  padding: 6px 10px;
-  font-size: 13px;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 12px;
   cursor: pointer;
   min-width: 70px;
   text-align: center;
   white-space: nowrap;
-  transition: all 0.2s ease;
 }
 
 .redeem-btn-compact:hover:not(:disabled) {
   background-color: #45a049;
-  transform: translateY(-2px);
 }
 
 .redeem-btn-compact:disabled {
@@ -682,58 +655,68 @@ onMounted(() => {
   background-color: #3498db;
   color: white;
   border: none;
-  border-radius: 8px;
-  padding: 8px 0;
-  font-size: 14px;
+  border-radius: 5px;
+  padding: 6px 0;
+  font-size: 13px;
   cursor: pointer;
-  margin-top: 8px;
-  transition: all 0.2s ease;
+  margin-top: 5px;
 }
 
 .view-details-btn:hover {
   background-color: #2980b9;
-  transform: translateY(-2px);
 }
 
-/* 載入與空狀態 */
 .no-coupons-label {
   text-align: center;
   color: #999;
-  padding: 10px 0;
-  font-size: 14px;
+  padding: 8px 0;
+  font-size: 13px;
 }
 
+/* 小型載入動畫 */
 .loading-spinner-small {
   display: flex;
   justify-content: center;
-  padding: 10px 0;
+  padding: 8px 0;
 }
 
 .spinner-small {
   border: 3px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
   border-top: 3px solid #3498db;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   animation: spin 1s linear infinite;
 }
 
+/* 模態窗中的優惠券樣式 */
+.campaign-coupons-modal {
+  margin-top: 20px;
+}
+
+.campaign-coupons-modal h3 {
+  font-size: 18px;
+  margin-bottom: 12px;
+  color: #333;
+}
+
+/* 一般載入動畫 */
 .loading-spinner {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 150px;
+  height: 120px;
 }
 
 .spinner {
   border: 4px solid rgba(0, 0, 0, 0.1);
   border-radius: 50%;
   border-top: 4px solid #3498db;
-  width: 30px;
-  height: 30px;
+  width: 28px;
+  height: 28px;
   animation: spin 1s linear infinite;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
 }
 
 @keyframes spin {
@@ -753,7 +736,7 @@ onMounted(() => {
   font-size: 14px;
 }
 
-/* 彈窗樣式 */
+/* 模態窗樣式 */
 .campaign-modal {
   position: fixed;
   top: 0;
@@ -764,92 +747,66 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1500;
+  z-index: 1000;
 }
 
 .campaign-modal-content {
   background: white;
-  border-radius: 15px;
+  border-radius: 10px;
   width: 90%;
   max-width: 700px;
-  max-height: 85vh;
+  max-height: 80vh;
   overflow-y: auto;
-  padding: 25px;
+  padding: 20px;
   position: relative;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
 .close-btn {
   position: absolute;
-  top: 15px;
-  right: 20px;
-  font-size: 28px;
+  top: 12px;
+  right: 12px;
+  font-size: 22px;
   cursor: pointer;
   color: #333;
-  line-height: 1;
-  transition: all 0.2s;
-}
-
-.close-btn:hover {
-  color: #ff5252;
-  transform: scale(1.1);
 }
 
 .campaign-detail-img {
   width: 100%;
   height: auto;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+  border-radius: 8px;
+  margin-bottom: 12px;
 }
 
 .campaign-detail-date {
   font-size: 15px;
   color: #666;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .campaign-detail-description {
-  font-size: 16px;
-  line-height: 1.6;
+  font-size: 15px;
+  line-height: 1.5;
   color: #333;
-  margin-bottom: 25px;
-}
-
-/* 彈窗中的優惠券 */
-.campaign-coupons-modal {
-  margin-top: 25px;
-}
-
-.campaign-coupons-modal h3 {
-  font-size: 20px;
   margin-bottom: 15px;
-  color: #333;
 }
 
 .coupon-list {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 15px;
+  gap: 12px;
 }
 
 .coupon-card {
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 10px;
-  padding: 15px;
+  border-radius: 8px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 1px dashed #ced4da;
   position: relative;
   min-height: 170px;
-  transition: all 0.3s ease;
-}
-
-.coupon-card:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
 }
 
 .coupon-card.redeemed {
@@ -862,28 +819,36 @@ onMounted(() => {
   opacity: 0.8;
 }
 
+.coupon-card.not-started {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  opacity: 0.9;
+}
+
+.redeem-btn.not-started {
+  background-color: #007bff;
+}
+
 .coupon-info {
-  margin-bottom: 15px;
+  margin-bottom: 12px;
 }
 
 .coupon-name {
   font-size: 16px;
-  margin-bottom: 10px;
+  margin-bottom: 8px;
   color: #333;
-  font-weight: 600;
 }
 
 .coupon-discount {
   font-size: 20px;
   font-weight: bold;
   color: #e84118;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .coupon-validity {
   font-size: 13px;
   color: #666;
-  margin-bottom: 5px;
+  margin-bottom: 4px;
 }
 
 .coupon-remaining {
@@ -892,21 +857,19 @@ onMounted(() => {
 }
 
 .redeem-btn {
-  padding: 10px 15px;
+  padding: 8px 12px;
   background-color: #4caf50;
   color: white;
   border: none;
-  border-radius: 8px;
+  border-radius: 5px;
   cursor: pointer;
-  font-size: 15px;
-  transition: all 0.2s ease;
+  font-size: 14px;
+  transition: background-color 0.2s;
   margin-top: auto;
-  font-weight: 600;
 }
 
 .redeem-btn:hover:not(:disabled) {
   background-color: #45a049;
-  transform: translateY(-2px);
 }
 
 .redeem-btn:disabled {
@@ -914,42 +877,15 @@ onMounted(() => {
   cursor: not-allowed;
 }
 
-/* 响應式樣式 */
-@media (max-width: 1200px) {
+/* 響應式調整 */
+@media (max-width: 768px) {
   .side-campaigns-container.expanded {
     width: 300px;
   }
-}
 
-@media (max-width: 992px) {
-  .side-campaigns-container {
-    top: auto;
-    bottom: 120px;
-    transform: none;
-    border-radius: 10px 0 0 10px;
-  }
-
-  .toggle-btn {
-    height: 80px;
-  }
-}
-
-@media (max-width: 768px) {
-  .side-campaigns-container {
-    bottom: 80px;
-  }
-
-  .side-campaigns-container.expanded {
-    width: 280px;
-  }
-
-  .toggle-btn {
-    height: 70px;
-    font-size: 14px;
-  }
-
-  .campaigns-title {
-    font-size: 18px;
+  .expand-btn {
+    width: 50px;
+    height: 60px;
   }
 
   .coupon-list {
@@ -958,123 +894,21 @@ onMounted(() => {
 
   .campaign-modal-content {
     width: 95%;
-    padding: 20px;
+    padding: 15px;
   }
 }
 
 @media (max-width: 480px) {
-  .side-campaigns-container {
-    bottom: 60px;
-    width: 38px;
-  }
-
   .side-campaigns-container.expanded {
-    width: 250px;
+    width: 280px;
   }
 
-  .toggle-btn {
-    height: 60px;
+  .marketing-icon {
+    font-size: 20px;
+  }
+
+  .marketing-text {
     font-size: 12px;
-  }
-
-  .campaigns-content {
-    padding: 12px;
-  }
-
-  .campaigns-title {
-    font-size: 16px;
-    margin-bottom: 12px;
-  }
-
-  .campaign-card {
-    border-radius: 8px;
-  }
-
-  .campaign-img {
-    height: 120px;
-  }
-
-  .campaign-info {
-    padding: 12px;
-  }
-
-  .campaign-name {
-    font-size: 15px;
-  }
-
-  .campaign-date,
-  .campaign-description {
-    font-size: 12px;
-  }
-
-  .coupon-name-compact {
-    font-size: 12px;
-  }
-
-  .coupon-discount-compact {
-    font-size: 14px;
-  }
-
-  .redeem-btn-compact {
-    font-size: 11px;
-    min-width: 60px;
-    padding: 4px 6px;
-  }
-
-  .view-details-btn {
-    font-size: 12px;
-    padding: 6px 0;
-  }
-}
-
-/* 滾動條美化 */
-.side-campaigns-container.expanded::-webkit-scrollbar {
-  width: 5px;
-}
-
-.side-campaigns-container.expanded::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-
-.side-campaigns-container.expanded::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 5px;
-}
-
-.side-campaigns-container.expanded::-webkit-scrollbar-thumb:hover {
-  background: #aaa;
-}
-
-/* 通知小紅點 */
-.toggle-btn::after {
-  content: "";
-  position: absolute;
-  top: 15px;
-  right: 10px;
-  width: 8px;
-  height: 8px;
-  background-color: #ff0000;
-  border-radius: 50%;
-  display: none;
-}
-
-.side-campaigns-container:not(.expanded) .toggle-btn::after {
-  display: block;
-  animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(0.95);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.1);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(0.95);
-    opacity: 0.7;
   }
 }
 </style>

@@ -3,17 +3,22 @@
     <SellerStoreInfo :shop="shop" :isOwner="isOwner" />
 
     <div v-if="isOwner" class="my-products-section">
-  <div class="buttons-container">
-    <button class="btn-my-products" @click="goToMyProducts">
-      <span class="icon">🛍️</span> 我的商品
-    </button>
-    <button class="btn-my-products" @click="goToMyCampaign">
-      <span class="icon">📣</span> 我的行銷活動
-    </button>
-  </div>
-</div>
- <!-- 非店主顯示活動列表 -->
- <ShopCampaigns v-if="!isOwner" :shopId="shop.shopId || route.params.shopId" />
+      <div class="buttons-container">
+        <button class="btn-my-products" @click="goToMyProducts">
+          <span class="icon">🛍️</span> 我的商品
+        </button>
+        <button class="btn-my-products" @click="goToMyCampaign">
+          <span class="icon">📣</span> 我的行銷活動
+        </button>
+      </div>
+    </div>
+
+    <!-- 側邊活動面板 (僅非店主顯示) -->
+    <SidebarCampaigns
+      v-if="!isOwner"
+      :shopId="shop.shopId || route.params.shopId"
+    />
+
     <!-- 分類選單 -->
     <nav class="shop-menu">
       <a href="#" class="active">回首頁</a>
@@ -134,12 +139,12 @@
 <script setup>
 import SellerStoreInfo from "@/components/SellerStore/SellerStoreInfo.vue";
 import ProductDetail from "@/components/product.components/ProductDetail.vue";
+import SidebarCampaigns from "@/components/campaign/SideBarCampaigns.vue";
 import { ref, onMounted, watch, computed, reactive } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import axios from "@/plugins/axios";
 import Swal from "sweetalert2";
 import { useUserStore } from "@/stores/user";
-import ShopCampaigns from "@/components/campaign/ShopCampaigns.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -258,9 +263,9 @@ const fetchProducts = async () => {
     }
     // products.value = response.data.content || []; 先保留
 
-// ⭐ 每筆商品抓一次評價統計
-// for (const product of products.value) {
-  // fetchReviewSummary(product.productId);
+    // ⭐ 每筆商品抓一次評價統計
+    // for (const product of products.value) {
+    // fetchReviewSummary(product.productId);
   } catch (error) {
     console.error("❌ 取得商品失敗：", error);
     products.value = [];
@@ -287,8 +292,6 @@ const searchProduct = () => {
 const goToMyProducts = () => {
   router.push(`/seller/shops/${shop.value.shopId}/products`);
 };
-
-
 
 const goToMyCampaign = () => {
   router.push(
@@ -468,101 +471,32 @@ const formatPrice = (price) => {
 // 修改 getImageUrl 函數
 const getImageUrl = (path) => {
   // 記錄原始路徑以便調試
-  console.log('getImageUrl 收到的原始路徑:', path);
-  
+  console.log("getImageUrl 收到的原始路徑:", path);
+
   if (!path) {
-    console.log('路徑為空，使用預設圖片');
-    return '/src/assets/default-campaign.png';
+    console.log("路徑為空，使用預設圖片");
+    return "/src/assets/default-campaign.png";
   }
-  
+
   // 如果路徑已經是完整 URL，則直接返回
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    console.log('使用完整 URL:', path);
+  if (path.startsWith("http://") || path.startsWith("https://")) {
+    console.log("使用完整 URL:", path);
     return path;
   }
-  
+
   // 確保路徑以 / 開頭
-  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  console.log('正規化後的路徑:', normalizedPath);
-  
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  console.log("正規化後的路徑:", normalizedPath);
+
   // 添加時間戳參數以防止緩存問題
   const timestamp = new Date().getTime();
-  const fullPath = `${import.meta.env.VITE_API_URL}${normalizedPath}?t=${timestamp}`;
-  console.log('最終完整 URL:', fullPath);
-  
+  const fullPath = `${
+    import.meta.env.VITE_API_URL
+  }${normalizedPath}?t=${timestamp}`;
+  console.log("最終完整 URL:", fullPath);
+
   return fullPath;
 };
-
-//評價功能多次留言
-const replyThreads = ref({}); // reviewId -> reply list
-const threadInputs = ref({}); // reviewId -> { content, imageFile }
-
-// 載入每個 review 的留言串
-const fetchReplyThreads = async () => {
-  for (const review of reviews.value) {
-    try {
-      const res = await axios.get(`/api/review/${review.reviewId}/reply-thread`);
-      replyThreads.value[review.reviewId] = res.data || [];
-    } catch (err) {
-      console.warn(`❌ 無法載入 review ${review.reviewId} 的留言串`, err);
-      replyThreads.value[review.reviewId] = [];
-    }
-  }
-};
-
-// 留言圖片上傳
-const handleImageUpload = (event, reviewId) => {
-  const file = event.target.files[0];
-  if (!file) return;
-  if (!threadInputs.value[reviewId]) threadInputs.value[reviewId] = {};
-  threadInputs.value[reviewId].imageFile = file;
-};
-
-// 提交留言
-const submitThreadReply = async (reviewId) => {
-  const input = threadInputs.value[reviewId];
-  if (!input?.content) return;
-
-  const formData = new FormData();
-  formData.append("content", input.content);
-  formData.append("userId", userStore.userId);
-  if (input.imageFile) {
-    formData.append("image", input.imageFile);
-  }
-
-  try {
-    await axios.post(`/api/review/${reviewId}/reply-thread`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-
-    Swal.fire("留言成功", "", "success");
-    threadInputs.value[reviewId] = {}; // 清空輸入
-    await fetchReplyThreads(); // 重新載入
-  } catch (error) {
-    console.error("❌ 留言失敗", error);
-    Swal.fire("留言失敗", "請稍後再試", "error");
-  }
-};
-
-
-// 監聽 shopId 變化
-watch(
-  () => route.params.shopId,
-  async () => {
-    loading.value = true;
-    await fetchShopData();
-    await checkOwner();
-    await fetchProducts();
-  }
-);
-
-// 監聽搜尋關鍵字變化
-watch(searchQuery, (newVal, oldVal) => {
-  if (newVal === "" && oldVal !== "") {
-    // 當清空搜尋框時自動刷新商品列表
-    fetchProducts();
-  }
-});
 
 const isProductActive = (product) => {
   // 如果product為undefined或null，直接返回false
@@ -583,9 +517,6 @@ onMounted(async () => {
   await fetchShopData();
   await checkOwner();
   await fetchProducts();
-  await fetchProductDetail();
-  await fetchReviews();
-  await fetchReplyThreads();
 });
 </script>
 
@@ -766,13 +697,13 @@ onMounted(async () => {
   color: #333;
   margin: 0 0 12px 0;
   font-weight: 500;
-  overflow: hidden;               
-  display: -webkit-box;           
-  -webkit-box-orient: vertical;   
-  -webkit-line-clamp: 2;          
-  line-clamp: 2;                  
-  line-height: 1.4;               
-  height: 2.8em;                  
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  line-height: 1.4;
+  height: 2.8em;
 }
 
 .product-price {
@@ -802,7 +733,6 @@ onMounted(async () => {
   align-items: center;
   gap: 6px;
 }
-
 
 .rating-icon {
   color: #ffc107;

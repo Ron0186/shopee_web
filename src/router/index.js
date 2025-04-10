@@ -137,6 +137,10 @@ const router = createRouter({
           name: "CVSAddressCreate",
           component: () => import("@/views/member/CVSAddressCreate.vue"),
         },
+        {
+          path: "/privacy",
+          component: () => import("@/views/front/privacy.vue"),
+        },
         // {
         //   path: "/memberOrders",
         //   name: "memberOrders",
